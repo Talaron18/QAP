@@ -1,0 +1,12 @@
+# WRDS data is licensed and must never be committed; neither may credentials
+data/
+*.parquet
+.env
+.pgpass
+mlruns/
+qlib_data/
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
