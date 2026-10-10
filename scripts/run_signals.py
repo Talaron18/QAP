@@ -13,10 +13,12 @@ from qap.evaluate import SIGNALS, build_research_signals, evaluate_signal
 from qap.fundamentals import prepare_annual
 from qap.links import filter_ccm_links
 from qap.panel import assert_month_grid, build_monthly_panel, calibrate_me_scale, to_mi
-from qap.replicate import compare, ff_to_mi, form_portfolios, portfolio_returns, smb_hml, vw_market_return
+from qap.replicate import compare, ff_to_mi, form_portfolios, portfolio_returns, smb_hml, umd, vw_market_return
+from qap.trials import log_trial
 
 RAW = pathlib.Path("data/raw")
 GATE_MKT, GATE_FACTOR = 0.99, 0.95
+GATE_UMD = 0.95
 
 
 def main(force: bool) -> None:
@@ -71,7 +73,10 @@ def _run(force: bool, report: list) -> None:
         log(f"GATE 2 {name.upper()}: {c}  (need corr >= {GATE_FACTOR})")
         if c["corr"] < GATE_FACTOR:
             failures.append(f"gate 2 {name} corr {c['corr']:.4f} < {GATE_FACTOR}")
-    log("GATE 3 UMD: not implemented yet")
+    c3 = compare(umd(panel), ff["umd"])
+    log(f"GATE 3 UMD: {c3}  (need corr >= {GATE_FACTOR})")
+    if c3["corr"] < GATE_UMD:
+        failures.append(f"gate 3 umd corr {c3['corr']:.4f} < {GATE_UMD}")
 
     if failures and not force:
         log("\nGATES FAILED -> research signals NOT built. " + "; ".join(failures))
@@ -80,8 +85,14 @@ def _run(force: bool, report: list) -> None:
             log("\nWARNING: gates failed, signals below are UNVALIDATED (--force-signals)")
         sig = build_research_signals(panel, annual, links)
         log(f"\nresearch signals: {len(sig):,} formation rows, CCM+PIT hit rate on formation universe {sig.attrs['link_hit_rate']:.1%}")
+        log("  link/PIT diagnostics: " + str(sig.attrs["link_diag"]))
         for name in SIGNALS:
-            log("  " + str(evaluate_signal(sig, panel, name)))
+            res = evaluate_signal(sig, panel, name)
+            by = res.pop("by_period")
+            log("  " + str(res))
+            for per, v in by.items():
+                log(f"    {per}: {v}")
+            log_trial(name, {"universe": "eq, ex-NYSE-20pct microcaps", "weights": "VW", "pit_lag_months": 4}, {"by_period": by})
         pathlib.Path("data").mkdir(exist_ok=True)
         sig.to_parquet("data/signals.parquet", index=False)
 

@@ -37,3 +37,13 @@ never enter git (licence).
   stkdelists delret when usable, else -30% for performance-related reasons (Shumway), else 0.
 - Monthly labels: signals formed at month-end t earn month t+1, i.e.
   `forward_return_from_returns(ret, horizon=1, lag=0)`; the daily default (lag=1) skips a day.
+
+## Status log
+
+- Gates 1-2 passed on real data (market corr 0.99999; SMB 0.995; HML 0.983). Gate 3 (UMD) added,
+  awaiting a run.
+- Governance note: the first signal run reported the FULL sample, including 2020+. The three signals
+  (BM, GP/A, asset growth) are published, untuned replications, so little is lost, but the 2020+
+  holdout has now been seen for them. Any NEW signal, model or tuning must be selected on 1990-2014
+  (validated on 2015-2019) with 2020+ untouched; `scripts/run_signals.py` now reports each split
+  separately and appends every evaluation to `data/trials.jsonl` (trial count for deflated Sharpe).

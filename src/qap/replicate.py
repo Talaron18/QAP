@@ -104,3 +104,44 @@ def compare(mine: pd.Series, theirs: pd.Series) -> dict:
         "n_months": int(len(j)),
         "window": f"{int(j.index.min() // 12)}-{int(j.index.min() % 12) + 1:02d} .. {int(j.index.max() // 12)}-{int(j.index.max() % 12) + 1:02d}",
     }
+
+
+def momentum_signal(panel: pd.DataFrame) -> pd.DataFrame:
+    """12-1 momentum at each formation month f: cumulative return over months f-11 .. f-1 (skips month f).
+
+    Uses delisting-adjusted returns; needs at least 10 of the 11 monthly returns.
+    """
+    r = panel.pivot(index="mi", columns="permno", values="mthret_adj")
+    r = r.reindex(range(int(r.index.min()), int(r.index.max()) + 1))
+    lr = np.log1p(r.clip(lower=-0.9999))
+    cum = lr.shift(1).rolling(11, min_periods=10).sum()
+    out = np.expm1(cum).stack().rename("mom").reset_index()
+    return out.dropna(subset=["mom"])  # stack() keeps NaN in newer pandas; NaN must never be classed as "Up"
+
+
+def umd(panel: pd.DataFrame) -> pd.Series:
+    """FF-style UMD: 2x3 on size (NYSE median) and 12-1 momentum (NYSE 30/70), VW, formed monthly, held one month."""
+    mom = momentum_signal(panel)
+    f = panel.loc[panel["eq"] & (panel["me_co"] > 0), ["permno", "permco", "mi", "me", "me_co", "primaryexch"]]
+    f = f.merge(mom, on=["permno", "mi"])
+    firm = f.sort_values("me_co", ascending=False).drop_duplicates(["permco", "mi"])
+    nyse = firm[firm["primaryexch"] == "N"]
+    cuts = pd.concat({
+        "s_med": nyse.groupby("mi")["me_co"].median(),
+        "m30": nyse.groupby("mi")["mom"].quantile(0.3),
+        "m70": nyse.groupby("mi")["mom"].quantile(0.7),
+    }, axis=1)
+    f = f.merge(cuts, left_on="mi", right_index=True)
+    size = np.where(f["me_co"] <= f["s_med"], "S", "B")
+    mg = np.where(f["mom"] <= f["m30"], "D", np.where(f["mom"] <= f["m70"], "M", "U"))
+    f["port"] = pd.Series(size, index=f.index) + pd.Series(mg, index=f.index)
+    nxt = panel[["permno", "mi", "mthret_adj"]].copy()
+    nxt["mi"] = nxt["mi"] - 1
+    f = f.merge(nxt.rename(columns={"mthret_adj": "fwd"}), on=["permno", "mi"])
+    f = f[f["fwd"].notna() & (f["me"] > 0)]
+    f["wr"] = f["fwd"] * f["me"]
+    g = f.groupby(["mi", "port"])[["wr", "me"]].sum()
+    r = (g["wr"] / g["me"]).unstack("port")
+    res = r[["SU", "BU"]].mean(axis=1) - r[["SD", "BD"]].mean(axis=1)
+    res.index = res.index + 1  # formed end of month f, earned in f+1
+    return res.rename("umd")

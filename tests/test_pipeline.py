@@ -157,3 +157,31 @@ def test_market_return_uses_previous_month_weights():
     p = build_monthly_panel(m, d)
     mk = vw_market_return(p)
     assert mk.index.min() == p.mi.min() + 1 and len(mk) == p.mi.nunique() - 1
+
+
+def test_momentum_skips_formation_month_and_uses_11_months():
+    from qap.replicate import momentum_signal
+    m, d, *_ = make_world(n=3)
+    p = build_monthly_panel(m, d)
+    p["mthret_adj"] = 0.0
+    base = to_mi(pd.Series(["1995-12-31"])).iloc[0]
+    p.loc[p.mi == base, "mthret_adj"] = 0.9            # month f itself: must NOT enter mom at f
+    p.loc[p.mi == base - 1, "mthret_adj"] = 0.10       # f-1: enters
+    p.loc[p.mi == base - 11, "mthret_adj"] = 0.10      # f-11: enters
+    p.loc[p.mi == base - 12, "mthret_adj"] = 0.90      # f-12: must NOT enter
+    mom = momentum_signal(p).query("permno == 1 and mi == @base")["mom"].iloc[0]
+    assert mom == pytest.approx(1.1 * 1.1 - 1)
+
+
+def test_umd_runs_and_period_summary_shapes():
+    from qap.replicate import umd
+    m, d, funda, links = make_world(n=240)
+    p = build_monthly_panel(m, d)
+    p["me"] = p["mthcap"] / 1000.0
+    p["me_co"] = p.groupby(["permco", "mi"])["me"].transform("sum")
+    u = umd(p)
+    assert len(u) > 90 and np.isfinite(u).all()
+    sig = build_research_signals(p, prepare_annual(funda), links)
+    assert set(sig.attrs["link_diag"]) >= {"formation_rows", "with_gvkey", "with_annual_record", "with_positive_be"}
+    res = evaluate_signal(sig, p, "gpa")
+    assert set(res["by_period"]) == {"pre1990", "dev1990_2014", "valid2015_2019", "holdout2020+", "full"}
