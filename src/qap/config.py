@@ -50,3 +50,5 @@ CCM_LINK_COLS = ["gvkey", "liid", "linktype", "linkprim", "lpermno", "lpermco", 
 # Thomson 13F, Compustat Snapshot (only sample libraries). Precomputed helpers that DO exist:
 # wrdsapps.signals_raw_basic/plus (WRDS characteristic signals), wrdsapps_finratio.firm_ratio,
 # wrdsapps.ibcrsphist (link only, no IBES data).
+
+CRSP_DAILY_AGG = "crsp.dsf_v2"  # aggregated server-side into per (permno, month) liquidity inputs

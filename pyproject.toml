@@ -7,7 +7,7 @@ dependencies = ["numpy", "pandas", "scipy"]
 
 [project.optional-dependencies]
 wrds = ["wrds", "pyarrow"]
-dev = ["pytest"]
+dev = ["pytest", "duckdb"]
 
 [build-system]
 requires = ["setuptools>=64"]

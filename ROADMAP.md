@@ -54,3 +54,11 @@ never enter git (licence).
   (`--open-holdout` to show 2020+, once per major model version).
 - Next candidates: composite and 12-1 momentum evaluation (added), intangibles-adjusted value using
   `totalq.total_q` (k_int), industry neutralisation (needs siccd in the panel), cost model, optimizer.
+- Composite and momentum (pre-2020, gross): composite_vpi LS 0.52%/mo (t 4.15) but -0.48%/mo (t -1.16)
+  in 2015-2019; momentum flat in 2015-2019. The composite failed validation, and its 2020+ is not a clean
+  holdout (a fixed function of signals whose 2020+ was already shown); only NEW ingredients get a clean one.
+- Cost model built (`qap.costs`, `qap.portfolio`, `scripts/run_costs.py`): half-spread (quoted, else
+  Corwin-Schultz, else month x size-decile median) + square-root impact (Y=1) + optional commission;
+  stress 1x/1.5x/2x, AUM $1M/$10M/$100M, break-even multiple, share of trades above 5%/10% ADV. Books:
+  LS (borrow NOT modelled) and long-minus-universe. Awaiting the `crsp_daily_agg` extraction and a run.
+  Partial-rebalance / no-trade-band rules are later trials, chosen on 1990-2014 only.

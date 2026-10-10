@@ -1,4 +1,5 @@
 """SQL builders for WRDS extraction. Pure functions; run them with scripts/wrds_extract.py."""
+import datetime as dt
 from typing import Sequence
 
 from qap import config
@@ -39,6 +40,89 @@ def compustat_quarterly_sql(start: str = "1960-01-01") -> str:
 
 def ff_monthly_sql() -> str:
     return _select(["date", "mktrf", "smb", "hml", "umd", "rf"], config.FF_FACTORS_MONTHLY, order="date")
+
+
+_CS_K = "0.1715728752538097"  # 3 - 2*sqrt(2)
+
+
+def crsp_daily_agg_sql(start: str, end: str, overlap_days: int = 14) -> str:
+    """Per (permno, month) liquidity inputs from daily CIZ data, aggregated on the WRDS server.
+
+    start/end are inclusive ISO dates for the OUTPUT rows. The daily scan is widened by
+    `overlap_days` each side so lag()/lead() windows (Corwin-Schultz, Abdi-Ranaldo) are complete at
+    chunk edges. Portable SQL (runs unchanged on Postgres and DuckDB); every ln/sqrt/division sits
+    behind a CASE guard so one bad row cannot abort a chunk.
+
+    Columns: n_ret, sigma_d (daily return stdev), n_q/qspread (mean quoted relative spread where
+    0 < bid < ask and spread < 50% of mid), n_cs/cs_spread (Corwin-Schultz, negatives floored at 0),
+    n_ar/ar_x_mean (mean Abdi-Ranaldo cross-product; spread = sqrt(max(4*mean, 0))),
+    adv_a = mean dlyprcvol, adv_b = mean |dlyprc| * dlyvol.
+    """
+    d0 = dt.date.fromisoformat(start) - dt.timedelta(days=overlap_days)
+    d1 = dt.date.fromisoformat(end) + dt.timedelta(days=overlap_days)
+    k = _CS_K
+    return f"""
+with d as (
+  select permno, dlycaldt, dlyret, dlybid, dlyask, dlyvol, dlyprcvol,
+         abs(dlyprc) as prc,
+         case when dlyclose > 0 then dlyclose when abs(dlyprc) > 0 then abs(dlyprc) end as px,
+         case when dlyhigh > 0 and dlylow > 0 and dlyhigh >= dlylow then cast(dlyhigh as double precision) end as hi,
+         case when dlyhigh > 0 and dlylow > 0 and dlyhigh >= dlylow then cast(dlylow as double precision) end as lo
+  from crsp.dsf_v2
+  where dlycaldt >= DATE '{d0.isoformat()}' and dlycaldt <= DATE '{d1.isoformat()}'
+),
+e as (
+  select d.*,
+         case when hi is not null and px > 0 then (ln(hi) + ln(lo)) / 2.0 end as eta,
+         case when px > 0 then ln(cast(px as double precision)) end as lpx
+  from d
+),
+w as (
+  select e.*,
+         lag(hi) over (partition by permno order by dlycaldt) as hi0,
+         lag(lo) over (partition by permno order by dlycaldt) as lo0,
+         lag(dlycaldt) over (partition by permno order by dlycaldt) as dt0,
+         lead(eta) over (partition by permno order by dlycaldt) as eta1,
+         lead(dlycaldt) over (partition by permno order by dlycaldt) as dt1
+  from e
+),
+b as (
+  select w.*,
+         case when hi is not null and hi0 is not null and (dlycaldt - dt0) <= 5
+              then ln(hi / lo) * ln(hi / lo) + ln(hi0 / lo0) * ln(hi0 / lo0) end as beta,
+         case when hi is not null and hi0 is not null and (dlycaldt - dt0) <= 5
+              then ln(greatest(hi, hi0) / least(lo, lo0)) * ln(greatest(hi, hi0) / least(lo, lo0)) end as gamma
+  from w
+),
+c as (
+  select b.*,
+         case when beta is not null and gamma is not null
+              then (sqrt(2.0 * beta) - sqrt(beta)) / {k} - sqrt(gamma / {k}) end as alpha
+  from b
+),
+f as (
+  select c.*,
+         cast(extract(year from dlycaldt) as integer) as yr,
+         cast(extract(month from dlycaldt) as integer) as mo,
+         case when alpha is not null and alpha > -30 and alpha < 30
+              then greatest(2.0 * (exp(alpha) - 1.0) / (1.0 + exp(alpha)), 0.0) end as cs,
+         case when dlybid > 0 and dlyask > dlybid and (dlyask - dlybid) < 0.5 * ((dlyask + dlybid) / 2.0)
+              then (dlyask - dlybid) / ((dlyask + dlybid) / 2.0) end as qs,
+         case when lpx is not null and eta is not null and eta1 is not null and (dt1 - dlycaldt) <= 5
+              then (lpx - eta) * (lpx - eta1) end as ar_x
+  from c
+)
+select permno, yr * 100 + mo as yyyymm,
+       count(dlyret) as n_ret, stddev_samp(dlyret) as sigma_d,
+       count(qs) as n_q, avg(qs) as qspread,
+       count(cs) as n_cs, avg(cs) as cs_spread,
+       count(ar_x) as n_ar, avg(ar_x) as ar_x_mean,
+       avg(dlyprcvol) as adv_a, avg(prc * dlyvol) as adv_b
+from f
+where dlycaldt >= DATE '{start}' and dlycaldt <= DATE '{end}'
+group by permno, yr, mo
+order by permno, yr, mo
+"""
 
 
 QUERIES = {
