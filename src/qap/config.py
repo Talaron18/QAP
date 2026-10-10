@@ -4,8 +4,10 @@ CRSP is in CIZ (v2) format. Legacy SIZ tables (crsp.msf, msenames, msedelist) st
 are frozen after Dec 2024; do not mix them with v2 and do not map legacy names (shrcd, exchcd,
 dlret) onto v2 columns. CIZ monthly/daily returns appear to already include delisting payoffs
 (secondary sources), so never compound a delisting return on top of mthret/dlyret. The meaning
-of mthdelflg / dlydelflg codes is stored as rows in crsp.metaflaginfo; confirm it from
-data/wrds_meta_crsp_metaflaginfo.csv before relying on it.
+of mthdelflg is CONFIRMED from crsp.metaflaginfo (flagtype DE, "Aggregate Delisting Flag"):
+A/P/V = delisting return IS included in mthret; G (gap > 10 days) / M (missing) = delisting return
+EXCLUDED from mthret; N = active. CRSP notes an exact equivalent of the legacy holding-period
+delisting return (SFZ_MDEL) is no longer available, so G/M rows need explicit treatment.
 """
 
 CRSP_MONTHLY = "crsp.msf_v2"
@@ -36,6 +38,11 @@ COMPUSTAT_ANNUAL_COLS = [
 ]
 
 COMPUSTAT_QUARTERLY_COLS = ["gvkey", "datadate", "fyearq", "fqtr", "rdq", "atq", "ibq", "saleq", "cogsq", "ceqq", "seqq"]
+
+CRSP_DELISTINGS_COLS = [
+    "permno", "delistingdt", "delactiontype", "delstatustype", "delreasontype", "delpaymenttype",
+    "delret", "delretmisstype", "deldtprc", "deldlydt",
+]
 
 CCM_LINK_COLS = ["gvkey", "liid", "linktype", "linkprim", "lpermno", "lpermco", "linkdt", "linkenddt"]
 

@@ -18,6 +18,10 @@ def crsp_monthly_sql(start: str = "1963-01-01") -> str:
     return _select(config.CRSP_MONTHLY_COLS, config.CRSP_MONTHLY, f"mthcaldt >= '{start}'", "permno, mthcaldt")
 
 
+def crsp_delistings_sql() -> str:
+    return _select(config.CRSP_DELISTINGS_COLS, config.CRSP_DELISTINGS, order="permno, delistingdt")
+
+
 def ccm_links_sql() -> str:
     return _select(config.CCM_LINK_COLS, config.CCM_LINKS, order="gvkey, linkdt")
 
@@ -39,6 +43,7 @@ def ff_monthly_sql() -> str:
 
 QUERIES = {
     "crsp_monthly": crsp_monthly_sql,
+    "crsp_delistings": crsp_delistings_sql,
     "ccm_links": ccm_links_sql,
     "compustat_annual": compustat_annual_sql,
     "compustat_quarterly": compustat_quarterly_sql,

@@ -29,5 +29,9 @@ never enter git (licence).
   and 13F signals are out of scope. Without Snapshot, use the conservative filing lags from
   report section 7.4 (rdq for quarterly; fiscal year-end + 4 months for annual).
 - Useful for replication (§9.3 step 1): wrdsapps.signals_raw_* can cross-check my own Tier-1 signals.
-- Still open: meaning of CIZ delisting flags (mthdelflg, dlydelflg). Needs the rows of
-  crsp.metaflaginfo (data/wrds_meta_crsp_metaflaginfo.csv written by the inspector).
+- CIZ delisting flags confirmed (crsp.metaflaginfo): mthret already includes the delisting return
+  for mthdelflg A/P/V and excludes it for G (price >10 days from delisting) and M (missing). Of
+  4.84M monthly rows, 3,746 are G/M. Next: impute those from `crsp.stkdelists` (reason/payment
+  types), Shumway-style, once that table is extracted.
+- Monthly labels: signals formed at month-end t earn month t+1, i.e.
+  `forward_return_from_returns(ret, horizon=1, lag=0)`; the daily default (lag=1) skips a day.
