@@ -184,7 +184,7 @@ def test_umd_runs_and_period_summary_shapes():
     sig = build_research_signals(p, prepare_annual(funda), links)
     assert set(sig.attrs["link_diag"]) >= {"formation_rows", "with_gvkey", "with_annual_record", "with_positive_be"}
     res = evaluate_signal(sig, p, "gpa")
-    assert set(res["by_period"]) == {"pre1990", "dev1990_2014", "valid2015_2019", "pre2020"}   # holdout sealed
+    assert set(res["by_period"]) == {"pre1990", "dev1990_2014", "valid2015_2019", "pre2020", "post1990"}   # holdout sealed
     opened = evaluate_signal(sig, p, "gpa", include_holdout=True)
     assert {"holdout2020+", "full"} <= set(opened["by_period"])
 

@@ -17,7 +17,7 @@ from qap.evaluate import add_composite, add_momentum, build_research_signals
 from qap.fundamentals import prepare_annual
 from qap.links import filter_ccm_links
 from qap.panel import build_monthly_panel, calibrate_me_scale
-from qap.portfolio import costed_books, period_stats
+from qap.portfolio import costed_books, market_scaled_aum, period_stats
 from qap.trials import log_trial, trial_count
 
 RAW = pathlib.Path("data/raw")
@@ -31,16 +31,16 @@ def _t(x):
     return float(x.mean() / (x.std(ddof=1) / len(x) ** 0.5)) if len(x) > 2 else float("nan")
 
 
-def main(open_holdout: bool, y: float, commission: float, enforce_sanity: bool) -> None:
+def main(open_holdout: bool, y: float, commission: float, enforce_sanity: bool, nominal_aum: bool = False) -> None:
     report = []
     try:
-        _run(open_holdout, y, commission, enforce_sanity, report)
+        _run(open_holdout, y, commission, enforce_sanity, report, nominal_aum)
     finally:
         pathlib.Path("data").mkdir(exist_ok=True)
         pathlib.Path("data/costs_report.txt").write_text("\n".join(report) + "\n")
 
 
-def _run(open_holdout, y, commission, enforce_sanity, report) -> None:
+def _run(open_holdout, y, commission, enforce_sanity, report, nominal_aum) -> None:
     def log(msg=""):
         print(msg, flush=True)
         report.append(str(msg))
@@ -73,10 +73,13 @@ def _run(open_holdout, y, commission, enforce_sanity, report) -> None:
     sig = add_momentum(add_composite(build_research_signals(panel, annual, links)), panel)
     log(f"\n== COSTED BACKTESTS (impact Y={y}, commission {commission * 1e4:g} bp, stress multiples {MULTS}); "
         f"holdout {'OPENED' if open_holdout else 'sealed'} ==")
+    log("AUM is " + ("NOMINAL and constant over time (early years look very expensive)" if nominal_aum else
+                     "market-scaled: a constant share of total equity market cap, quoted in 2019 market-size dollars"))
     cut = None if open_holdout else 2020 * 12
     for name in SIGNALS:
         for aum in AUMS:
-            res = costed_books(sig, panel, inp, name, aum, y, commission)
+            aum_t = aum if nominal_aum else market_scaled_aum(panel, aum)
+            res = costed_books(sig, panel, inp, name, aum_t, y, commission)
             tl = res["turnover_L"]
             log(f"\n{name} @ AUM ${aum:,.0f}: monthly one-way turnover L={tl.mean():.1%} S={res['turnover_S'].mean():.1%}; "
                 f"long-leg trade $ above 5% ADV: {res['adv5'].mean():.2%}, above 10% ADV: {res['adv10'].mean():.2%}")
@@ -96,9 +99,11 @@ def _run(open_holdout, y, commission, enforce_sanity, report) -> None:
                 log(f"  {label}: {row}")
                 metrics[book] = row
                 if aum == 1e7:
+                    cser = res[book]["cost"]
+                    log("    cost at 1x by period (% per month): " + str({k: v["mean_pct"] for k, v in period_stats(cser, open_holdout).items()}))
                     for m in (1.5,):
                         log(f"    by period, net at {m}x: " + str(period_stats(res[book]["gross"] - m * res[book]["cost"].reindex(res[book]["gross"].index), open_holdout)))
-            log_trial(f"cost:{name}", {"aum": aum, "y": y, "commission": commission, "universe": "ex-NYSE-20pct microcaps", "weights": "VW"},
+            log_trial(f"cost:{name}", {"aum": aum, "aum_mode": "nominal" if nominal_aum else "market_scaled_2019", "y": y, "commission": commission, "universe": "ex-NYSE-20pct microcaps", "weights": "VW"},
                       metrics)
     log(f"\nunique trials logged so far: {trial_count()}")
 
@@ -108,6 +113,7 @@ if __name__ == "__main__":
     ap.add_argument("--open-holdout", action="store_true")
     ap.add_argument("--y", type=float, default=1.0, help="impact coefficient (report: order 1)")
     ap.add_argument("--commission-bps", type=float, default=0.0)
+    ap.add_argument("--nominal-aum", action="store_true", help="constant nominal AUM (old behaviour; overstates early-era impact)")
     ap.add_argument("--no-sanity-assert", action="store_true", help="run backtests even if sanity checks fail (unvalidated)")
     a = ap.parse_args()
-    main(a.open_holdout, a.y, a.commission_bps / 1e4, not a.no_sanity_assert)
+    main(a.open_holdout, a.y, a.commission_bps / 1e4, not a.no_sanity_assert, a.nominal_aum)

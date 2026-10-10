@@ -51,14 +51,30 @@ def leg_trades(W: pd.DataFrame, panel: pd.DataFrame) -> pd.DataFrame:
     return m
 
 
-def leg_costs(W: pd.DataFrame, panel: pd.DataFrame, inputs: pd.DataFrame, aum: float,
+def market_scaled_aum(panel: pd.DataFrame, aum: float, ref_year: int = 2019) -> pd.Series:
+    """Book size by month that is a CONSTANT SHARE of the equity market.
+
+    `aum` is the book size in `ref_year` market-size dollars: aum_t = aum * total_ME_t / total_ME_ref. A fixed
+    nominal book would be enormous relative to 1960s-70s volumes and overstate early-era impact.
+    """
+    tot = panel.loc[panel["eq"] & (panel["me"] > 0)].groupby("mi")["me"].sum()
+    ref = tot[(tot.index >= ref_year * 12) & (tot.index <= ref_year * 12 + 11)].mean()
+    return (aum * tot / ref).rename("aum")
+
+
+def leg_costs(W: pd.DataFrame, panel: pd.DataFrame, inputs: pd.DataFrame, aum,
               y: float = 1.0, commission: float = 0.0) -> pd.DataFrame:
-    """Per rebalance month: cost (fraction of leg capital, mult=1), one-way turnover, share of trade dollars above 5%/10% ADV."""
+    """Per rebalance month: cost (fraction of leg capital, mult=1), one-way turnover, share of trade dollars above 5%/10% ADV.
+
+    `aum` is a float (nominal, constant) or a Series indexed by month (see `market_scaled_aum`).
+    """
     t = leg_trades(W, panel).merge(inputs[["permno", "mi", "spread", "sigma_d", "adv"]], on=["permno", "mi"], how="left")
+    t["aum"] = t["mi"].map(aum) if isinstance(aum, pd.Series) else float(aum)
+    t["aum"] = t["aum"].fillna(t["aum"].median())
     for col in ("spread", "sigma_d", "adv"):  # exited names have no row: use that month's median
         t[col] = t[col].fillna(t.groupby("mi")[col].transform("median")).fillna(inputs[col].median())
-    t["cost"] = trade_cost(t["dw"], t["spread"], t["sigma_d"], t["adv"], aum, y, commission)
-    t["pct_adv"] = t["dw"] * aum / t["adv"]
+    t["cost"] = trade_cost(t["dw"], t["spread"], t["sigma_d"], t["adv"], t["aum"].to_numpy(), y, commission)
+    t["pct_adv"] = t["dw"] * t["aum"] / t["adv"]
     t["d5"] = t["dw"] * (t["pct_adv"] > 0.05)
     t["d10"] = t["dw"] * (t["pct_adv"] > 0.10)
     g = t.groupby("mi")
@@ -81,7 +97,7 @@ def period_stats(x: pd.Series, include_holdout: bool = False) -> dict:
     return res
 
 
-def costed_books(sig: pd.DataFrame, panel: pd.DataFrame, inputs: pd.DataFrame, name: str, aum: float,
+def costed_books(sig: pd.DataFrame, panel: pd.DataFrame, inputs: pd.DataFrame, name: str, aum,
                  y: float = 1.0, commission: float = 0.0) -> dict:
     """Gross and cost series for the two books.
 

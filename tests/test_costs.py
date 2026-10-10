@@ -122,7 +122,7 @@ def test_costed_books_end_to_end_and_period_stats():
     big = costed_books(sig, p, inp, "gpa", aum=1e10)
     assert big["LS"]["cost"].mean() > res["LS"]["cost"].mean()
     ps = period_stats(res["LS"]["gross"])
-    assert set(ps) == {"pre1990", "dev1990_2014", "valid2015_2019", "pre2020"}
+    assert set(ps) == {"pre1990", "dev1990_2014", "valid2015_2019", "pre2020", "post1990"}
 
 
 def test_sql_matches_python_reference():
@@ -155,3 +155,23 @@ def test_sql_matches_python_reference():
     assert out["qspread"].iloc[0] == pytest.approx(0.002 / 1.0, rel=1e-6)
     assert out["sigma_d"].iloc[0] == pytest.approx(jan["r"].std(ddof=1), rel=1e-9)
     assert out["adv_a"].iloc[0] == pytest.approx(out["adv_b"].iloc[0])
+
+
+def test_market_scaled_aum_is_constant_share_of_market():
+    from qap.portfolio import market_scaled_aum
+    mis = [2018 * 12 + k for k in range(12)] + [2019 * 12 + k for k in range(12)] + [1970 * 12]
+    rows = []
+    for mi in mis:
+        cap = 100.0 if mi >= 2019 * 12 else (10.0 if mi == 1970 * 12 else 50.0)   # market cap: 10 in 1970, 100 in 2019
+        rows.append({"permno": 1, "mi": mi, "me": cap, "eq": True})
+    a = market_scaled_aum(pd.DataFrame(rows), 1e7)
+    assert a[2019 * 12 + 3] == pytest.approx(1e7) and a[1970 * 12] == pytest.approx(1e6) and a[2018 * 12] == pytest.approx(5e6)
+
+
+def test_leg_costs_accepts_aum_series_and_larger_early_aum_costs_more():
+    W, panel, inputs = _two_month_example()
+    inputs = inputs.assign(sigma_d=0.02, adv=1e6)
+    small = leg_costs(W, panel, inputs, aum=pd.Series({101: 1e6}))
+    big = leg_costs(W, panel, inputs, aum=pd.Series({101: 1e8}))
+    assert big.loc[101, "cost"] > small.loc[101, "cost"]
+    assert leg_costs(W, panel, inputs, aum=1e6).loc[101, "cost"] == pytest.approx(small.loc[101, "cost"])

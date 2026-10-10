@@ -62,3 +62,9 @@ never enter git (licence).
   stress 1x/1.5x/2x, AUM $1M/$10M/$100M, break-even multiple, share of trades above 5%/10% ADV. Books:
   LS (borrow NOT modelled) and long-minus-universe. Awaiting the `crsp_daily_agg` extraction and a run.
   Partial-rebalance / no-trade-band rules are later trials, chosen on 1990-2014 only.
+- First costed run (nominal constant AUM) is NOT reliable: a fixed $10M book is huge against 1960s-70s
+  volumes, so early-era impact was overstated. Fixed: AUM is now a constant share of total equity market
+  cap, quoted in 2019 market-size dollars (`--nominal-aum` restores the old behaviour). Also known:
+  quoted and Corwin-Schultz spreads agree poorly (corr 0.15-0.58; CS is far above quoted for large caps
+  after 2000, far below for small caps before 1990), so pre-1990 cost levels are the least trustworthy.
+  Quoted spreads supply 86-99% of rows after 1990. Re-run `scripts/run_costs.py` for decision numbers.
