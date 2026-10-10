@@ -31,7 +31,7 @@ never enter git (licence).
 - Useful for replication (§9.3 step 1): wrdsapps.signals_raw_* can cross-check my own Tier-1 signals.
 - CIZ delisting flags confirmed (crsp.metaflaginfo): mthret already includes the delisting return
   for mthdelflg A/P/V and excludes it for G (price >10 days from delisting) and M (missing). Of
-  4.84M monthly rows, 3,746 are G/M. Next: impute those from `crsp.stkdelists` (reason/payment
-  types), Shumway-style, once that table is extracted.
+  4.84M monthly rows, 3,746 are G/M. `qap.crsp.adjust_delisting_returns` fixes those: compound the
+  stkdelists delret when usable, else -30% for performance-related reasons (Shumway), else 0.
 - Monthly labels: signals formed at month-end t earn month t+1, i.e.
   `forward_return_from_returns(ret, horizon=1, lag=0)`; the daily default (lag=1) skips a day.

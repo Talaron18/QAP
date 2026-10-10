@@ -1,3 +1,4 @@
+import pytest
 import pandas as pd
 from qap.crsp import common_equity_mask, flag_delisting_returns, monthly_return_panel
 from qap.links import filter_ccm_links
@@ -52,3 +53,39 @@ def test_quarterly_available_uses_rdq_else_fallback():
     assert out.iloc[0] == pd.Timestamp("2020-05-06")
     for i in (1, 2, 3):
         assert out.iloc[i] == pd.Timestamp("2020-05-30")
+
+
+def test_adjust_delisting_returns_all_branches():
+    from qap.crsp import adjust_delisting_returns
+    m = pd.DataFrame({
+        "permno": [1, 2, 3, 4, 5, 6, 7],
+        "mthcaldt": pd.to_datetime(["2020-03-31"] * 7),
+        "mthret": [0.10, 0.10, 0.10, 0.10, None, 0.10, 0.10],
+        "mthdelflg": ["N", "A", "G", "M", "M", "M", "G"],
+    })
+    d = pd.DataFrame({
+        "permno": [3, 4, 5, 6],
+        "delistingdt": ["2020-03-12", "2020-03-30", "2020-03-02", "2020-03-31"],
+        "delret": [-0.5, None, None, None],
+        "delretmisstype": ["NA", "DM", "DM", "DM"],
+        "delreasontype": ["UNAV", "BKPY", "BKPY", "CORQ"],
+    })
+    out = adjust_delisting_returns(m, d).set_index("permno")
+    assert out.loc[1, "delist_adj_method"] == "none" and out.loc[1, "mthret_adj"] == 0.10
+    assert out.loc[2, "mthret_adj"] == 0.10                                    # A: already included
+    assert out.loc[3, "delist_adj_method"] == "delret"
+    assert out.loc[3, "mthret_adj"] == pytest.approx(1.10 * 0.5 - 1)           # compounded delret
+    assert out.loc[4, "delist_adj_method"] == "imputed"
+    assert out.loc[4, "mthret_adj"] == pytest.approx(1.10 * 0.70 - 1)          # -30% imputed
+    assert out.loc[5, "mthret_adj"] == pytest.approx(-0.30)                    # missing mthret treated as 0
+    assert out.loc[6, "delist_adj_method"] == "zero" and out.loc[6, "mthret_adj"] == 0.10
+    assert out.loc[7, "delist_adj_method"] == "unmatched"
+    assert len(out) == len(m)
+
+
+def test_adjust_delisting_does_not_duplicate_rows_with_repeat_delist_records():
+    from qap.crsp import adjust_delisting_returns
+    m = pd.DataFrame({"permno": [1], "mthcaldt": pd.to_datetime(["2020-03-31"]), "mthret": [0.0], "mthdelflg": ["M"]})
+    d = pd.DataFrame({"permno": [1, 1], "delistingdt": ["2020-03-05", "2020-03-20"], "delret": [None, None],
+                      "delretmisstype": ["DM", "DM"], "delreasontype": ["LP", "LP"]})
+    assert len(adjust_delisting_returns(m, d)) == 1

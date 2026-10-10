@@ -30,6 +30,15 @@ def main() -> None:
     g = last.groupby("mthdelflg", dropna=False).mthret.agg(n="size", null_share=lambda s: s.isna().mean(), median="median", mean="mean")
     log(g.to_string())
 
+    dp = RAW / "crsp_delistings.parquet"
+    if dp.exists():
+        from qap.crsp import adjust_delisting_returns
+        adj = adjust_delisting_returns(m, pd.read_parquet(dp))
+        log("delisting adjustment on G/M rows: " + adj[adj.mthdelflg.isin(["G", "M"])].delist_adj_method.value_counts().to_dict().__repr__())
+        chg = (adj.mthret_adj - adj.mthret).abs() > 1e-12
+        log(f"  rows changed: {chg.sum():,}; mean mthret change on those: {(adj.mthret_adj - adj.mthret)[chg].mean():.4f}")
+        log(f"  rows after merge == rows before: {len(adj) == len(m)}")
+
     for name in ["ccm_links", "compustat_annual", "compustat_quarterly", "ff_monthly"]:
         p = RAW / f"{name}.parquet"
         if not p.exists():

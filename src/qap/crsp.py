@@ -47,3 +47,58 @@ def flag_delisting_returns(monthly: pd.DataFrame) -> pd.DataFrame:
 def monthly_return_panel(monthly: pd.DataFrame, value: str = "mthret") -> pd.DataFrame:
     """Pivot to a month-end x permno panel (sorted)."""
     return monthly.pivot(index="mthcaldt", columns="permno", values=value).sort_index()
+
+
+# Delisting reasons I treat as performance-related, following the legacy Shumway (1997) code groups
+# (500, 520-584: unavailable/OTC/capital/float/market makers/shareholders/bankruptcy/delinquent/SEC).
+# This mapping onto CIZ reason types is a judgement, not a CRSP-published equivalence. The user's
+# delisting file supports it: FING, INSC, LP, DELQ, BKPY, EQRQ, SERQ have clearly negative mean
+# delisting returns. UNAV (65% of all delistings, mostly mergers) is NOT included.
+PERFORMANCE_REASONS = (
+    "BKPY", "DELQ", "DEEX", "EQRQ", "FARG", "FING", "INSC", "INSF", "LP", "MTMK",
+    "MVOT", "SERQ", "SHLD", "UNL", "VIO",
+)
+SHUMWAY_IMPUTED_RETURN = -0.30
+
+
+def adjust_delisting_returns(monthly: pd.DataFrame, delists: pd.DataFrame,
+                             performance_reasons=PERFORMANCE_REASONS,
+                             imputed_return: float = SHUMWAY_IMPUTED_RETURN) -> pd.DataFrame:
+    """Add `mthret_adj` and `delist_adj_method`, fixing only the months where mthret EXCLUDES the delisting return.
+
+    Rows with mthdelflg A/P/V already include it, N are active: mthret_adj == mthret, method 'none'.
+    For G/M rows, matched on (permno, calendar month of delistingdt):
+      - 'delret':  stkdelists has a usable delret (delretmisstype == 'NA'): compound it onto mthret
+      - 'imputed': no usable delret and a performance-related reason: compound `imputed_return`
+      - 'zero':    no usable delret, other reason: leave mthret (delisting return taken as 0)
+      - 'unmatched': G/M row with no stkdelists row: leave mthret and flag it
+    A missing mthret in a G/M month is treated as 0 before compounding.
+    """
+    d = delists.copy()
+    d["delistingdt"] = pd.to_datetime(d["delistingdt"])
+    d["_ym"] = d["delistingdt"].dt.to_period("M")
+    d = d.sort_values("delistingdt").drop_duplicates(["permno", "_ym"], keep="last")
+    out = monthly.copy()
+    out["_ym"] = pd.to_datetime(out["mthcaldt"]).dt.to_period("M")
+    cols = ["permno", "_ym", "delret", "delretmisstype", "delreasontype"]
+    out = out.merge(d[cols], on=["permno", "_ym"], how="left")
+    out["delist_adj_method"] = "none"
+    out["mthret_adj"] = out["mthret"]
+
+    gm = out["mthdelflg"].isin(RET_EXCLUDES_DELISTING)
+    matched = out["delreasontype"].notna()
+    base = out["mthret"].fillna(0.0)
+    usable = out["delret"].notna() & (out["delretmisstype"] == "NA")
+    perf = out["delreasontype"].isin(performance_reasons)
+
+    def apply(mask, delisting_ret, label):
+        out.loc[mask, "mthret_adj"] = (1.0 + base[mask]) * (1.0 + delisting_ret) - 1.0
+        out.loc[mask, "delist_adj_method"] = label
+
+    apply(gm & matched & usable, out["delret"].astype(float).fillna(0.0)[gm & matched & usable], "delret")
+    apply(gm & matched & ~usable & perf, imputed_return, "imputed")
+    z = gm & matched & ~usable & ~perf
+    out.loc[z, "delist_adj_method"] = "zero"
+    out.loc[z, "mthret_adj"] = base[z]
+    out.loc[gm & ~matched, "delist_adj_method"] = "unmatched"
+    return out.drop(columns=["_ym", "delret", "delretmisstype", "delreasontype"])
