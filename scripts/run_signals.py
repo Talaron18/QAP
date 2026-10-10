@@ -9,7 +9,7 @@ import pathlib
 
 import pandas as pd
 
-from qap.evaluate import SIGNALS, build_research_signals, evaluate_signal
+from qap.evaluate import SIGNALS, add_composite, add_momentum, build_research_signals, evaluate_signal
 from qap.fundamentals import prepare_annual
 from qap.links import filter_ccm_links
 from qap.panel import assert_month_grid, build_monthly_panel, calibrate_me_scale, to_mi
@@ -21,16 +21,16 @@ GATE_MKT, GATE_FACTOR = 0.99, 0.95
 GATE_UMD = 0.95
 
 
-def main(force: bool) -> None:
+def main(force: bool, open_holdout: bool = False) -> None:
     report = []
     try:
-        _run(force, report)
+        _run(force, report, open_holdout)
     finally:  # a failed precondition must still leave the numbers gathered so far
         pathlib.Path("data").mkdir(exist_ok=True)
         pathlib.Path("data/signals_report.txt").write_text("\n".join(report) + "\n")
 
 
-def _run(force: bool, report: list) -> None:
+def _run(force: bool, report: list, open_holdout: bool) -> None:
 
     def log(msg=""):
         print(msg, flush=True)
@@ -86,8 +86,10 @@ def _run(force: bool, report: list) -> None:
         sig = build_research_signals(panel, annual, links)
         log(f"\nresearch signals: {len(sig):,} formation rows, CCM+PIT hit rate on formation universe {sig.attrs['link_hit_rate']:.1%}")
         log("  link/PIT diagnostics: " + str(sig.attrs["link_diag"]))
-        for name in SIGNALS:
-            res = evaluate_signal(sig, panel, name)
+        sig = add_momentum(add_composite(sig), panel)
+        log(f"  holdout {'OPENED' if open_holdout else 'sealed (2020+ hidden; use --open-holdout once per model version)'}")
+        for name in SIGNALS + ["composite_vpi", "mom"]:
+            res = evaluate_signal(sig, panel, name, include_holdout=open_holdout)
             by = res.pop("by_period")
             log("  " + str(res))
             for per, v in by.items():
@@ -102,4 +104,6 @@ def _run(force: bool, report: list) -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--force-signals", action="store_true")
-    main(ap.parse_args().force_signals)
+    ap.add_argument("--open-holdout", action="store_true", help="also report 2020+ (do this once per major model version)")
+    a = ap.parse_args()
+    main(a.force_signals, a.open_holdout)

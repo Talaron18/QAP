@@ -184,4 +184,19 @@ def test_umd_runs_and_period_summary_shapes():
     sig = build_research_signals(p, prepare_annual(funda), links)
     assert set(sig.attrs["link_diag"]) >= {"formation_rows", "with_gvkey", "with_annual_record", "with_positive_be"}
     res = evaluate_signal(sig, p, "gpa")
-    assert set(res["by_period"]) == {"pre1990", "dev1990_2014", "valid2015_2019", "holdout2020+", "full"}
+    assert set(res["by_period"]) == {"pre1990", "dev1990_2014", "valid2015_2019", "pre2020"}   # holdout sealed
+    opened = evaluate_signal(sig, p, "gpa", include_holdout=True)
+    assert {"holdout2020+", "full"} <= set(opened["by_period"])
+
+
+def test_composite_and_momentum_attach():
+    from qap.evaluate import add_composite, add_momentum
+    m, d, funda, links = make_world(n=240)
+    p = build_monthly_panel(m, d)
+    p["me"] = p["mthcap"] / 1000.0
+    p["me_co"] = p.groupby(["permco", "mi"])["me"].transform("sum")
+    sig = add_momentum(add_composite(build_research_signals(p, prepare_annual(funda), links)), p)
+    assert sig["composite_vpi"].between(-0.5, 0.5).all() or sig["composite_vpi"].isna().any()
+    assert sig["composite_vpi"].dropna().between(-0.5, 0.5).all()
+    assert "mom" in sig and sig["mom"].notna().any()
+    assert evaluate_signal(sig, p, "composite_vpi")["months"] > 30

@@ -47,3 +47,10 @@ never enter git (licence).
   holdout has now been seen for them. Any NEW signal, model or tuning must be selected on 1990-2014
   (validated on 2015-2019) with 2020+ untouched; `scripts/run_signals.py` now reports each split
   separately and appends every evaluation to `data/trials.jsonl` (trial count for deflated Sharpe).
+- All three gates passed on real data (UMD corr 0.999). Replicated-signal results by split (LS = VW
+  quintile spread, % per month, ex-microcaps): BM-timely 0.60 (t 2.7) pre-1990, 0.06 (t 0.2) 1990-2014,
+  -0.60 2015-19; GP/A 0.32 / 0.33 / 0.18 (positive in every split); neg asset growth 0.42 / 0.29 / -0.28.
+  Expect decay, not new alpha (McLean-Pontiff). Holdout is now SEALED by default in the runner
+  (`--open-holdout` to show 2020+, once per major model version).
+- Next candidates: composite and 12-1 momentum evaluation (added), intangibles-adjusted value using
+  `totalq.total_q` (k_int), industry neutralisation (needs siccd in the panel), cost model, optimizer.
