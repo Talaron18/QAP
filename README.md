@@ -21,6 +21,8 @@ python scripts/check_raw.py      # writes data/raw_report.txt: counts and distri
 python scripts/run_signals.py    # FF replication gates, then Tier-1 signals; writes data/signals_report.txt
 python scripts/wrds_extract.py crsp_daily_agg   # server-side daily liquidity aggregation, per year, resumable
 python scripts/run_costs.py      # cost model sanity checks, then costed backtests; writes data/costs_report.txt
+python scripts/wrds_extract.py totalq     # Peters-Taylor intangible capital (small)
+python scripts/run_candidates.py # pre-registered candidates vs gpa; writes data/candidates_report.txt (2020+ sealed)
 ```
 
 ## Python version

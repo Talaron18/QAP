@@ -38,6 +38,11 @@ def compustat_quarterly_sql(start: str = "1960-01-01") -> str:
     return _select(config.COMPUSTAT_QUARTERLY_COLS, config.COMPUSTAT_QUARTERLY, where, "gvkey, datadate")
 
 
+def total_q_sql() -> str:
+    """Peters-Taylor Total Q and intangible capital (small table)."""
+    return _select(config.TOTAL_Q_COLS, config.TOTAL_Q, order="gvkey, datadate")
+
+
 def ff_monthly_sql() -> str:
     return _select(["date", "mktrf", "smb", "hml", "umd", "rf"], config.FF_FACTORS_MONTHLY, order="date")
 
@@ -131,5 +136,6 @@ QUERIES = {
     "ccm_links": ccm_links_sql,
     "compustat_annual": compustat_annual_sql,
     "compustat_quarterly": compustat_quarterly_sql,
+    "totalq": total_q_sql,
     "ff_monthly": ff_monthly_sql,
 }

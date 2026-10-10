@@ -44,6 +44,8 @@ CRSP_DELISTINGS_COLS = [
     "delret", "delretmisstype", "deldtprc", "deldlydt",
 ]
 
+TOTAL_Q_COLS = ["gvkey", "datadate", "fyear", "k_int_know", "k_int_org", "k_int_offbs", "k_int", "q_tot"]
+
 CCM_LINK_COLS = ["gvkey", "liid", "linktype", "linkprim", "lpermno", "lpermco", "linkdt", "linkenddt"]
 
 # Not available in this WRDS account (no library found): I/B/E/S, OptionMetrics, TAQ, RavenPack,

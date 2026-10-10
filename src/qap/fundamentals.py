@@ -35,7 +35,11 @@ def prepare_annual(funda: pd.DataFrame, lag_months: int = 4) -> pd.DataFrame:
     return f
 
 
-def attach_pit(keys: pd.DataFrame, annual: pd.DataFrame, links: pd.DataFrame, max_stale_days: int = 548) -> pd.DataFrame:
+PIT_COLS = ["be", "gp", "at", "at_lag"]
+
+
+def attach_pit(keys: pd.DataFrame, annual: pd.DataFrame, links: pd.DataFrame, max_stale_days: int = 548,
+               cols=None) -> pd.DataFrame:
     """Attach the latest annual record available on each (permno, month-end), via CCM links.
 
     keys needs permno, mi, mthcaldt. Records older than `max_stale_days` past availability are ignored.
@@ -44,7 +48,7 @@ def attach_pit(keys: pd.DataFrame, annual: pd.DataFrame, links: pd.DataFrame, ma
     k = attach_gvkey(keys, links, "mthcaldt")
     k["mthcaldt"] = pd.to_datetime(k["mthcaldt"])
     k = k.sort_values("mthcaldt")
-    a = annual[["gvkey", "avail", "datadate", "be", "gp", "at", "at_lag"]].sort_values("avail")
+    a = annual[["gvkey", "avail", "datadate", *(cols or PIT_COLS)]].sort_values("avail")
     out = pd.merge_asof(k, a, left_on="mthcaldt", right_on="avail", by="gvkey", direction="backward",
                         tolerance=pd.Timedelta(days=max_stale_days))
     return out.drop(columns=["avail"])

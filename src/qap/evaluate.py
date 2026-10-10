@@ -88,7 +88,7 @@ def evaluate_signal(sig: pd.DataFrame, panel: pd.DataFrame, name: str, quantiles
     s["q"] = np.minimum(np.ceil(pct * quantiles), quantiles).astype(int)
     s["wr"] = s["fwd"] * s["me"]
     qq = s.groupby(["mi", "q"])[["wr", "me"]].sum()
-    qr = (qq["wr"] / qq["me"]).unstack("q")
+    qr = (qq["wr"] / qq["me"]).unstack("q").reindex(columns=range(1, quantiles + 1))   # a signal with heavy ties can leave a quintile empty
     spread = (qr[quantiles] - qr[1]).dropna()
     t = lambda x: float(x.mean() / (x.std(ddof=1) / np.sqrt(len(x))))
     if not include_holdout:  # headline numbers use pre-2020 months only
@@ -102,14 +102,15 @@ def evaluate_signal(sig: pd.DataFrame, panel: pd.DataFrame, name: str, quantiles
     }
 
 
-def add_composite(sig: pd.DataFrame, names=("bm_timely", "gpa", "neg_ag"), min_signals: int = 2) -> pd.DataFrame:
+def add_composite(sig: pd.DataFrame, names=("bm_timely", "gpa", "neg_ag"), min_signals: int = 2,
+                  out_col: str = "composite_vpi") -> pd.DataFrame:
     """Equal-weight composite of within-month rank scores (each in [-0.5, 0.5]); needs >= min_signals present.
 
     Fixed, untuned weights: one trial, no fitting. Rank scores are robust to outliers.
     """
     out = sig.copy()
     scores = pd.concat([out.groupby("mi")[n].rank(pct=True) - 0.5 for n in names], axis=1)
-    out["composite_vpi"] = scores.mean(axis=1).where(scores.notna().sum(axis=1) >= min_signals)
+    out[out_col] = scores.mean(axis=1).where(scores.notna().sum(axis=1) >= min_signals)
     return out
 
 
