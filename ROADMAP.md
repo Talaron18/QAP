@@ -68,3 +68,12 @@ never enter git (licence).
   quoted and Corwin-Schultz spreads agree poorly (corr 0.15-0.58; CS is far above quoted for large caps
   after 2000, far below for small caps before 1990), so pre-1990 cost levels are the least trustworthy.
   Quoted spreads supply 86-99% of rows after 1990. Re-run `scripts/run_costs.py` for decision numbers.
+- Costed run with market-scaled AUM (impact Y=1, no commission, 1x/1.5x/2x; $10M in 2019 market-size
+  dollars; net of trading costs, borrow not modelled). Costs are small (gpa ~0.015-0.035%/mo, composite
+  ~0.08-0.14%, momentum ~0.18-0.41%). Post-1990 (1990-2019) net at 1.5x, long-minus-universe: gpa +0.17%/mo
+  (t 1.98), composite +0.07 (t 0.63), neg_ag +0.01 (t 0.16), mom +0.07 (t 0.36), bm_timely -0.08 (t -0.54).
+  Long-short post-1990: gpa +0.24 (t 1.36), composite +0.14 (t 0.81). Conclusion: after 1990 and after costs
+  only gross profitability survives; the composite's edge sits mostly in pre-1990, where cost estimates are
+  least reliable (1960s spreads are 92% Corwin-Schultz and look too low vs the quoted-spread 1970s).
+  35 unique trials logged. Next: profitability/quality variants chosen on 1990-2014 only, intangibles-
+  adjusted value from totalq.total_q, then a long-only tilt portfolio with an optimizer.
