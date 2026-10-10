@@ -7,7 +7,9 @@ import numpy as np
 def purged_kfold(n: int, n_splits: int, horizon: int, embargo: int = 0) -> Iterator[Tuple[np.ndarray, np.ndarray]]:
     """Yield (train_idx, test_idx) over n time-ordered observations.
 
-    The label of observation i spans [i, i + horizon]. Training observations whose
+    The label of observation i spans [i, i + horizon]. `horizon` must be the label's full
+    reach, i.e. `qap.labels.label_reach(horizon, lag)` (lag + horizon), not the bare horizon:
+    the default 1-period label with a 1-day lag reaches t+2. Training observations whose
     label window overlaps the test fold are purged, and `embargo` observations
     after the test fold are dropped to limit leakage from serial correlation.
     """

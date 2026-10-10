@@ -24,5 +24,9 @@ never enter git (licence).
   Cboe Options, Intraday Indicators, Beta Suite, Factors, Financial Ratios Suite,
   Event Study, Linking Queries, Fama-French, Pastor-Stambaugh, Peters-Taylor Total Q.
 - **Sample only** (not usable for research): OptionMetrics, TAQ, RavenPack, Short Volume.
-- Consequence: build the slow book (Tier 1) first. OptionMetrics-, TAQ- and RavenPack-based
-  fast-book and option layers are out of scope unless those licences are added.
+- Possibly covered, confirm in the inspector output: Intraday Indicators by WRDS (realized
+  variance and spreads, so cost model and HAR vol layer may not need TAQ), Peters-Taylor Total Q
+  (intangible capital for the value composite), Compustat Snapshot (not clearly in the list; if
+  absent, use the conservative filing lags from report section 7.4).
+- Out of scope without more licences: option-implied signals (OptionMetrics), TAQ retail flow,
+  RavenPack news. Build the slow book (Tier 1) first.

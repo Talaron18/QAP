@@ -7,8 +7,12 @@ EULER_GAMMA = 0.5772156649015329
 
 
 def rank_ic(signal: pd.DataFrame, fwd_ret: pd.DataFrame) -> pd.Series:
-    """Per-date Spearman correlation of signal and forward return (dates x assets frames)."""
-    return signal.rank(axis=1).corrwith(fwd_ret.rank(axis=1), axis=1)
+    """Per-date Spearman correlation of signal and forward return (dates x assets frames).
+
+    Ranks are taken over the assets present in BOTH frames on each date.
+    """
+    mask = signal.notna() & fwd_ret.notna()
+    return signal.where(mask).rank(axis=1).corrwith(fwd_ret.where(mask).rank(axis=1), axis=1)
 
 
 def ic(signal: pd.DataFrame, fwd_ret: pd.DataFrame) -> pd.Series:

@@ -35,3 +35,10 @@ def test_rank_ic_perfect_and_inverse():
 def test_icir():
     s = pd.Series([0.02, 0.04, 0.03, 0.05])
     assert icir(s) == pytest.approx(s.mean() / s.std(ddof=1))
+
+
+def test_rank_ic_nan_uses_common_set():
+    sig = pd.DataFrame([[1.0, 2.0, 3.0, 4.0]])
+    fwd = pd.DataFrame([[10.0, np.nan, 30.0, 20.0]])
+    # common set {0,2,3}: signal ranks 1,2,3 vs fwd ranks 1,3,2 -> Spearman 0.5
+    assert rank_ic(sig, fwd).iloc[0] == pytest.approx(0.5)
