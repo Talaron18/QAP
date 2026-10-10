@@ -18,15 +18,16 @@ never enter git (licence).
    Option/TAQ/Markit/RavenPack layers depend on which licences exist.
 6. **Paper trade** 3+ months, then staged capital 10% -> 30% -> 100%.
 
-## Licences (from the user's WRDS account, Oct 2026)
+## Licences / what the WRDS account actually exposes (confirmed from the inspector output)
 
-- Full access: CRSP, Compustat-Capital IQ, Thomson/Refinitiv (13F; I/B/E/S to confirm),
-  Cboe Options, Intraday Indicators, Beta Suite, Factors, Financial Ratios Suite,
-  Event Study, Linking Queries, Fama-French, Pastor-Stambaugh, Peters-Taylor Total Q.
-- **Sample only** (not usable for research): OptionMetrics, TAQ, RavenPack, Short Volume.
-- Possibly covered, confirm in the inspector output: Intraday Indicators by WRDS (realized
-  variance and spreads, so cost model and HAR vol layer may not need TAQ), Peters-Taylor Total Q
-  (intangible capital for the value composite), Compustat Snapshot (not clearly in the list; if
-  absent, use the conservative filing lags from report section 7.4).
-- Out of scope without more licences: option-implied signals (OptionMetrics), TAQ retail flow,
-  RavenPack news. Build the slow book (Tier 1) first.
+- Present: CRSP (CIZ v2 plus legacy), CCM links, Compustat NA (funda, fundq, sec_shortint),
+  Fama-French factors, Total Q (totalq.total_q: intangible capital k_int, q_tot), WRDS Financial
+  Ratios (wrdsapps_finratio), WRDS characteristic signals (wrdsapps.signals_raw_basic/plus), link
+  tables to TAQ/IBES/OptionMetrics identifiers.
+- **Absent as data** (sample libraries or links only): I/B/E/S, OptionMetrics, TAQ, RavenPack,
+  Thomson 13F, Compustat Snapshot, Markit. So analyst revisions, option signals, retail flow, news
+  and 13F signals are out of scope. Without Snapshot, use the conservative filing lags from
+  report section 7.4 (rdq for quarterly; fiscal year-end + 4 months for annual).
+- Useful for replication (§9.3 step 1): wrdsapps.signals_raw_* can cross-check my own Tier-1 signals.
+- Still open: meaning of CIZ delisting flags (mthdelflg, dlydelflg). Needs the rows of
+  crsp.metaflaginfo (data/wrds_meta_crsp_metaflaginfo.csv written by the inspector).
