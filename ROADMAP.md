@@ -10,7 +10,9 @@ never enter git (licence).
    label builder (t+1 lag), purged/embargoed walk-forward splits, rank IC/ICIR, deflated Sharpe.
 2. **Extraction (user runs it locally; start with `scripts/wrds_inspect.py`):** CRSP (CIZ), Compustat (+ Snapshot if licensed),
    CCM link, I/B/E/S. Table names live in config until verified against the live schema.
-3. **Replicate Tier-1 signals** (value, profitability, investment, issuance, residual momentum)
+3. **Replicate, then build Tier-1 signals** (`scripts/run_signals.py`): gate 1 market vs FF Mkt-RF (corr >= 0.99),
+   gate 2 canonical FF 2x3 SMB/HML (corr >= 0.95), gate 3 UMD (todo); signals only if gates pass.
+   Original item: (value, profitability, investment, issuance, residual momentum)
    and compare with Chen-Zimmermann / JKP returns. This validates PIT alignment and links.
 4. **Walk-forward evaluation** with a trial registry feeding DSR/PBO. Splits: dev 1990-2014,
    validation 2015-2019, sealed holdout 2020+.

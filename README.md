@@ -18,6 +18,7 @@ export WRDS_USERNAME=your_id
 python scripts/wrds_inspect.py   # writes data/wrds_schema.txt; share it so loaders use the real schema
 python scripts/wrds_extract.py   # writes data/raw/*.parquet (CRSP monthly, CCM links, Compustat, FF)
 python scripts/check_raw.py      # writes data/raw_report.txt: counts and distributions only
+python scripts/run_signals.py    # FF replication gates, then Tier-1 signals; writes data/signals_report.txt
 ```
 
 ## Python version

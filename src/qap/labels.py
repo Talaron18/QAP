@@ -1,4 +1,5 @@
 """Forward-return labels with an explicit one-day trade lag."""
+import numpy as np
 import pandas as pd
 
 
@@ -19,13 +20,15 @@ def forward_return_from_returns(ret: pd.DataFrame, horizon: int = 1, lag: int = 
     exited (delisted); returns after exit count as 0 so a delisting loss stays in the label
     instead of turning it into NaN. Leading NaNs (not yet listed) stay NaN.
     """
-    r = ret.copy()
+    r = ret
     if exit_as_zero:
-        last = r.apply(pd.Series.last_valid_index)
-        for col in r.columns:
-            if pd.notna(last[col]) and last[col] != r.index[-1]:
-                tail = r.index > last[col]
-                r.loc[tail, col] = 0.0
+        # vectorised: mask cells after each column's last valid row, for columns that exited early
+        valid = r.notna().to_numpy()
+        n = len(r)
+        last_pos = np.where(valid.any(axis=0), n - 1 - valid[::-1].argmax(axis=0), -1)
+        exited = (last_pos >= 0) & (last_pos < n - 1)
+        after = np.arange(n)[:, None] > last_pos[None, :]
+        r = r.mask(after & exited[None, :], 0.0)
     acc = pd.DataFrame(1.0, index=r.index, columns=r.columns)
     for k in range(lag + 1, lag + horizon + 1):
         acc = acc * (1.0 + r).shift(-k)
