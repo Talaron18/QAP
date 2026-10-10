@@ -77,3 +77,41 @@ never enter git (licence).
   least reliable (1960s spreads are 92% Corwin-Schultz and look too low vs the quoted-spread 1970s).
   35 unique trials logged. Next: profitability/quality variants chosen on 1990-2014 only, intangibles-
   adjusted value from totalq.total_q, then a long-only tilt portfolio with an optimizer.
+
+## Pre-registration v1: profitability / quality / intangible-value candidates
+
+Committed BEFORE any candidate result exists. Nothing below is revisited after seeing results.
+
+**Fixed protocol (as in the gpa costed run):** formation universe = common equity mask ex-NYSE-20th-percentile
+microcaps; quintiles on value-weighted ME; long = top quintile, 'L-U' book = long minus the VW universe
+(benchmark costless); AUM $10M in 2019 market-size dollars, impact Y=1, no commission, cost stress 1.5x;
+annual fundamentals available fiscal year-end + 4 months; Total Q available the same way. Splits: dev 1990-2014,
+validation 2015-2019, 2020+ SEALED (opened once, later, for promoted signals only).
+
+**Incumbent:** gpa = (revt - cogs) / at. On dev its net L-U at 1.5x has t about 1.9, so the bar is RELATIVE to gpa.
+
+**Candidates (six, formulas fixed):**
+1. `op_ff` = (revt - cogs - xsga - xint) / be. Missing cogs/xsga/xint count as 0 only if at least one is present; be > 0.
+2. `neg_acc` = -(ib - oancf) / at (cash-flow accruals, low is good). Needs oancf (sparse before ~1988).
+3. `fscore` = Piotroski (2000) nine binary signals on ALL stocks (the high-BM-only variant is excluded):
+   ni/at > 0; oancf > 0; ni/at rose vs last year; oancf/at > ni/at; dltt/at fell; act/lct rose; no equity issuance
+   (sstk missing or 0 counts as no issuance; sstk > 0 counts as issuance); (revt-cogs)/revt rose; revt/at rose.
+   ROA uses end-of-year assets (not beginning). Score = sum of available components, needs >= 8 of 9, else missing.
+4. `neg_issuance` = -ln(adj_shares_t / adj_shares_{t-12}), adj_shares = shrout * mthcumfacshr (CRSP, monthly).
+5. `bm_int` = (be + k_int) / me_co with k_int = Peters-Taylor total intangible capital (totalq.total_q.k_int), be > 0.
+6. `quality3` = equal-weight average of within-month rank scores of gpa, op_ff, neg_acc (needs >= 2 of 3).
+
+**Excluded on purpose:** cash-based operating profitability (needs a new funda pull); Piotroski restricted to high
+book-to-market; Total Q's q_tot standalone; any parameter tuning, alternative weighting or alternative quantiles.
+
+**Promotion rule (coded in the script, which prints PASS/FAIL):** regress the candidate's monthly net L-U return on
+gpa's net L-U return over dev: r_c = a + b * r_gpa + e. Promote iff (i) alpha t-stat >= 2.0 on dev (plain OLS) and
+(ii) validation alpha = mean(r_c - b_dev * r_gpa) over 2015-2019 is > 0. Information only (never a gate): standalone
+net mean/t, correlation with gpa, equal-weight gpa+candidate vs gpa alone (dev and validation), NW(6) alpha t.
+bm_int is also compared with bm_timely on the rows where both exist. Promoted signals are provisional: the sealed
+holdout is opened once for them. If nothing is promoted, that is a valid result and the next step is the gpa-only
+long-only tilt.
+
+**Checks printed before results:** Total Q coverage by year and join rate; median k_int/at in [0.05, 2] (asserted);
+share of |monthly d ln adj_shares| > 0.4 below 0.5% (asserted; catches broken split adjustment); oancf coverage per
+signal per split; long-leg names per month for each candidate (F-score ties).
