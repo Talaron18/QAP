@@ -38,7 +38,8 @@ def build_pseudo_panel(secm: pd.DataFrame, me_scale: float = 1.0) -> pd.DataFram
     prc = pd.to_numeric(p["prccm"], errors="coerce").astype("float64")
     shr = pd.to_numeric(p["cshom"], errors="coerce").astype("float64")
     p["me"] = (prc * shr / me_scale).where((prc > 0) & (shr > 0))
-    p["me_co"] = p.groupby(["permco", "mi"])["me"].transform(lambda s: s.sum(min_count=1))
+    p["me_co"] = p["me"].groupby([p["permco"], p["mi"]]).transform("sum")
+    p.loc[p.groupby(["permco", "mi"])["me"].transform("count") == 0, "me_co"] = np.nan          # all-missing group stays NaN (sum(min_count=1))
     p["primaryexch"] = np.where(pd.to_numeric(p["exchg"], errors="coerce") == NYSE_EXCHG, "N", "O")
     p["mthret_adj"] = pd.to_numeric(p["trt1m"], errors="coerce").astype("float64") / 100.0
     p["eq"] = p["me_co"] > 0

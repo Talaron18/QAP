@@ -538,3 +538,10 @@ User chose to run this alongside cheap alternative-data probes. All historical w
 - **Information only (not evidence):** a walk-forward 1995-2025 run of the same frozen protocol, with the explicit caveat that its inputs, features and model class were chosen with knowledge of this period; useful only
   to catch gross implementation errors (an ML IC far above the composite's in-sample would signal leakage, not skill).
 - **Power, honestly:** with ~5% tracking error a 0.15 %/mo edge needs many years to confirm; the realistic outcome of the 36-month decision is 'NO EVIDENCE'. The value of this protocol is that it cannot fool us.
+
+- **v8 implementation notes (recorded before any real run):** (1) the 12-month share-issuance feature (`issu`) is the change in log `cshom` with split months removed (|dlog cshom| > 0.10 and dlog ME within 25% of the jump
+  implied by the return), because `comp.secm` shares are not split-adjusted; (2) model-to-month mapping: formation months of year Y are scored by the model trained on formation months through November of Y-1
+  (labels through December); (3) CLARIFICATION of the decision window: the 36-month decision counts only PROSPECTIVE forward months (formed within 7 days of the target month's start); pseudo-forward and retrospective
+  months (2026-01..2026-09 and any formed late) are reported at the checkpoints but do not enter the decision - stricter than the pre-registration text and chosen before any real formation exists; since 2026-10 is the
+  first month that can be prospective, the decision cannot arrive before about late 2029; (4) walk-forward information run stops at formation 2025-11 so the pseudo-forward months stay unspent; (5) turnover for the
+  first formation month is 1.0; one value-weighted benchmark of all eligible names is used for all three signals; (6) `spec_commit` in the manifest is `git rev-parse HEAD`, so the code is committed before the first real formation.
