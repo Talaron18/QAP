@@ -387,3 +387,21 @@ ETFs matched to arbitrary stocks (e.g. MIDZ, GASL, FINU, WDRW, EUFL, OILU, UCOM,
   non-single-stock funds contaminate it. The verdict does not depend on it: the coverage clause alone holds for every signal.
 - Verdict under the pre-registered rule (NOT VIABLE only if the rule holds for EVERY signal): **NOT VIABLE**, on the coverage clause. No signal returns were
   used; 2020+ signal performance was not opened; no trials logged. A forward-only pilot is not warranted.
+
+## Result: break-even borrow cost for a direct margin short (computed from docs/diagnostic_report.txt; no new data, 2020+ sealed, no trial)
+Break-even annual cost on the short notional = net long-short return (after the model's 1.5x trading costs, borrow not modelled) x 12. VW top vs bottom quintile,
+$ neutral (capital 1 on each leg).
+| signal | dev net LS %/mo (t) | break-even %/yr dev | val net LS %/mo (t) | break-even %/yr val | idx-long + short Q1 only, net %/mo dev / val |
+|---|---|---|---|---|---|
+| jkp_slow10 | 0.545 (2.28) | 6.5 | 0.386 (1.10) | 4.6 | 0.413 / 0.362 |
+| jkp_all13 | 0.225 (1.06) | 2.7 | 0.210 (0.70) | 2.5 | 0.179 / 0.203 |
+| gpa | 0.222 (1.17) | 2.7 | 0.370 (0.91) | 4.4 | 0.053 / 0.217 |
+| Quality | 0.301 (1.49) | 3.6 | 0.594 (1.35) | 7.1 | 0.112 / 0.300 |
+| Profitability | 0.352 (1.26) | 4.2 | 0.460 (1.37) | 5.5 | 0.264 / 0.318 |
+Reading: the all-in hurdle is (borrow fee) + (cash rebate shortfall vs the T-bill rate, broker-specific, assumed ~0.5-2%/yr at retail size, UNVERIFIED) + short squeeze and
+locate risk. With easy-to-borrow names only (~0.3-1%/yr) the hurdle is ~1-3%/yr: slow10 clears it on both splits, all13 does not, gpa/Quality/Profitability are marginal.
+Blended-basket tolerance: with easy names at 0.5% and a hard-to-borrow share h at fee F, break-even h = (BE - 0.5)/(F - 0.5): for slow10 validation (BE 4.6) h <= 43% at F=10%
+and 17% at F=25%; development (BE 6.5) 63% and 24%. The weight share of hard-to-borrow names in the bottom quintile is UNKNOWN and is the decisive unmeasured input.
+Statistical caveats: slow10 net LS validation t is only 1.10 (95% CI roughly +-8%/yr), pooled dev+val t ~2.5 but slow10 is one of 15 Study A trials chosen for a new use (long-short),
+65 cumulative trials, and its gross edge decayed (validation gross L-U 0.04). The sealed 2020+ window is unopened for JKP composites, so a long-short slow10 would be a new
+pre-registered trial there, with borrow fees taken from the broker's live shortable list for a sample basket.
