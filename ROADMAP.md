@@ -323,3 +323,27 @@ which is the same order as the short-leg alpha measured in diagnostic (b) (slow1
 Cheap, decisive check if wanted (information only, v5 to be pre-registered first): from CRSP, list single-stock ETFs with launch dates and
 underlyings, measure (i) monthly share of each signal's bottom quintile with a product available, (ii) realised shortfall of each ETF vs
 -L x underlying monthly return (fees, financing and decay measured, not assumed).
+
+## Pre-registration v5: single-stock leveraged/inverse ETF check (information only; written before it runs)
+No signal is tested and **no alpha is estimated**: the check uses signal *ranks* (to see who sits in the bottom quintile) and ETF and
+underlying *returns*, never signal returns, so the sealed 2020+ window is not opened for any signal. No trials are logged.
+1. **Inventory (data: `crsp.stocknames_v2` via `select *`, CRSP monthly rows we already hold).** ETFs are found by name: contains "daily" and a
+   leverage multiple (`<n>X`), direction negative if the name has short/bear/inverse. Index/sector/commodity products are excluded by a fixed
+   word list (S&P, Nasdaq, Russell, Dow, Index, Sector, Treasury, Gold, Silver, Oil, Bitcoin, Ether, Semiconductor, China, ...). The underlying is
+   the common stock whose ticker equals an upper-case token of the name (stop-words removed), active at the ETF's first month; fallback:
+   a word of the name equal to the first word of an eligible stock's issuer name (largest ME). The full parsed list (ETF, L, underlying, method,
+   first/last month) is printed so mis-parses are visible; unmatched ETFs are listed. Parser rules are fixed before the first real run; if the
+   first real run shows mis-parses, the fix is made and recorded as a deviation (parsing is data cleaning, not a result).
+2. **Coverage.** For gpa, Quality, Profitability, `jkp_slow10`, `jkp_all13` (same eligible universe as the diagnostic): by calendar year, the
+   share (by count and by value weight) of the bottom quintile whose underlying has an inverse product live that month, the same for the top
+   quintile and long products, and the number of live inverse products. Also the count of bottom-quintile names covered in the last month.
+3. **Realised shortfall.** For each ETF-month (the ETF's first and last months dropped; both returns present): shortfall = r_ETF - L x r_underlying
+   (monthly, delisting-adjusted CRSP). Reported: Fama-MacBeth style monthly cross-sectional means with t over months, overall and by L bucket
+   (<= -2, -1.x, +), the std (tracking noise), per unit of exposure (divided by |L|). Plus the theory check: regress shortfall on
+   (L^2 - L)/2 x (R_u^2 - v), where R_u is the underlying's monthly return and v = sigma_d^2 x days from `crsp_daily_agg`: slope should be near 1
+   (path convexity, mean zero) and the intercept is the realised fee + financing carry per month.
+4. **Decision rule fixed in advance.** Compare the intercept-per-unit-exposure (carry, %/mo) with the short-leg gross gain already measured in
+   diagnostic (b) (slow10 0.64 dev / 0.41 val; all13 0.48 / 0.26; Quality 0.18 / 0.31; gpa 0.08 / 0.22 %/mo of Q1-U). If carry per unit exposure is
+   >= 50% of a signal's validation short-leg gain, or bottom-quintile coverage (VW) averages < 30% in the last full year, single-stock inverse ETFs
+   are recorded as NOT a viable route to the short leg. Otherwise a forward-only, pre-registered pilot would be considered (no historical test is
+   possible: products start 2022).
