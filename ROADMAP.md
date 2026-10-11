@@ -373,3 +373,17 @@ underlying *returns*, never signal returns, so the sealed 2020+ window is not op
   (bottom-quintile VW coverage < 30%) is robust to the cleaning (even the contaminated list covered 2 of ~265 bottom-quintile names in 2025-12);
   the carry estimate is what will change.
   The 1.25x family uses a tight band (beta 1.125-1.375) so that plain 1x funds are not labelled 1.25x; other leverages keep the 25% band.
+
+## Result: v5 single-stock ETF check, third run (cleaned inventory) - single-stock inverse ETFs are NOT a viable route to the short leg
+Funnel: 9,317 candidates -> 6,063 flagged FUND/ETF -> 4,733 with >= 12 months -> 231 with |rho| >= 0.95 -> 77 with a leverage in tolerance -> 72 with
+underlying ME >= $1bn. The 72 are mostly genuine 2022+ single-stock products (AAPB, TSLL, NVDL, MSFU, ...); about a dozen are legacy sector/index
+ETFs matched to arbitrary stocks (e.g. MIDZ, GASL, FINU, WDRW, EUFL, OILU, UCOM, TENG, GUSH, DPST, SKRE), mostly pre-2020.
+- **Coverage (decisive, robust to the inventory noise):** 2025 value-weighted bottom-quintile coverage by a live inverse product = 3.2% (slow10), 5.6%
+  (all13), 0.1% (Quality), 0.1% (gpa); 1 of ~265 bottom-quintile names in 2025-12; only ~16 inverse products live, all on mega-cap, high-attention
+  names (AAPL, MSFT, NVDA, TSLA, AMZN, META, GOOGL, NFLX, AVGO, MU, BRK, ...). The signals' bottom quintile is the opposite kind of stock. Long products cover
+  45-66% of the top-quintile weight (mega caps), which is irrelevant here because leverage on the long leg adds noise, not edge.
+- **Carry estimate NOT trusted:** intercept -0.73%/mo per unit of short exposure (and -0.8% for longs) is far above fees plus swap spread (~0.2%/mo expected),
+  the convexity slope is 0.44 (theory 1), shortfall noise is 8%/mo, and nominal leverage labels are snapped from betas, so mislabels and the residual
+  non-single-stock funds contaminate it. The verdict does not depend on it: the coverage clause alone holds for every signal.
+- Verdict under the pre-registered rule (NOT VIABLE only if the rule holds for EVERY signal): **NOT VIABLE**, on the coverage clause. No signal returns were
+  used; 2020+ signal performance was not opened; no trials logged. A forward-only pilot is not warranted.
