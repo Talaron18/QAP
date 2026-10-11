@@ -115,3 +115,9 @@ long-only tilt.
 **Checks printed before results:** Total Q coverage by year and join rate; median k_int/at in [0.05, 2] (asserted);
 share of |monthly d ln adj_shares| > 0.4 below 0.5% (asserted; catches broken split adjustment); oancf coverage per
 signal per split; long-leg names per month for each candidate (F-score ties).
+
+**Amendment to pre-registration v1 (made before any candidate result exists; result-independent):** the first real run
+failed the split-adjustment check, which turned out to be too crude (it counted fund/ETF share jumps and used a flat
+threshold). It is replaced by a spike test at exact split ratios on common equity, with the alternatives printed. A failed
+DATA check now drops only the candidate that depends on that data (`neg_issuance` for the split check, `bm_int` for the
+Total Q checks) and says so; the promotion rule, thresholds and other candidates are unchanged.

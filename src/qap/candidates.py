@@ -86,15 +86,51 @@ def net_issuance(panel: pd.DataFrame) -> pd.DataFrame:
     return j[["permno", "mi", "neg_issuance"]]
 
 
-def split_adjustment_check(panel: pd.DataFrame, jump: float = 0.4, max_share: float = 0.005) -> tuple:
-    """Share of 1-month |d ln adjusted shares| above `jump`; a broken split adjustment shows jumps near 0.69."""
+_SPLIT_RATIOS = (1.5, 2.0, 3.0, 4.0, 5.0, 10.0)
+
+
+def _lsh_changes(panel: pd.DataFrame, shares: pd.Series) -> pd.Series:
+    """|1-month d ln(shares)| for consecutive months of the same permno."""
     s = panel[["permno", "mi"]].copy()
-    s["lsh"] = np.log((panel["shrout"] * panel["mthcumfacshr"]).where(panel["shrout"] * panel["mthcumfacshr"] > 0))
+    s["lsh"] = np.log(shares.where(shares > 0))
     prev = s.rename(columns={"lsh": "lsh_l"}).assign(mi=lambda d: d["mi"] + 1)
     d = s.merge(prev, on=["permno", "mi"])
-    dl = (d["lsh"] - d["lsh_l"]).abs().dropna()
-    share = float((dl > jump).mean())
-    return f"split-adjustment check: share of |monthly d ln adj shares| > {jump} = {share:.3%} over {len(dl):,} pairs", share < max_share
+    return (d["lsh"] - d["lsh_l"]).abs().dropna()
+
+
+def _spike_ratio(dl: pd.Series, width: float = 0.01) -> tuple:
+    """Count of changes within +-width of an exact split ratio vs the mean count in flanking bands of equal width.
+
+    A properly split-adjusted series has no excess at ln(2), ln(3), ...; a broken adjustment shows one.
+    """
+    centre = flank = 0.0
+    for r in _SPLIT_RATIOS:
+        c = np.log(r)
+        centre += int(((dl > c - width) & (dl < c + width)).sum())
+        for off in (-0.05, 0.05):
+            flank += int(((dl > c + off - width) & (dl < c + off + width)).sum()) / 2.0
+    return centre, flank, centre / max(flank, 1.0)
+
+
+def split_adjustment_check(panel: pd.DataFrame, max_ratio: float = 2.5) -> tuple:
+    """Is shrout * mthcumfacshr split-adjusted? Judged on common-equity rows by the excess of month-to-month changes
+    at exact split ratios (ln 1.5, 2, 3, 4, 5, 10) over flanking bands; funds/ETFs are excluded because their share
+    counts legitimately jump. Also prints the alternatives shrout / mthcumfacshr and raw shrout for comparison.
+    Returns (multi-line message, passed) where passed refers to shrout * mthcumfacshr.
+    """
+    rows = panel[panel["eq"]] if "eq" in panel else panel
+    conv = {"shrout*fac": rows["shrout"] * rows["mthcumfacshr"], "shrout/fac": rows["shrout"] / rows["mthcumfacshr"].where(rows["mthcumfacshr"] > 0),
+            "raw shrout": rows["shrout"].astype(float)}
+    lines, chosen = [], None
+    for name, sh in conv.items():
+        dl = _lsh_changes(rows, sh)
+        centre, flank, ratio = _spike_ratio(dl)
+        lines.append(f"  {name:11s}: {len(dl):,} pairs; share |d ln| > 0.4 = {(dl > 0.4).mean():.3%}; "
+                     f"changes at exact split ratios {centre:.0f} vs flank {flank:.0f} -> spike ratio {ratio:.1f}")
+        if name == "shrout*fac":
+            chosen = ratio
+    msg = "split-adjustment check (common equity rows; passes if the spike ratio for shrout*fac is < " + f"{max_ratio}):\n" + "\n".join(lines)
+    return msg, bool(chosen < max_ratio)
 
 
 def build_candidate_signals(panel: pd.DataFrame, annual: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:

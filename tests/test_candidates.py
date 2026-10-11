@@ -58,30 +58,42 @@ def test_total_q_merge_and_checks():
     assert not total_q_checks(a2, tq, rate)[1]["median k_int/at in [0.05, 2] (units)"]
 
 
-def _panel_with_shares(split: bool, fix: bool):
+def _panel_with_shares(split: bool, fix: bool, n_names: int = 200):
+    """n_names stocks, each with a 2:1 split at month 18 (raw shares double)."""
     mi = np.arange(2000 * 12, 2000 * 12 + 30)
-    sh = np.full(len(mi), 100.0)
-    fac = np.ones(len(mi))
-    if split:
-        sh[18:] = 200.0                                        # 2:1 split at month 18 (raw shares double)
-        fac[:18] = 2.0 if fix else 1.0                         # cumfac adjusts pre-split shares up when the convention is right
-    return pd.DataFrame({"permno": 1, "mi": mi, "shrout": sh, "mthcumfacshr": fac})
+    frames = []
+    for p in range(1, n_names + 1):
+        sh = np.full(len(mi), 100.0 + p)
+        fac = np.ones(len(mi))
+        if split:
+            sh[18:] = sh[18:] * 2.0
+            fac[:18] = 2.0 if fix else 1.0                     # cumfac adjusts pre-split shares up when the convention is right
+        frames.append(pd.DataFrame({"permno": p, "mi": mi, "shrout": sh, "mthcumfacshr": fac}))
+    return pd.concat(frames, ignore_index=True)
 
 
 def test_net_issuance_ignores_properly_adjusted_splits():
     ok = _panel_with_shares(split=True, fix=True)
-    assert split_adjustment_check(ok)[1]
+    msg, passed = split_adjustment_check(ok)
+    assert passed and "shrout*fac" in msg and "shrout/fac" in msg
     ni = net_issuance(ok).dropna()
     assert (ni["neg_issuance"].abs() < 1e-9).all()
     broken = _panel_with_shares(split=True, fix=False)
-    assert not split_adjustment_check(broken)[1]                # a raw 2:1 split is a 0.69 jump
+    assert not split_adjustment_check(broken)[1]                # raw 2:1 splits spike at ln 2 = 0.69
+
+
+def test_split_check_ignores_fund_share_jumps():
+    p = _panel_with_shares(split=False, fix=True, n_names=50)
+    p["eq"] = True
+    fund = _panel_with_shares(split=True, fix=False, n_names=50).assign(permno=lambda d: d["permno"] + 1000, eq=False)
+    assert split_adjustment_check(pd.concat([p, fund], ignore_index=True))[1]    # broken series are non-equity: excluded
 
 
 def test_net_issuance_sign():
-    p = _panel_with_shares(split=False, fix=True)
-    p.loc[p.mi >= 2000 * 12 + 20, "shrout"] = 110.0             # 10% issuance
+    p = _panel_with_shares(split=False, fix=True, n_names=1)
+    p.loc[p.mi >= 2000 * 12 + 20, "shrout"] = 110.0             # roughly 10% issuance (shares 101 -> 110)
     ni = net_issuance(p).set_index("mi")["neg_issuance"]
-    assert ni.loc[2000 * 12 + 25] == pytest.approx(-np.log(1.1))   # issuance -> negative (bad)
+    assert ni.loc[2000 * 12 + 25] == pytest.approx(-np.log(110.0 / 101.0))   # issuance -> negative (bad)
 
 
 def test_promotion_rule_is_relative_to_gpa():

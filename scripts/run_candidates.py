@@ -78,12 +78,16 @@ def _run(log) -> None:
     checks["split adjustment of shares looks right"] = ok
     for n, ok in checks.items():
         log(f"  [{'PASS' if ok else 'FAIL'}] {n}")
-    failed = [n for n, ok in checks.items() if not ok]
-    if failed:
-        raise AssertionError("candidate-data checks failed: " + "; ".join(failed))
+    # a failed data check drops ONLY the candidate that depends on that data; the rule and the other candidates are unchanged
+    dependents = {"Total Q covers validation years (>= 2019)": "bm_int", "median k_int/at in [0.05, 2] (units)": "bm_int",
+                  "split adjustment of shares looks right": "neg_issuance"}
+    dropped = sorted({dependents[n] for n, ok in checks.items() if not ok})
+    for d in dropped:
+        log(f"  DROPPED (data check failed, not a result): {d}")
+    active = [c for c in CANDIDATES if c not in dropped]
 
     sig = build_candidate_signals(panel, annual, links)
-    names = ["gpa", "bm_timely"] + CANDIDATES
+    names = ["gpa", "bm_timely"] + active
     yr = sig["mi"] // 12
     log("\nsignal availability (share of formation rows with a value) | long-leg names per month, by split:")
     for n in names:
@@ -105,7 +109,7 @@ def _run(log) -> None:
 
     log(f"\n== PROMOTION RULE (alpha vs gpa: dev alpha t >= 2.0 and validation alpha > 0) ==")
     promoted = []
-    for n in CANDIDATES:
+    for n in active:
         st = promotion_stats(series[n], series["gpa"])
         log(f"  [{'PASS' if st['PROMOTE'] else 'FAIL'}] {n}: {st}")
         log_trial(f"cand:{n}", {"aum": AUM, "mult": MULT, "y": Y, "vs": "gpa", "universe": "ex-NYSE-20pct microcaps", "weights": "VW",
@@ -114,6 +118,9 @@ def _run(log) -> None:
             promoted.append(n)
     log("\nPROMOTED (provisional; sealed holdout opens once for these): " + (", ".join(promoted) if promoted else "NONE -> next step is the gpa-only long-only tilt"))
 
+    if "bm_int" in dropped:
+        log(f"\nunique trials logged so far: {trial_count()}")
+        return
     both = sig[sig["bm_int"].notna() & sig["bm_timely"].notna()]
     log(f"\n== bm_int vs bm_timely on the {len(both):,} rows where both exist (same universe) ==")
     for n in ("bm_timely", "bm_int"):
