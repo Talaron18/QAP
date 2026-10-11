@@ -500,3 +500,21 @@ tax treatment is assumed taxable; fractional shares assumed; sectors/industry ma
   (2) The tracking-error criterion compared the harvest arm with the total-market ETF, which mixes the harvest effect with the cost of holding only 150 names. It now applies to harvest vs DIY-no-harvest
   (median <= 1.0 %/yr, the deviation harvesting itself causes); DIY-vs-ETF tracking error is reported separately as the universe cost. Other criteria unchanged (median benefit >= +0.5 %/yr of wealth, >= 75% of
   windows positive).
+
+## RESULT v7 (user run): tax-loss harvesting on a 150-name DIY index - NOT WORTH THE COMPLEXITY (primary assumptions)
+53 rolling 10-year windows 1963..2015, USD 35k start, USD 500/month, ST 40.8% / LT 23.8%, outside LT gains USD 3,000/yr, 5 bp per side, 10% threshold, proportional wash-sale rule.
+- **Primary (hold-indefinitely), harvest minus no-harvest: median +0.167 %/yr of wealth, IQR [-0.026, +0.406], p10 -0.142, 68% of windows positive.** Liquidate-at-end: median +0.033 (IQR
+  [-0.084, +0.176]): essentially all of the benefit is deferral. Tracking error harvest vs no-harvest: median 1.08 (max 3.31) %/yr against the 1.0 limit.
+  The label fails all three criteria (benefit < 0.5, share positive < 0.75, TE > 1.0): **NOT WORTH THE COMPLEXITY**.
+- **By start decade (primary):** 1960s +0.22 (86% positive), 1970s 0.00, 1980s +0.13, 1990s -0.07 (30% positive), **2000s +0.65 (100% positive)**, 2010s +0.26. The benefit appears in drawdown-heavy
+  windows (2000s) and is nil in others.
+- **Sensitivities (information only):** no sensitivity reaches +0.5 %/yr or the WORTH label. Zero contributions: +0.30 hold (TE 1.81); contributions USD 1,500: +0.12; outside gains 0: +0.26, USD 10,000:
+  +0.09 (liquidate -0.02); cost 0 / 15 bp: +0.18 / +0.16; threshold 5% / 15%: +0.13 / +0.17; 100 / 250 names: +0.24 (TE 1.39) / +0.12 (TE 0.81); literal wash rule: +0.19, 79% positive, TE 0.94,
+  but USD 57k of loss lots withheld.
+- **DIY vs ETF:** median terminal after-tax wealth (hold): ETF 186k, no-harvest 201k, harvest 200k. Holding 150 large names without reconstitution tracks the total market with ~4 %/yr tracking error
+  (p10 relative wealth -1.2 %/yr, IQR -0.5..+0.75): a universe/size outcome, not an edge. Harvest vs ETF median +0.51 %/yr is mostly that universe effect (no-harvest vs ETF +0.24).
+- **Reading:** under the most favourable end treatment (never taxed), harvesting adds a median ~0.17 %/yr (roughly USD 100-300/yr at this account size) with ~1 %/yr extra tracking error and thousands
+  of lots to manage; with liquidation the benefit is ~0. Not a reason to hold individual stocks; the cheaper levers are a broad low-cost fund, no unnecessary turnover and asset location.
+  Biases against harvesting: monthly steps, pro-rata (not industry-matched) substitution; in favour: hold-indefinitely treatment, today's high tax rates applied to all eras.
+- Report-line bug found in review: the printed 'universe cost: harvest median TE vs ETF' reused the harvest-vs-no-harvest median (fixed in code after the run; the DECISION line and all benefit
+  statistics were unaffected).

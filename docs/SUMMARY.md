@@ -12,7 +12,7 @@ What *is* valuable and reusable: a leakage-safe research pipeline, a cost model,
 windows, and a forward paper-trading ledger. For a USD 35,000 taxable account the defensible position is a passive core, optionally
 with a small quality/profitability tilt, with the ledger running as an implementation check - not a deployed alpha strategy.
 
-## What was built (all in `src/qap/`, scripts in `scripts/`, 168 tests)
+## What was built (all in `src/qap/`, scripts in `scripts/`, 186 tests)
 
 - **Data/PIT plumbing:** CCM link filter, CIZ delisting-return handling, point-in-time annual fundamentals (4-month lag), month-grid and
   unit-calibration assertions, label builder with t+1 lag, purged/embargoed splits, rank IC, deflated Sharpe.
@@ -37,6 +37,7 @@ with a small quality/profitability tilt, with the ledger running as an implement
 | Diagnostic (b), why IC does not become return | Costs (turnover ~39%/mo for the all-13 composite), information sits in the **short** leg, decay after 2014; not a small-cap effect |
 | Single-stock leveraged/inverse ETFs for the short leg (v5) | **Not viable**: 2025 coverage of the bottom quintile 0.1-5.6% (only ~16 inverse products live, all mega-caps) |
 | Direct margin short, break-even borrow cost | `jkp_slow10` break-even 4.6-6.5 %/yr; assumed fees for the real basket ~0.4-0.7 %/yr (82% of weight in >= $10B names) - borrow is not the binding constraint |
+| Tax-aware direct indexing / loss harvesting, 150-name DIY index, 53 ten-year windows (v7) | median benefit **+0.17 %/yr** (hold-indefinitely), ~0.03 %/yr if liquidated; TE 1.1 %/yr; **not worth the complexity**; DIY index vs total market adds ~4 %/yr tracking error |
 | **One-shot sealed window, long-short `jkp_slow10` (v6)** | net 0.50 %/mo, **t 0.89 -> INCONCLUSIVE**. All of it in 2021-22 (2022: +35%); 2023-25 flat/negative; max drawdown -30%; short leg only; FF4 alpha 0.39 (t 1.15) with large size and momentum loadings |
 
 Reading across all of it: the characteristics carry real cross-sectional information historically, but it is concentrated in places a small
@@ -71,8 +72,9 @@ python scripts/paper_settle.py                    # verifies hashes, settles rea
   on this account size (5% tracking error) against an expected benefit of roughly USD 20-35 a month.
 - Long-short `jkp_slow10` is not a basis to deploy: 30% drawdown, factor-explained returns, regime concentration, a data feed that ends 2025-12, and margin/short
   operational risk. Its break-even borrow cost (4.6-6.5 %/yr) is comfortable against assumed fees, but so are those of Quality (3.6 dev / 7.1 val), Profitability (4.2 / 5.5) and gpa (2.7 / 4.4); the binding constraints are statistical and structural, not borrow.
-- Taxes were ignored all along. In a taxable account they are probably the largest controllable cost; monthly-turnover strategies realise short-term gains.
-  This is the main untested lever (tax-aware construction / loss harvesting is mechanical, so it does not decay like alpha).
+- Taxes: the research ignored them, so I tested the main mechanical lever (loss harvesting on a DIY index) with your inputs (32%+ bracket, outside gains, hold-indefinitely): about +0.17 %/yr in the best case,
+  nearly all deferral, with extra tracking error. A broad low-cost fund with low turnover captures most of the tax benefit with none of that complexity. Monthly-turnover strategies would realise short-term gains
+  at ~41% and are untenable in a taxable account at this edge size.
 - The highest-value non-research levers: savings rate, fees, diversification (including international), asset location, and not trading.
 
 ## Known limits and caveats
@@ -91,5 +93,4 @@ python scripts/paper_settle.py                    # verifies hashes, settles rea
 2. Raw data is regenerated with `scripts/wrds_extract.py` (see its docstring for dataset names); `data/` is git-ignored (licensed).
 3. Read the latest pre-registration in ROADMAP.md before running anything; write the next one *before* the code, and keep the same governance
    (trial log, sealed windows, rehearsal gates, record the outcome whatever it is).
-4. Candidate next steps, in my order: tax-lot simulation of passive + tilt (pre-registered, tax rate stated as an assumption); a bounded forward-only ML
-   check; cheap probes of the accessible alternative datasets (blockholders, XBRL complexity, risk-factor text); volatility-managed exposure last.
+4. Candidate next steps, in my order (tax-lot simulation is done, see v7): a bounded forward-only ML check; cheap probes of the accessible alternative datasets (blockholders, XBRL complexity, risk-factor text); volatility-managed exposure last.

@@ -531,7 +531,7 @@ def summarize_windows(results: list) -> dict:
         "n_windows": len(rs), "primary": p, "primary_values": prim, "start_years": sy, "liq": _dist(liq), "hv_vs_etf": _dist(hv_etf),
         "hv_vs_etf_liq": _dist(hv_etf_liq), "nohv_vs_etf": _dist(nh_etf),
         "te_hv_vs_nohv": {"median": te_med, "max": float(np.nanmax(te_hn)) if len(te_hn) else float("nan")},
-        "te_hv": {"median": te_med, "max": float(np.nanmax(te_hv)) if len(te_hv) else float("nan")},
+        "te_hv": {"median": float(np.nanmedian(te_hv)) if len(te_hv) else float("nan"), "max": float(np.nanmax(te_hv)) if len(te_hv) else float("nan")},
         "te_nohv": {"median": float(np.nanmedian(te_nh)) if len(te_nh) else float("nan"),
                     "max": float(np.nanmax(te_nh)) if len(te_nh) else float("nan")},
         "by_decade": dec,
