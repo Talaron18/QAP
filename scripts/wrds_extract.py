@@ -3,7 +3,8 @@
 Run where your WRDS credentials live:
     WRDS_USERNAME=you python scripts/wrds_extract.py [dataset ...]
 Datasets: crsp_monthly crsp_delistings ccm_links compustat_annual compustat_quarterly ff_monthly (default: all)
-plus crsp_daily_agg (per-year server-side liquidity aggregation; resumable; run it explicitly).
+plus crsp_daily_agg (per-year server-side liquidity aggregation; resumable; run it explicitly),
+rq_data kpss_patents patent_grants (Study B) and jkp_us (Study A: one parquet per year, resumable).
 """
 import pathlib
 import sys
@@ -30,10 +31,41 @@ def extract_daily_agg(db, out: pathlib.Path, first_year: int = 1963, last_year: 
     print(f"[crsp_daily_agg] {len(full):,} rows -> {out / 'crsp_daily_agg.parquet'}", flush=True)
 
 
+def extract_jkp_us(db, out: pathlib.Path, first_year: int = 1963, last_year: int = 2025) -> None:
+    """JKP US characteristics, one parquet per year (resumable). Missing theme-member columns are reported, never guessed."""
+    import pandas as pd
+    from qap import config
+    from qap.extract import jkp_us_sql
+    from qap.jkp_themes import ALL_CHARACTERISTICS
+    lib, table = config.JKP_TABLE.split(".")
+    have = set(db.describe_table(library=lib, table=table)["name"])
+    cols = [c for c in ALL_CHARACTERISTICS if c in have]
+    missing = [c for c in ALL_CHARACTERISTICS if c not in have]
+    parts = out / "jkp_us"
+    parts.mkdir(exist_ok=True)
+    (parts / "_missing_columns.txt").write_text("\n".join(missing) + "\n")
+    print(f"[jkp_us] {len(cols)} of {len(ALL_CHARACTERISTICS)} theme members present; missing: {missing}", flush=True)
+    for y in range(first_year, last_year + 1):
+        f = parts / f"{y}.parquet"
+        if f.exists():
+            continue
+        df = db.raw_sql(jkp_us_sql(cols, y))
+        for c in df.columns:
+            if str(df[c].dtype) in ("Float64", "float64", "object") and c not in ("size_grp", "eom"):
+                df[c] = pd.to_numeric(df[c], errors="coerce").astype("float32")
+        df.to_parquet(f, index=False)
+        print(f"[jkp_us] {y}: {len(df):,} rows", flush=True)
+
+
 def main(names) -> None:
     db = connect()
     out = pathlib.Path("data/raw")
     out.mkdir(parents=True, exist_ok=True)
+    if "jkp_us" in names:
+        extract_jkp_us(db, out)
+        names = [n for n in names if n != "jkp_us"]
+        if not names:
+            return
     if "crsp_daily_agg" in names:
         extract_daily_agg(db, out)
         names = [n for n in names if n != "crsp_daily_agg"]

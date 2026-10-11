@@ -130,6 +130,36 @@ order by permno, yr, mo
 """
 
 
+def jkp_us_sql(columns: Sequence[str], year: int) -> str:
+    """US CRSP-sourced stock-months of one calendar year from the JKP Global Factor Data, JKP screens applied.
+
+    columns: characteristic columns that exist in the table (validated by the caller against describe_table).
+    Months are keyed by eom (information available at that month-end); size_grp micro/nano are dropped.
+    """
+    groups = ", ".join(f"'{g}'" for g in config.JKP_SIZE_GROUPS)
+    cols = ", ".join(["cast(permno as bigint) as permno", "eom", "size_grp", "ret_exc_lead1m", "me", *columns])
+    return (f"select {cols} from {config.JKP_TABLE} where excntry = 'USA' and permno is not null and common = 1 "
+            f"and primary_sec = 1 and exch_main = 1 and obs_main = 1 and size_grp in ({groups}) "
+            f"and eom >= DATE '{year}-01-01' and eom <= DATE '{year}-12-31' order by permno, eom")
+
+
+def rq_sql() -> str:
+    return _select(["gvkey", "fyear", "loc", "sic", "xrd", "rawrq", "se_rawrq", "rdintensity"], config.RQ_TABLE, order="gvkey, fyear")
+
+
+def kpss_sql() -> str:
+    return _select(["permno", "filing_date", "issue_date", "patent_num", "xi_real", "xi_nominal", "cites"], config.KPSS_TABLE,
+                   "permno is not null and issue_date is not null", "permno, issue_date")
+
+
+def patent_grants_sql() -> str:
+    """Patents per (gvkey, grant year), aggregated on the server (the firm-year panel's `year` is ambiguous)."""
+    return ("select gvkey, cast(grant_year as integer) as grant_year, count(*) as n_patents, sum(num_cite_3y) as cites3y_sum, "
+            f"count(num_cite_3y) as n_cite3y from {config.PATENT_LEVEL_TABLE} "
+            "where gvkey is not null and trim(gvkey) <> '' and trim(gvkey) <> '.' and grant_year is not null "
+            "group by gvkey, cast(grant_year as integer) order by gvkey, grant_year")
+
+
 QUERIES = {
     "crsp_monthly": crsp_monthly_sql,
     "crsp_delistings": crsp_delistings_sql,
@@ -137,5 +167,8 @@ QUERIES = {
     "compustat_annual": compustat_annual_sql,
     "compustat_quarterly": compustat_quarterly_sql,
     "totalq": total_q_sql,
+    "rq_data": rq_sql,
+    "kpss_patents": kpss_sql,
+    "patent_grants": patent_grants_sql,
     "ff_monthly": ff_monthly_sql,
 }

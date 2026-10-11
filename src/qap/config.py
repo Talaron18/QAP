@@ -54,3 +54,10 @@ CCM_LINK_COLS = ["gvkey", "liid", "linktype", "linkprim", "lpermno", "lpermco", 
 # wrdsapps.ibcrsphist (link only, no IBES data).
 
 CRSP_DAILY_AGG = "crsp.dsf_v2"  # aggregated server-side into per (permno, month) liquidity inputs
+
+JKP_TABLE = "contrib_global_factor.global_factor"
+JKP_SIZE_GROUPS = ("mega", "large", "small")        # JKP NYSE-breakpoint groups; micro and nano are dropped
+JKP_EXTRA_COLS = ["ret_exc_lead1m", "me", "size_grp"]  # not theme members: used only for the pre-registered checks
+RQ_TABLE = "rq_all.rq_data"
+KPSS_TABLE = "contrib_kpss.kpss_patents"
+PATENT_LEVEL_TABLE = "contrib_patent_firm_link.patent_level"
