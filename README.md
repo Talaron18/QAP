@@ -31,6 +31,8 @@ python scripts/run_diagnostic.py [--jobs N]   # information-only conversion diag
 python scripts/wrds_extract.py compustat_annual comp_secm   # forward paper trading inputs (refresh before each formation)
 python scripts/paper_form.py     # CRSP-overlap check, then frozen ledger files under data/paper/forms/ (commit them)
 python scripts/paper_settle.py   # settle the ledger against realised comp.secm returns; data/paper_report.txt
+python scripts/run_etf_check.py  # single-stock leveraged/inverse ETF check (information only); data/etf_check_report.txt
+python scripts/short_basket.py   # bottom-quintile basket sheet for the borrow-fee check; then --fees <filled csv>
 python scripts/wrds_inventory.py # every library this account can see, with table/row counts (data/wrds_inventory.txt)
 ```
 
