@@ -461,3 +461,34 @@ Gate passed (reproduced diagnostic (b) exactly). 72 realised months.
 - **Ledger timing note (recorded 2026-10-11):** all ten frozen formations were created on 2026-10-11, so `paper_settle.py` (prospective = formed within 7 days of the target month's start) will label them retrospective.
   The rule is left unchanged. The first formation that can be prospective is 2026-10 (needs formation and a pushed manifest by about 2026-11-07). If WRDS posts the month-end row later, report zero prospective months
   honestly rather than loosening the rule after the fact.
+
+## Pre-registration v7: tax-aware direct indexing (loss harvesting) simulation for a USD 35k taxable account (written before any code or run)
+Question: is the mechanical after-tax benefit of tax-loss harvesting on a ~150-name DIY index, with regular cash additions, large enough to matter against its tracking error
+and complexity? This is NOT an alpha test (no signal is used; nothing predictive is estimated), so no trial is logged; the sealed 2020+ window is irrelevant and the full 1963-2025
+history is used with rolling 10-year windows. The result is a measurement under stated assumptions, not a validation of a strategy.
+**User inputs (2026-10-11):** federal bracket 32% or higher; realises some other capital gains every year; PRIMARY end treatment = hold indefinitely / bequeath (unrealised gains
+never taxed); fractional shares; regular cash additions.
+**Tax assumptions (constants, current-law rates applied to all eras; to be confirmed with a tax adviser):** federal short-term 32% (ordinary), long-term 15%, NIIT 3.8% on both (assumes
+MAGI above the unindexed USD 200k threshold), assumed state 5%: short-term 40.8%, long-term and qualified dividends 23.8%. Long-term = held more than 12 months. Net losses offset gains
+(ST against ST first, LT against LT, then cross), then up to USD 3,000/yr against ordinary income at 40.8%, remainder carries forward indefinitely (cap and wash-sale rule are from general
+knowledge, not re-verified here). Outside realised gains assumption: USD 3,000/yr long-term (absorbs harvested losses at 23.8%); sensitivities 0 and USD 10,000. Rates checked via a public source
+for 2026 (15%/20% LT brackets unchanged, NIIT 3.8% with a frozen USD 200k threshold; the 20% bracket starts well above the assumed income).
+**Arms (all start USD 35,000 at the start of each window; contributions USD 500/month, sensitivities 0 and 1,500):**
+- *ETF benchmark:* value-weighted total-market portfolio (all common-equity names, CRSP VW return incl. dividends) held like a broad ETF: no realised gains; dividends taxed each year at
+  23.8%; costless.
+- *DIY, no harvest:* the 150 largest company-ME common stocks at window start, value-weighted at purchase; held; new cash and dividends buy the most underweight names (no sells); the
+  universe is reconstituted only by delistings/mergers (treated as taxable sales at the delisting return, proceeds reinvested pro rata); no other sells.
+- *DIY, harvest:* as above plus: each month, any tax lot with unrealised loss >= 10% of its basis and >= USD 50 is sold (lot-level, dollars); the proceeds are reinvested pro rata in the
+  other holdings; the sold name is blocked from all purchases (new cash, dividends, substitution) that month and the next (30-day wash-sale rule at monthly steps), and a name with any purchase
+  in the previous month is not harvested. Single spec: threshold 10%, universe 150, pro-rata substitution; ablations (5%/15%, 100/250 names) are information only.
+**Dividends/returns:** price return from `mthretx`, dividend yield from `mthret - mthretx`; delisting month uses the delisting-adjusted return. Lots are tracked in dollars so splits do not matter.
+**Costs:** flat 5 bp per side on traded notional for both DIY arms (sensitivities 0 and 15 bp); no commissions.
+**Windows:** 10-year windows starting every January 1963..2015 (53, overlapping), plus a monthly-start robustness; the 150-name universe is re-picked at each window start.
+**Primary statistic:** after-tax terminal wealth under HOLD-INDEFINITELY (unrealised gains untaxed): (harvest - no-harvest)/wealth, annualised %, median / IQR / 10th percentile across windows.
+Also reported: harvest vs the ETF benchmark; liquidate-at-end after-tax wealth (deferred tax counted) as co-reported, because much of the harvest benefit is deferral; tracking error of each DIY arm vs the
+ETF benchmark (annualised, from monthly pre-tax returns); realised loss harvested per year, ST/LT split, cumulative carryforward, turnover; number of names and lots.
+**Decision rule (fixed now):** "worth pursuing" only if, under hold-indefinitely with the primary assumptions, the median annualised after-tax benefit of harvest over no-harvest is >= +0.5 %/yr of wealth,
+at least 75% of windows are positive, and the harvest arm's tracking error vs the ETF benchmark is <= 2.0 %/yr; the liquidate-at-end figure is reported next to it and, if it is <= 0, the result is
+labelled "deferral only". Otherwise "not worth the complexity". Either way this is an informational result about an implementation choice, not alpha.
+**Known biases:** monthly steps miss intramonth harvesting (biases the benefit DOWN); constant current-law tax rates across eras; wash sales across the user's other accounts are ignored; CRSP merger/delisting
+tax treatment is assumed taxable; fractional shares assumed; sectors/industry matching in substitution is not modelled (pro-rata) which adds tracking error.
