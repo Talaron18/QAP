@@ -150,3 +150,12 @@ the first signals run.
 **Not decided here:** whether to deploy (edge about 0.1-0.2%/mo net, t below 2; taxes on short-term gains from monthly
 turnover are not modelled). Paper trading needs a different price source: CRSP here ends 2025-12 (annual update) while
 Compustat runs to 2026-09; Compustat security price tables or another feed would be needed.
+
+- Tilt result (pre-registration v2, 0fef4ed; holdout sealed; $10M 2019 market-size, 1.5x costs, benchmark VW eligible
+  universe, costless): FINAL SPEC (c) buffer + 3% cap: net active +0.216%/mo (t 2.56, TE 5.1%, IR 0.51) on dev 1990-2014,
+  +0.096% (t 0.78) on validation 2015-19, +0.124% (t 1.35) pre-1990; ~490 holdings, max weight 3%, top-10 weight ~29%,
+  active share ~0.73-0.76, one-way turnover 1.2-1.9%/mo, cost@1x 0.001-0.012%/mo. Ablations (information only):
+  (a) baseline dev +0.184 (t 1.88), (b) buffer only +0.148 (t 1.65). Information only: FF4 alpha dev +0.305%/mo (t 4.05),
+  validation +0.066 (t 0.68); HML loading -0.22 to -0.33 (t -5 to -10) i.e. a strong growth tilt; industry active weights
+  dev: -7% finance (SIC 60), +10% chemicals/pharma (SIC 28). 46 unique trials logged. Next: open 2020+ ONCE for (c)
+  (`--open-holdout`); then the deployment questions (capital, account type/taxes, price source for paper trading).
