@@ -219,3 +219,20 @@ at t >= 2; the sealed holdout is what decides. 65 cumulative unique trials after
 - **Universe note:** these signals exist only for innovating/R&D firms, so each is ranked within the firms that have it and
   benchmarked to that covered universe; this differs from gpa's universe (information only).
 - **Checks printed first:** coverage by decade; last KPSS issue date; patents per grant year; link hit rate; `rawrq` scale.
+
+## Results: Study A and Study B (reports in docs/study_a_report.txt, docs/study_b_report.txt; holdout still sealed)
+All data checks passed (JKP next-month return vs ours: rank corr 1.000; JKP gp_at vs our gpa 0.971; be/ME 0.977; 0 of 153 theme
+columns missing; coverage 99.1%). **Nothing promoted in either study.** Cumulative unique trials: 65.
+- **Study A (15 trials):** the only dev alpha t >= 2.0 was Value (+0.30%/mo, t 2.13, NW6 t 1.67), and its validation alpha was
+  -0.04, so it fails; with 15-19 tests a t of 2.13 is what chance produces. Quality is the best standalone (dev t 1.99, val
+  +0.29) but has correlation 0.76 with gpa, so its alpha over gpa is 0.05 (t 0.85): it is gpa again. Short-Term Reversal and
+  Seasonality are significantly negative net of costs (turnover).
+- **The composites are the informative result:** jkp_all13 gross rank IC 0.039 (t 7.2) on dev but only 0.0098 (t 0.8) on
+  validation, and its net long-minus-universe return is about zero in both. The cross-sectional ranking information is real
+  and decayed after 2014, and a value-weighted long-only top-quintile ex-microcaps after 1.5x costs does not capture it.
+- **Study B (4 trials):** no innovation signal has dev alpha over gpa (|t| < 1.4); RQ and patent quality ~0. kpss_xi_me is the
+  best (dev +0.084, t 1.34; val +0.155) and is not distinguishable from noise.
+- **gpa remains the sole survivor** (dev +0.184%/mo, t 1.88; val +0.098, t 0.60 in this universe) and its 2020+ holdout was
+  already opened once (+0.056, t 0.36). Verdict unchanged: no validated out-of-sample edge in long-only net-of-cost equity
+  factor tilts; the pipeline, data and honesty machinery are the product.
+- Compute note: user has 36 cores / 31.5 GB; per-signal costed backtests are independent and should be parallelised next time.

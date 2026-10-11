@@ -1,0 +1,28 @@
+== CHECKS (printed before any result) ==
+KPSS patents 2,950,305; last issue_date 2019-12-31 -> kpss_xi_me evaluated through month index 24236 (2019-09); permnos 8,549
+patent grants (server-side aggregate) 4,826,989 over 204,211 gvkey-years; grant years 1976..2025; last 6 years: {np.int64(2020): 203038, np.int64(2021): 185935, np.int64(2022): 180531, np.int64(2023): 174721, np.int64(2024): 176966, np.int64(2025): 175372}
+RQ rows 55,539; rawrq quantiles (1/50/99%): [-0.039, 0.102, 0.294]; fyears 1972..2024
+signal availability (share of eligible rows with a value) by decade:
+  rq             1960s=0%  1970s=9%  1980s=25%  1990s=20%  2000s=28%  2010s=34%  2020s=31%
+  kpss_xi_me     1960s=59%  1970s=53%  1980s=49%  1990s=43%  2000s=51%  2010s=51%  2020s=0%
+  pat_flow_rd    1960s=9%  1970s=27%  1980s=32%  1990s=31%  2000s=38%  2010s=41%  2020s=43%
+  pat_quality3   1960s=0%  1970s=0%  1980s=29%  1990s=28%  2000s=33%  2010s=37%  2020s=35%
+  [PASS] every source produced values
+
+== RESULTS (Study B): net long-minus-universe, $10,000,000 (2019 market-size), 1.5x costs, Y=1.0; holdout sealed ==
+standalone, information only: net L-U % per month (t) on dev / validation | gross rank IC (t) on dev / validation
+  rq                     dev 0.032 (0.2)  val 0.072 (0.37)  | IC dev 0.0008 (0.18)  val 0.0019 (0.29)
+  kpss_xi_me             dev 0.088 (1.42)  val 0.158 (1.27)  | IC dev 0.0029 (0.46)  val 0.015 (1.14)
+  pat_flow_rd            dev -0.064 (-0.59)  val -0.275 (-1.43)  | IC dev 0.0031 (0.68)  val 0.0116 (1.17)
+  pat_quality3           dev 0.051 (0.35)  val 0.113 (0.53)  | IC dev -0.002 (-0.33)  val 0.0097 (1.11)
+  gpa (incumbent)        dev 0.184 (1.88)  val 0.098 (0.6)
+
+== PROMOTION RULE (alpha vs gpa: dev alpha t >= 2.0 and validation alpha > 0) ==
+  [FAIL] rq: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.02, 'dev_alpha_t': 0.12, 'dev_alpha_t_nw6': 0.16, 'beta_on_gpa': 0.06, 'val_alpha_pct': 0.066, 'corr_with_gpa_dev': 0.04, 'standalone_dev_pct': 0.032, 'standalone_dev_t': 0.2, 'standalone_val_pct': 0.072, 'ew_gpa_plus_c_dev_pct': 0.108, 'ew_dev_t': 1.12, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.085, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] kpss_xi_me: {'dev_months': 300, 'val_months': 58, 'dev_alpha_pct': 0.084, 'dev_alpha_t': 1.34, 'dev_alpha_t_nw6': 1.34, 'beta_on_gpa': 0.02, 'val_alpha_pct': 0.155, 'corr_with_gpa_dev': 0.04, 'standalone_dev_pct': 0.088, 'standalone_dev_t': 1.42, 'standalone_val_pct': 0.158, 'ew_gpa_plus_c_dev_pct': 0.136, 'ew_dev_t': 2.31, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.138, 'gpa_alone_val_pct': 0.118, 'PROMOTE': False}
+  [FAIL] pat_flow_rd: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.009, 'dev_alpha_t': -0.09, 'dev_alpha_t_nw6': -0.09, 'beta_on_gpa': -0.3, 'val_alpha_pct': -0.246, 'corr_with_gpa_dev': -0.27, 'standalone_dev_pct': -0.064, 'standalone_dev_t': -0.59, 'standalone_val_pct': -0.275, 'ew_gpa_plus_c_dev_pct': 0.06, 'ew_dev_t': 0.96, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': -0.089, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] pat_quality3: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.034, 'dev_alpha_t': 0.23, 'dev_alpha_t_nw6': 0.26, 'beta_on_gpa': 0.1, 'val_alpha_pct': 0.104, 'corr_with_gpa_dev': 0.06, 'standalone_dev_pct': 0.051, 'standalone_dev_t': 0.35, 'standalone_val_pct': 0.113, 'ew_gpa_plus_c_dev_pct': 0.118, 'ew_dev_t': 1.31, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.106, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+
+PROMOTED (provisional; sealed holdout opens once for these): NONE
+
+unique trials logged so far: 50

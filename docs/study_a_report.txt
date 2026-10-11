@@ -1,0 +1,63 @@
+== CHECKS (printed before any result) ==
+theme-member columns missing from the table: 0 of 153 []
+JKP rows merged onto our eligible universe: 1,390,055; eligible rows 1,402,827; coverage 99.1%; years 1963..2025
+size_grp values: {'small': 697932, 'large': 448470, 'mega': 243653}
+monthly rank corr, JKP gp_at vs our gpa: mean 0.971 (min 0.605); JKP be_me vs our be/ME: mean 0.977; JKP ret_exc_lead1m vs our next-month return: mean 1.000 (min 0.996)
+theme availability (share of rows with a score) by decade:
+  Accruals             1960s=61%  1970s=76%  1980s=77%  1990s=86%  2000s=94%  2010s=99%  2020s=98%
+  Debt Issuance        1960s=74%  1970s=86%  1980s=88%  1990s=91%  2000s=98%  2010s=99%  2020s=98%
+  Investment           1960s=73%  1970s=82%  1980s=86%  1990s=91%  2000s=98%  2010s=99%  2020s=98%
+  Low Leverage         1960s=75%  1970s=84%  1980s=88%  1990s=95%  2000s=99%  2010s=99%  2020s=98%
+  Low Risk             1960s=98%  1970s=86%  1980s=94%  1990s=98%  2000s=99%  2010s=99%  2020s=99%
+  Momentum             1960s=96%  1970s=96%  1980s=97%  1990s=94%  2000s=97%  2010s=97%  2020s=97%
+  Profit Growth        1960s=67%  1970s=86%  1980s=88%  1990s=89%  2000s=95%  2010s=97%  2020s=94%
+  Profitability        1960s=73%  1970s=83%  1980s=88%  1990s=96%  2000s=99%  2010s=99%  2020s=98%
+  Quality              1960s=75%  1970s=90%  1980s=92%  1990s=97%  2000s=99%  2010s=100%  2020s=99%
+  Seasonality          1960s=73%  1970s=78%  1980s=85%  1990s=87%  2000s=92%  2010s=94%  2020s=89%
+  Size                 1960s=99%  1970s=85%  1980s=94%  1990s=99%  2000s=100%  2010s=100%  2020s=100%
+  Short-Term Reversal  1960s=98%  1970s=87%  1980s=93%  1990s=98%  2000s=99%  2010s=100%  2020s=100%
+  Value                1960s=76%  1970s=90%  1980s=93%  1990s=98%  2000s=100%  2010s=100%  2020s=99%
+  jkp_all13            1960s=72%  1970s=80%  1980s=86%  1990s=92%  2000s=98%  2010s=98%  2020s=97%
+  jkp_slow10           1960s=72%  1970s=81%  1980s=86%  1990s=91%  2000s=97%  2010s=98%  2020s=97%
+  [PASS] JKP next-month return matches ours (mean rank corr >= 0.95)
+  [PASS] <= 15% of theme-member columns missing
+
+== RESULTS (Study A): net long-minus-universe, $10,000,000 (2019 market-size), 1.5x costs, Y=1.0; holdout sealed ==
+standalone, information only: net L-U % per month (t) on dev / validation | gross rank IC (t) on dev / validation
+  Accruals               dev -0.202 (-1.73)  val 0.211 (1.21)  | IC dev 0.0057 (1.66)  val 0.0011 (0.11)
+  Debt Issuance          dev 0.088 (1.11)  val -0.12 (-0.86)  | IC dev 0.0133 (4.18)  val -0.0058 (-0.85)
+  Investment             dev 0.064 (0.61)  val -0.201 (-1.29)  | IC dev 0.0166 (2.26)  val -0.0093 (-0.75)
+  Low Leverage           dev 0.067 (0.23)  val 0.301 (1.05)  | IC dev -0.0125 (-1.31)  val 0.0099 (0.62)
+  Low Risk               dev -0.226 (-1.49)  val 0.005 (0.03)  | IC dev 0.0194 (1.53)  val 0.033 (1.47)
+  Momentum               dev -0.084 (-0.49)  val -0.095 (-0.39)  | IC dev 0.0132 (1.51)  val 0.0035 (0.15)
+  Profit Growth          dev -0.179 (-1.47)  val -0.044 (-0.27)  | IC dev 0.0142 (2.58)  val -0.0058 (-0.53)
+  Profitability          dev 0.088 (1.36)  val 0.142 (1.42)  | IC dev 0.0276 (4.97)  val 0.0156 (1.41)
+  Quality                dev 0.19 (1.99)  val 0.293 (1.68)  | IC dev 0.0188 (3.04)  val 0.0189 (1.36)
+  Seasonality            dev -0.327 (-3.02)  val -0.15 (-0.98)  | IC dev 0.0139 (3.03)  val -0.0255 (-2.64)
+  Size                   dev -0.076 (-0.5)  val -0.189 (-0.66)  | IC dev -0.0053 (-0.96)  val -0.0087 (-0.58)
+  Short-Term Reversal    dev -0.621 (-6.6)  val 0.109 (0.72)  | IC dev 0.0084 (2.24)  val 0.0166 (1.81)
+  Value                  dev 0.206 (1.39)  val -0.091 (-0.35)  | IC dev 0.0304 (3.13)  val -0.0066 (-0.34)
+  jkp_all13              dev 0.046 (0.45)  val 0.007 (0.05)  | IC dev 0.0392 (7.17)  val 0.0098 (0.8)
+  jkp_slow10             dev 0.131 (1.43)  val 0.024 (0.18)  | IC dev 0.0379 (6.62)  val 0.0133 (0.96)
+  gpa (incumbent)        dev 0.184 (1.88)  val 0.098 (0.6)
+
+== PROMOTION RULE (alpha vs gpa: dev alpha t >= 2.0 and validation alpha > 0) ==
+  [FAIL] Accruals: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.154, 'dev_alpha_t': -1.35, 'dev_alpha_t_nw6': -1.37, 'beta_on_gpa': -0.26, 'val_alpha_pct': 0.236, 'corr_with_gpa_dev': -0.21, 'standalone_dev_pct': -0.202, 'standalone_dev_t': -1.73, 'standalone_val_pct': 0.211, 'ew_gpa_plus_c_dev_pct': -0.009, 'ew_dev_t': -0.13, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.155, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Debt Issuance: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.086, 'dev_alpha_t': 1.07, 'dev_alpha_t_nw6': 1.37, 'beta_on_gpa': 0.01, 'val_alpha_pct': -0.121, 'corr_with_gpa_dev': 0.01, 'standalone_dev_pct': 0.088, 'standalone_dev_t': 1.11, 'standalone_val_pct': -0.12, 'ew_gpa_plus_c_dev_pct': 0.136, 'ew_dev_t': 2.15, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': -0.011, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Investment: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.118, 'dev_alpha_t': 1.16, 'dev_alpha_t_nw6': 1.07, 'beta_on_gpa': -0.29, 'val_alpha_pct': -0.172, 'corr_with_gpa_dev': -0.27, 'standalone_dev_pct': 0.064, 'standalone_dev_t': 0.61, 'standalone_val_pct': -0.201, 'ew_gpa_plus_c_dev_pct': 0.124, 'ew_dev_t': 2.03, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': -0.051, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Low Leverage: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.053, 'dev_alpha_t': -0.19, 'dev_alpha_t_nw6': -0.22, 'beta_on_gpa': 0.65, 'val_alpha_pct': 0.238, 'corr_with_gpa_dev': 0.22, 'standalone_dev_pct': 0.067, 'standalone_dev_t': 0.23, 'standalone_val_pct': 0.301, 'ew_gpa_plus_c_dev_pct': 0.125, 'ew_dev_t': 0.78, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.2, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Low Risk: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.258, 'dev_alpha_t': -1.7, 'dev_alpha_t_nw6': -1.83, 'beta_on_gpa': 0.17, 'val_alpha_pct': -0.012, 'corr_with_gpa_dev': 0.11, 'standalone_dev_pct': -0.226, 'standalone_dev_t': -1.49, 'standalone_val_pct': 0.005, 'ew_gpa_plus_c_dev_pct': -0.021, 'ew_dev_t': -0.22, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.051, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Momentum: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.147, 'dev_alpha_t': -0.87, 'dev_alpha_t_nw6': -0.95, 'beta_on_gpa': 0.34, 'val_alpha_pct': -0.129, 'corr_with_gpa_dev': 0.2, 'standalone_dev_pct': -0.084, 'standalone_dev_t': -0.49, 'standalone_val_pct': -0.095, 'ew_gpa_plus_c_dev_pct': 0.05, 'ew_dev_t': 0.47, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.001, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Profit Growth: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.189, 'dev_alpha_t': -1.54, 'dev_alpha_t_nw6': -1.65, 'beta_on_gpa': 0.06, 'val_alpha_pct': -0.049, 'corr_with_gpa_dev': 0.04, 'standalone_dev_pct': -0.179, 'standalone_dev_t': -1.47, 'standalone_val_pct': -0.044, 'ew_gpa_plus_c_dev_pct': 0.003, 'ew_dev_t': 0.03, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.027, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Profitability: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.023, 'dev_alpha_t': 0.43, 'dev_alpha_t_nw6': 0.48, 'beta_on_gpa': 0.35, 'val_alpha_pct': 0.107, 'corr_with_gpa_dev': 0.53, 'standalone_dev_pct': 0.088, 'standalone_dev_t': 1.36, 'standalone_val_pct': 0.142, 'ew_gpa_plus_c_dev_pct': 0.136, 'ew_dev_t': 1.91, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.12, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Quality: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.053, 'dev_alpha_t': 0.85, 'dev_alpha_t_nw6': 0.97, 'beta_on_gpa': 0.74, 'val_alpha_pct': 0.22, 'corr_with_gpa_dev': 0.76, 'standalone_dev_pct': 0.19, 'standalone_dev_t': 1.99, 'standalone_val_pct': 0.293, 'ew_gpa_plus_c_dev_pct': 0.187, 'ew_dev_t': 2.06, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.196, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Seasonality: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.304, 'dev_alpha_t': -2.8, 'dev_alpha_t_nw6': -2.66, 'beta_on_gpa': -0.12, 'val_alpha_pct': -0.137, 'corr_with_gpa_dev': -0.11, 'standalone_dev_pct': -0.327, 'standalone_dev_t': -3.02, 'standalone_val_pct': -0.15, 'ew_gpa_plus_c_dev_pct': -0.072, 'ew_dev_t': -1.04, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': -0.026, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Size: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.015, 'dev_alpha_t': 0.1, 'dev_alpha_t_nw6': 0.1, 'beta_on_gpa': -0.5, 'val_alpha_pct': -0.14, 'corr_with_gpa_dev': -0.32, 'standalone_dev_pct': -0.076, 'standalone_dev_t': -0.5, 'standalone_val_pct': -0.189, 'ew_gpa_plus_c_dev_pct': 0.054, 'ew_dev_t': 0.7, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': -0.045, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Short-Term Reversal: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.602, 'dev_alpha_t': -6.39, 'dev_alpha_t_nw6': -4.88, 'beta_on_gpa': -0.1, 'val_alpha_pct': 0.119, 'corr_with_gpa_dev': -0.11, 'standalone_dev_pct': -0.621, 'standalone_dev_t': -6.6, 'standalone_val_pct': 0.109, 'ew_gpa_plus_c_dev_pct': -0.219, 'ew_dev_t': -3.41, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.104, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] Value: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.3, 'dev_alpha_t': 2.13, 'dev_alpha_t_nw6': 1.67, 'beta_on_gpa': -0.51, 'val_alpha_pct': -0.041, 'corr_with_gpa_dev': -0.33, 'standalone_dev_pct': 0.206, 'standalone_dev_t': 1.39, 'standalone_val_pct': -0.091, 'ew_gpa_plus_c_dev_pct': 0.195, 'ew_dev_t': 2.64, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.004, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] jkp_all13: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': -0.005, 'dev_alpha_t': -0.05, 'dev_alpha_t_nw6': -0.06, 'beta_on_gpa': 0.28, 'val_alpha_pct': -0.021, 'corr_with_gpa_dev': 0.27, 'standalone_dev_pct': 0.046, 'standalone_dev_t': 0.45, 'standalone_val_pct': 0.007, 'ew_gpa_plus_c_dev_pct': 0.115, 'ew_dev_t': 1.45, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.052, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+  [FAIL] jkp_slow10: {'dev_months': 300, 'val_months': 60, 'dev_alpha_pct': 0.076, 'dev_alpha_t': 0.87, 'dev_alpha_t_nw6': 0.97, 'beta_on_gpa': 0.3, 'val_alpha_pct': -0.005, 'corr_with_gpa_dev': 0.32, 'standalone_dev_pct': 0.131, 'standalone_dev_t': 1.43, 'standalone_val_pct': 0.024, 'ew_gpa_plus_c_dev_pct': 0.157, 'ew_dev_t': 2.05, 'gpa_alone_dev_pct': 0.184, 'gpa_alone_dev_t': 1.88, 'ew_gpa_plus_c_val_pct': 0.061, 'gpa_alone_val_pct': 0.098, 'PROMOTE': False}
+
+PROMOTED (provisional; sealed holdout opens once for these): NONE
+
+unique trials logged so far: 65
