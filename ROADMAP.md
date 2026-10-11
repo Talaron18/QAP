@@ -347,3 +347,10 @@ underlying *returns*, never signal returns, so the sealed 2020+ window is not op
    >= 50% of a signal's validation short-leg gain, or bottom-quintile coverage (VW) averages < 30% in the last full year, single-stock inverse ETFs
    are recorded as NOT a viable route to the short leg. Otherwise a forward-only, pre-registered pilot would be considered (no historical test is
    possible: products start 2022).
+
+- **v5 deviations/readings fixed BEFORE the first real run (found in review of the implementation):** (1) shortfall is measured in excess-of-rf
+  terms, (r_ETF - rf) - L (r_u - rf), because swap-based funds earn (1 - L) rf on their cash, so the raw gap would show a large positive rf term for
+  inverse funds (about +1%/mo at 2023-25 rates) and make the carry clause unfireable; excess form isolates fee, swap spread and path effects, which
+  is also what a margin short costs relative to its rebate. rf from `ff_monthly`. (2) Decision rule: the route is NOT VIABLE only if the rule holds
+  for EVERY listed signal (gpa, Quality, jkp_slow10, jkp_all13); the 'any' reading would call it dead if one signal fails. Per-signal lines printed.
+  (3) The parsed ETF list is printed in full; first-run mis-parses, if any, are fixed and recorded as data-cleaning deviations.
