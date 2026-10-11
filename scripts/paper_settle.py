@@ -13,7 +13,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 
-from qap.paper import build_pseudo_panel, form_sha, settle_form
+from qap.paper import build_pseudo_panel, complete_months, form_sha, manifest_path, settle_form
 from qap.study import require_inputs
 
 RAW, OUT = pathlib.Path("data/raw"), pathlib.Path("data/paper")
@@ -27,13 +27,15 @@ def _stats(s: pd.Series) -> str:
 
 
 def main() -> None:
-    require_inputs([RAW / "comp_secm.parquet", OUT / "manifest.jsonl"], "Run: python scripts/wrds_extract.py comp_secm  and  python scripts/paper_form.py")
+    require_inputs([RAW / "comp_secm.parquet", manifest_path()], "Run: python scripts/wrds_extract.py comp_secm  and  python scripts/paper_form.py")
     secm = pd.read_parquet(RAW / "comp_secm.parquet")
     p = build_pseudo_panel(secm, 1.0)                       # scale irrelevant: only returns are used
     ret = p.rename(columns={"mthret_adj": "ret"})[["gvkey", "iid", "mi", "ret"]]
-    last_mi = int(ret["mi"].max())
+    last_mi = max(complete_months(p))                         # a partial latest month would look like missing returns
+    if int(ret["mi"].max()) != last_mi:
+        print(f"NOTE: latest comp.secm month is partial and ignored; settling through month index {last_mi}")
     lines = []
-    for ln in (OUT / "manifest.jsonl").read_text().splitlines():
+    for ln in manifest_path().read_text().splitlines():
         m = json.loads(ln)
         form = pd.read_parquet(OUT / "forms" / f"{m['ym'].replace('-', '')}.parquet")
         assert form_sha(form) == m["sha256"], f"ledger file for {m['ym']} was modified after it was written"

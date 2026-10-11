@@ -275,7 +275,8 @@ existed) and (ii) every formation from the 2026-09 month-end on is **live** (wei
   reported as not reproducing the research and is not used for evaluation.
 - The buffered tilt is path dependent: holdings state starts 2024-01 (24-month burn-in).
 - Ledger: each formation writes `data/paper/forms/{yyyymm}.parquet` (spec weights, benchmark weights, spec commit) and a sha256
-  manifest line; live files are committed to git before the month starts.
+  manifest line; because `data/` and parquet are git-ignored (licensed data), the tracked evidence is `paper_ledger/manifest.jsonl`
+  (sha256, month, formed-on date, spec commit; no data), committed and pushed before each live month starts.
 - Information-only implementable variant for the USD 35k account: the 50 largest spec weights, renormalised, 3% cap (tracking
   difference to spec reported; fractional shares assumed).
 - Settlement: next-month `trt1m` of each held (gvkey, iid); missing returns counted 0 and their weight reported. Reported:
@@ -289,3 +290,25 @@ existed) and (ii) every formation from the 2026-09 month-end on is **live** (wei
   Flags only; no conclusion is drawn from them mechanically. In (b) all seven signals use the JKP-merged eligible universe (gpa merged
   on permno, month), so its numbers differ slightly from the Study A/B gpa series. `inp` and `aum_t` are cut at 2020 before costing.
   Implemented in `qap.diagnostics` / `scripts/run_diagnostic.py` (`--jobs N`; jobs 1 and 4 give byte-identical reports on synthetic data).
+
+## Results: (b) conversion diagnostic (docs/diagnostic_report.txt; information only, 2020+ sealed, no trials)
+- **Why `jkp_all13`'s IC (dev t 7) does not become net return, in three parts.** (1) Costs: one-way turnover ~39%/mo; L-leg cost 0.300
+  vs gross L-U 0.346 (87%), so net L-U 0.046 (t 0.45). (2) The information sits in the short leg: Q1-U -0.48 (t -3.7) vs Q5-U +0.35
+  (dev); after 2014 the long leg is nothing (Q5-U +0.049) and the short leg carries 84% of Q5-Q1 (0.31, t 1.0). A long-only book cannot
+  use it and we cannot model borrow. (3) Decay: validation gross Q5-Q1 falls from 0.83 to 0.31 and gross L-U from 0.35 to 0.05.
+- **Small-cap hypothesis rejected for dev:** IC is spread across size terciles (T1 0.047, T2 0.034, T3 0.034); EW Q5-Q1 is 1.35x VW,
+  below the "clearly larger" rule. On validation the all13 IC is ~0 in the largest tercile.
+- `jkp_slow10`: dev gross L-U +0.258 (t 2.8) at 17% turnover, net +0.131 (t 1.4); gross long-short Q5-Q1 0.90 (t 3.75), net long-short 0.545
+  (t 2.28), but validation gross L-U +0.038 and the short leg carries 91%. `Quality` is the most stable long-only: net L-U +0.190 (t 1.99) dev,
+  +0.293 (t 1.68) validation at ~5.5% turnover, but it is 0.76 correlated with gpa. `Value` reverses on validation (Q5-U -0.08),
+  `Momentum` loses to its own turnover (cost 0.256 > gross 0.172). gpa on the JKP universe: dev Q5-U +0.196 (t 2.0), net +0.169 (t 1.74);
+  validation +0.156 (t 0.97).
+- Reading: nothing here justifies a new long-only composite; the only remaining gross information is on the short side (no borrow data).
+  Any construction designed from this (e.g. a turnover-buffered slow10) is a new pre-registered trial that can be validated only on the
+  still-sealed 2020+ data. Prior odds are low.
+
+## Results: (a) paper-trading harness check (user run, 2026-10-11)
+comp.secm 384,559 rows 2022-01..2026-10 (the last month had 1 row: partial, now excluded automatically); ME scale 1e6 (shares are
+raw units; median ratio 0.99976 of a power of ten). CRSP-overlap check over 2024-01..2025-11 (23 months): tilt weight overlap mean 0.884
+(min 0.872), benchmark overlap 0.944, gpa rank corr 1.000, active-return correlation 0.974, mean difference +0.089 %/mo: both
+pre-registered tolerances PASS. Ten frozen formations written (2025-12..2026-09, ~470-493 names each).

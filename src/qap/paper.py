@@ -70,9 +70,20 @@ def research_signals(pseudo: pd.DataFrame, annual: pd.DataFrame) -> pd.DataFrame
     return k
 
 
+def complete_months(pseudo: pd.DataFrame, col: str = "mthret_adj", frac: float = 0.5) -> set:
+    """Month indices whose number of rows with `col` present is at least `frac` of the median month (a partial month is excluded).
+
+    Settlement needs returns (col='mthret_adj'); formation needs only market equity (col='me').
+    """
+    n = pseudo[pseudo[col].notna()].groupby("mi").size()
+    return set(n[n >= frac * n.median()].index.astype(int))
+
+
 def top_n_variant(w: pd.DataFrame, n: int = 50, cap: float = 0.03) -> pd.DataFrame:
     """Information-only implementable variant: the n largest weights of one month's spec, renormalised, capped."""
     t = w.nlargest(n, "w").copy()
+    if t.empty:
+        return t
     t["w"] = cap_weights(t["w"].to_numpy(dtype="float64"), cap)
     return t
 
@@ -81,6 +92,8 @@ def month_form(W: pd.DataFrame, B: pd.DataFrame, sig: pd.DataFrame, mi: int, n_t
     """One formation month as long ledger rows: kind in spec / bench / top50, keyed by (gvkey, iid)."""
     ids = sig.loc[sig["mi"] == mi, ["permno", "gvkey", "iid"]].drop_duplicates("permno")
     spec = W[W["mi"] == mi][["permno", "w"]]
+    if spec.empty:
+        return pd.DataFrame({"kind": [], "gvkey": [], "iid": [], "w": [], "mi": []})
     parts = {"spec": spec, "bench": B[B["mi"] == mi][["permno", "w"]], "top50": top_n_variant(spec, n_top, cap)}
     out = []
     for kind, d in parts.items():
@@ -127,3 +140,14 @@ def overlap_stats(W_a: pd.DataFrame, W_b: pd.DataFrame, mi: int) -> float:
 
 def manifest_line(mi: int, sha: str, commit: str, formed_on: str) -> str:
     return json.dumps({"mi": int(mi), "ym": f"{mi // 12}-{mi % 12 + 1:02d}", "sha256": sha, "spec_commit": commit, "formed_on": formed_on})
+
+
+def manifest_path(root: str = ".") -> "pathlib.Path":
+    """Tracked hash manifest (no licensed data: only shas, months, dates, commit). Migrates the old data/paper/manifest.jsonl once."""
+    import pathlib
+    new, old = pathlib.Path(root, "paper_ledger", "manifest.jsonl"), pathlib.Path(root, "data", "paper", "manifest.jsonl")
+    new.parent.mkdir(exist_ok=True)
+    if not new.exists() and old.exists():
+        new.write_text(old.read_text())
+        old.unlink()
+    return new

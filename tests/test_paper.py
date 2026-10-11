@@ -71,3 +71,11 @@ def test_month_form_and_overlap():
         assert f.loc[f["kind"] == k, "w"].sum() == pytest.approx(1.0)
     g = f[f["kind"] == "spec"][["gvkey", "mi", "w"]]
     assert overlap_stats(g, g, mi) == pytest.approx(1.0)
+
+
+def test_partial_last_month_is_not_complete_and_empty_form_is_safe():
+    from qap.paper import complete_months
+    rows = [(m, 1.0) for m in range(100) for _ in range(40)] + [(100, 1.0)]
+    p = pd.DataFrame(rows, columns=["mi", "mthret_adj"])
+    assert 100 not in complete_months(p) and 99 in complete_months(p)
+    assert top_n_variant(pd.DataFrame({"permno": [], "w": []})).empty

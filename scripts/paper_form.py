@@ -4,7 +4,8 @@
     python scripts/paper_form.py [--from 2025-12] [--no-overlap]
 Builds the Compustat-keyed universe and the spec-(c) tilt, prints the CRSP-overlap reproduction check FIRST (tolerance fixed in the
 pre-registration: weight overlap >= 0.80 and active-return correlation >= 0.90, else nothing is written), then writes one frozen
-ledger file per formation month under data/paper/forms/ (existing files are never overwritten). Commit new files to git.
+ledger file per formation month under data/paper/forms/ (git-ignored licensed-data derivatives; existing files are never overwritten)
+and appends its sha256 to paper_ledger/manifest.jsonl, which IS tracked: commit and push it before each month starts.
 Writes data/paper_form_report.txt.
 """
 import argparse
@@ -16,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from qap.fundamentals import prepare_annual
-from qap.paper import (build_pseudo_panel, calibrate_secm_scale, form_sha, manifest_line, month_form, overlap_stats,
+from qap.paper import (build_pseudo_panel, calibrate_secm_scale, complete_months, form_sha, manifest_line, manifest_path, month_form, overlap_stats,
                        research_signals)
 from qap.portfolio import leg_gross_return
 from qap.study import require_inputs
@@ -72,10 +73,15 @@ def _run(log, first, overlap) -> None:
     pseudo = build_pseudo_panel(secm, scale)
     sig = research_signals(pseudo, prepare_annual(funda))
     W, B = tilt_weights(sig, "gpa"), benchmark_weights(sig, "gpa")
-    last_mi = int(pseudo["mi"].max())
+    full = complete_months(pseudo, "me")
+    last_mi = max(full)
+    if int(pseudo["mi"].max()) != last_mi:
+        m = int(pseudo["mi"].max())
+        log(f"NOTE: {m // 12}-{m % 12 + 1:02d} is a partial month in comp.secm ({int((pseudo['mi'] == m).sum())} rows) and is ignored; "
+            f"last complete month {last_mi // 12}-{last_mi % 12 + 1:02d}")
     log("== CHECKS (printed before any forward result) ==")
     log(f"comp.secm rows {len(secm):,}; months {int(pseudo['mi'].min()) // 12}-{int(pseudo['mi'].min()) % 12 + 1:02d}"
-        f"..{last_mi // 12}-{last_mi % 12 + 1:02d}; ME scale {scale:g} (median ratio {ratio:.3f}); NYSE share of rows "
+        f"..{last_mi // 12}-{last_mi % 12 + 1:02d} (complete); ME scale {scale:g} (median ratio {ratio:.3f}); NYSE share of rows "
         f"{(pseudo['primaryexch'] == 'N').mean():.1%}")
     last = pseudo[pseudo["mi"] == last_mi]
     log(f"latest month: {len(last):,} issues, {int((last['eq']).sum()):,} with ME; trt1m present for {last['mthret_adj'].notna().mean():.1%}")
@@ -127,12 +133,12 @@ def _run(log, first, overlap) -> None:
             log(f"  {mi // 12}-{mi % 12 + 1:02d}: frozen file kept ({'identical' if old == sha else 'differs from recomputation: data revision'})")
             continue
         form.to_parquet(f, index=False)
-        with open(OUT / "manifest.jsonl", "a") as fh:
+        with open(manifest_path(), "a") as fh:
             fh.write(manifest_line(mi, sha, commit, today) + "\n")
         s = form[form["kind"] == "spec"]
         log(f"  {mi // 12}-{mi % 12 + 1:02d}: written, {n_spec} spec names (max w {s['w'].max():.3f}), "
             f"{int((form['kind'] == 'top50').sum())} top-50 names, sha {sha[:10]}")
-    log("\nNext: git add data/paper && git commit; settle with `python scripts/paper_settle.py` after the next month's comp.secm refresh.")
+    log("\nNext: git add paper_ledger && git commit && git push; settle with `python scripts/paper_settle.py` after the next month's comp.secm refresh.")
 
 
 if __name__ == "__main__":

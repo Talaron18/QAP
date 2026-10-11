@@ -1,0 +1,89 @@
+INFORMATION ONLY, 2020+ not used, no trials logged
+signals: gpa, jkp_all13, jkp_slow10, Quality, Profitability, Value, Momentum; costs 1.5x, $10M (2019 market-size); dev 1990-2014, validation 2015-2019
+all signals on the JKP-merged eligible universe (gpa merged on permno, mi)
+
+== gpa  (months dev 300, val 60; costs 1.5x; borrow NOT modelled) ==
+  dev VW: Q1 0.797(2.58) Q2 0.775(2.88) Q3 0.808(3.33) Q4 0.905(3.24) Q5 1.073(4.31) | U 0.877(3.54) | Q5-Q1 0.276(1.46) Q5-U 0.196(2.01) Q1-U -0.081(-0.60) D10-D1 0.609(2.18)
+  dev EW: Q1 0.853(2.72) Q2 0.899(3.12) Q3 0.997(3.22) Q4 1.088(3.46) Q5 1.222(3.94) | U 1.012(3.44) | Q5-Q1 0.369(2.28) Q5-U 0.210(2.35) Q1-U -0.159(-1.37) D10-D1 0.455(1.87)
+  dev costs: gross L-U 0.196(2.01) L-cost 0.027 S-cost 0.028 turnover1way L 3.328% S 2.800% | net L-U 0.169(1.74) | gross LS 0.276(1.46) net LS 0.222(1.17)
+  dev size terciles (T1 smallest): IC T1 0.0138(2.25) T2 0.0102(1.53) T3 0.0102(1.27) | EW Q5-Q1 T1 0.473(2.26) T2 0.329(1.88) T3 0.259(1.45)
+  val VW: Q1 0.757(1.29) Q2 0.624(1.32) Q3 1.028(2.17) Q4 1.207(2.63) Q5 1.134(2.31) | U 0.978(2.12) | Q5-Q1 0.377(0.93) Q5-U 0.156(0.97) Q1-U -0.221(-0.75) D10-D1 0.339(0.63)
+  val EW: Q1 0.760(1.19) Q2 0.571(1.06) Q3 0.824(1.41) Q4 1.100(2.00) Q5 0.928(1.81) | U 0.837(1.54) | Q5-Q1 0.168(0.49) Q5-U 0.091(0.54) Q1-U -0.077(-0.35) D10-D1 0.092(0.19)
+  val costs: gross L-U 0.156(0.97) L-cost 0.003 S-cost 0.004 turnover1way L 2.441% S 3.613% | net L-U 0.153(0.95) | gross LS 0.377(0.93) net LS 0.370(0.91)
+  val size terciles (T1 smallest): IC T1 0.0093(0.65) T2 0.0275(1.98) T3 0.0238(1.33) | EW Q5-Q1 T1 -0.068(-0.15) T2 0.324(0.93) T3 0.280(0.87)
+  reading [dev]: VW Q5-Q1 0.276, EW Q5-Q1 0.369; IC share smallest tercile 0.404 (T1 0.0138 T2 0.0102 T3 0.0102); VW short-leg share 0.292 long-leg share 0.708; cost/gross L-U 0.136; flags: NONE
+  reading [val]: VW Q5-Q1 0.377, EW Q5-Q1 0.168; IC share smallest tercile 0.153 (T1 0.0093 T2 0.0275 T3 0.0238); VW short-leg share 0.587 long-leg share 0.413; cost/gross L-U 0.017; flags: SHORT_LEG_CARRIES
+
+== jkp_all13  (months dev 300, val 60; costs 1.5x; borrow NOT modelled) ==
+  dev VW: Q1 0.398(1.19) Q2 0.846(3.12) Q3 0.868(3.54) Q4 1.133(4.86) Q5 1.225(5.76) | U 0.878(3.55) | Q5-Q1 0.826(3.89) Q5-U 0.346(3.39) Q1-U -0.480(-3.67) D10-D1 1.130(4.24)
+  dev EW: Q1 0.287(0.73) Q2 0.905(2.92) Q3 1.166(4.11) Q4 1.291(4.86) Q5 1.400(5.69) | U 1.010(3.46) | Q5-Q1 1.114(4.81) Q5-U 0.390(4.17) Q1-U -0.723(-5.04) D10-D1 1.491(5.05)
+  dev costs: gross L-U 0.346(3.39) L-cost 0.300 S-cost 0.301 turnover1way L 38.560% S 36.276% | net L-U 0.046(0.45) | gross LS 0.826(3.89) net LS 0.225(1.06)
+  dev size terciles (T1 smallest): IC T1 0.0474(7.79) T2 0.0344(5.93) T3 0.0338(5.14) | EW Q5-Q1 T1 1.454(5.01) T2 0.895(3.42) T3 0.904(4.27)
+  val VW: Q1 0.723(1.27) Q2 0.806(1.67) Q3 1.209(2.51) Q4 1.025(2.21) Q5 1.034(2.34) | U 0.986(2.15) | Q5-Q1 0.312(1.03) Q5-U 0.049(0.37) Q1-U -0.263(-1.31) D10-D1 0.283(0.73)
+  val EW: Q1 0.636(0.95) Q2 0.809(1.43) Q3 0.947(1.75) Q4 0.965(1.93) Q5 0.863(1.79) | U 0.844(1.56) | Q5-Q1 0.227(0.75) Q5-U 0.018(0.14) Q1-U -0.208(-1.09) D10-D1 0.403(1.10)
+  val costs: gross L-U 0.049(0.37) L-cost 0.042 S-cost 0.060 turnover1way L 41.266% S 43.146% | net L-U 0.007(0.05) | gross LS 0.312(1.03) net LS 0.210(0.70)
+  val size terciles (T1 smallest): IC T1 0.0093(0.68) T2 0.0239(1.65) T3 -0.0005(-0.03) | EW Q5-Q1 T1 0.207(0.53) T2 0.471(1.30) T3 0.054(0.20)
+  reading [dev]: VW Q5-Q1 0.826, EW Q5-Q1 1.114; IC share smallest tercile 0.410 (T1 0.0474 T2 0.0344 T3 0.0338); VW short-leg share 0.581 long-leg share 0.419; cost/gross L-U 0.867; flags: SHORT_LEG_CARRIES, COSTS_EXPLAIN_GAP
+  reading [val]: VW Q5-Q1 0.312, EW Q5-Q1 0.227; IC share smallest tercile 0.285 (T1 0.0093 T2 0.0239 T3 -0.0005); VW short-leg share 0.844 long-leg share 0.156; cost/gross L-U 0.859; flags: SHORT_LEG_CARRIES, COSTS_EXPLAIN_GAP
+
+== jkp_slow10  (months dev 300, val 60; costs 1.5x; borrow NOT modelled) ==
+  dev VW: Q1 0.237(0.66) Q2 0.790(2.73) Q3 0.897(3.54) Q4 0.994(4.27) Q5 1.137(5.16) | U 0.878(3.55) | Q5-Q1 0.899(3.75) Q5-U 0.258(2.79) Q1-U -0.641(-3.92) D10-D1 1.350(4.41)
+  dev EW: Q1 0.265(0.65) Q2 0.995(3.20) Q3 1.179(4.19) Q4 1.253(4.87) Q5 1.352(5.62) | U 1.009(3.46) | Q5-Q1 1.087(4.47) Q5-U 0.343(3.65) Q1-U -0.744(-4.82) D10-D1 1.495(4.74)
+  dev costs: gross L-U 0.258(2.79) L-cost 0.127 S-cost 0.228 turnover1way L 17.484% S 23.993% | net L-U 0.131(1.43) | gross LS 0.899(3.75) net LS 0.545(2.28)
+  dev size terciles (T1 smallest): IC T1 0.0461(7.45) T2 0.0324(5.59) T3 0.0318(4.83) | EW Q5-Q1 T1 1.400(4.79) T2 0.959(3.80) T3 0.870(4.00)
+  val VW: Q1 0.574(0.96) Q2 0.967(1.93) Q3 0.981(2.10) Q4 1.050(2.16) Q5 1.024(2.32) | U 0.986(2.15) | Q5-Q1 0.450(1.28) Q5-U 0.038(0.29) Q1-U -0.412(-1.61) D10-D1 0.516(1.14)
+  val EW: Q1 0.554(0.79) Q2 0.976(1.75) Q3 0.835(1.53) Q4 0.931(1.87) Q5 0.925(2.00) | U 0.844(1.56) | Q5-Q1 0.372(1.06) Q5-U 0.081(0.54) Q1-U -0.291(-1.32) D10-D1 0.378(0.82)
+  val costs: gross L-U 0.038(0.29) L-cost 0.014 S-cost 0.050 turnover1way L 17.581% S 27.187% | net L-U 0.024(0.18) | gross LS 0.450(1.28) net LS 0.386(1.10)
+  val size terciles (T1 smallest): IC T1 0.0085(0.58) T2 0.0278(1.80) T3 0.0022(0.17) | EW Q5-Q1 T1 0.128(0.30) T2 0.490(1.30) T3 0.152(0.57)
+  reading [dev]: VW Q5-Q1 0.899, EW Q5-Q1 1.087; IC share smallest tercile 0.418 (T1 0.0461 T2 0.0324 T3 0.0318); VW short-leg share 0.713 long-leg share 0.287; cost/gross L-U 0.493; flags: SHORT_LEG_CARRIES
+  reading [val]: VW Q5-Q1 0.450, EW Q5-Q1 0.372; IC share smallest tercile 0.221 (T1 0.0085 T2 0.0278 T3 0.0022); VW short-leg share 0.915 long-leg share 0.085; cost/gross L-U 0.369; flags: SHORT_LEG_CARRIES
+
+== Quality  (months dev 300, val 60; costs 1.5x; borrow NOT modelled) ==
+  dev VW: Q1 0.696(2.18) Q2 0.826(3.21) Q3 0.751(2.99) Q4 0.885(3.45) Q5 1.113(4.41) | U 0.876(3.54) | Q5-Q1 0.418(2.06) Q5-U 0.237(2.48) Q1-U -0.181(-1.36) D10-D1 0.687(2.46)
+  dev EW: Q1 0.711(2.09) Q2 0.976(3.50) Q3 1.010(3.41) Q4 1.107(3.78) Q5 1.230(3.99) | U 1.007(3.43) | Q5-Q1 0.518(2.97) Q5-U 0.223(2.47) Q1-U -0.296(-2.65) D10-D1 0.776(3.25)
+  dev costs: gross L-U 0.237(2.48) L-cost 0.047 S-cost 0.069 turnover1way L 5.590% S 6.833% | net L-U 0.190(1.99) | gross LS 0.418(2.06) net LS 0.301(1.49)
+  dev size terciles (T1 smallest): IC T1 0.0229(3.69) T2 0.0169(2.58) T3 0.0155(1.98) | EW Q5-Q1 T1 0.772(3.49) T2 0.465(2.46) T3 0.363(2.03)
+  val VW: Q1 0.674(1.08) Q2 0.788(1.87) Q3 0.881(1.85) Q4 1.078(2.45) Q5 1.281(2.52) | U 0.983(2.14) | Q5-Q1 0.607(1.38) Q5-U 0.298(1.71) Q1-U -0.309(-1.00) D10-D1 0.448(0.89)
+  val EW: Q1 0.669(1.00) Q2 0.719(1.39) Q3 0.907(1.61) Q4 0.891(1.68) Q5 1.011(1.99) | U 0.840(1.55) | Q5-Q1 0.342(0.99) Q5-U 0.172(1.13) Q1-U -0.170(-0.78) D10-D1 0.431(0.98)
+  val costs: gross L-U 0.298(1.71) L-cost 0.005 S-cost 0.009 turnover1way L 5.480% S 5.970% | net L-U 0.293(1.68) | gross LS 0.607(1.38) net LS 0.594(1.35)
+  val size terciles (T1 smallest): IC T1 0.0083(0.60) T2 0.0286(2.02) T3 0.0206(1.20) | EW Q5-Q1 T1 0.279(0.69) T2 0.290(0.80) T3 0.369(1.02)
+  reading [dev]: VW Q5-Q1 0.418, EW Q5-Q1 0.518; IC share smallest tercile 0.414 (T1 0.0229 T2 0.0169 T3 0.0155); VW short-leg share 0.432 long-leg share 0.568; cost/gross L-U 0.199; flags: NONE
+  reading [val]: VW Q5-Q1 0.607, EW Q5-Q1 0.342; IC share smallest tercile 0.145 (T1 0.0083 T2 0.0286 T3 0.0206); VW short-leg share 0.509 long-leg share 0.491; cost/gross L-U 0.017; flags: SHORT_LEG_CARRIES
+
+== Profitability  (months dev 300, val 60; costs 1.5x; borrow NOT modelled) ==
+  dev VW: Q1 0.430(1.04) Q2 0.793(2.90) Q3 0.781(3.01) Q4 0.886(3.69) Q5 1.009(4.14) | U 0.876(3.54) | Q5-Q1 0.580(2.06) Q5-U 0.133(2.08) Q1-U -0.446(-1.85) D10-D1 0.783(2.13)
+  dev EW: Q1 0.636(1.50) Q2 0.946(3.42) Q3 1.082(3.92) Q4 1.117(4.01) Q5 1.255(4.45) | U 1.007(3.44) | Q5-Q1 0.618(2.29) Q5-U 0.247(2.96) Q1-U -0.371(-1.81) D10-D1 0.760(2.26)
+  dev costs: gross L-U 0.133(2.08) L-cost 0.046 S-cost 0.182 turnover1way L 6.331% S 16.655% | net L-U 0.088(1.36) | gross LS 0.580(2.06) net LS 0.352(1.26)
+  dev size terciles (T1 smallest): IC T1 0.0326(5.35) T2 0.0266(4.44) T3 0.0233(3.64) | EW Q5-Q1 T1 0.854(2.63) T2 0.627(2.19) T3 0.573(2.75)
+  val VW: Q1 0.631(1.03) Q2 0.860(1.83) Q3 0.829(1.89) Q4 1.009(2.09) Q5 1.131(2.42) | U 0.985(2.14) | Q5-Q1 0.500(1.49) Q5-U 0.147(1.47) Q1-U -0.353(-1.26) D10-D1 0.513(1.01)
+  val EW: Q1 0.716(1.07) Q2 0.788(1.46) Q3 0.887(1.71) Q4 0.930(1.70) Q5 0.904(1.79) | U 0.845(1.56) | Q5-Q1 0.188(0.61) Q5-U 0.059(0.57) Q1-U -0.129(-0.55) D10-D1 0.179(0.36)
+  val costs: gross L-U 0.147(1.47) L-cost 0.005 S-cost 0.035 turnover1way L 6.547% S 14.971% | net L-U 0.142(1.42) | gross LS 0.500(1.49) net LS 0.460(1.37)
+  val size terciles (T1 smallest): IC T1 0.0088(0.61) T2 0.0228(2.03) T3 0.0129(1.12) | EW Q5-Q1 T1 -0.020(-0.04) T2 0.059(0.18) T3 0.130(0.55)
+  reading [dev]: VW Q5-Q1 0.580, EW Q5-Q1 0.618; IC share smallest tercile 0.396 (T1 0.0326 T2 0.0266 T3 0.0233); VW short-leg share 0.770 long-leg share 0.230; cost/gross L-U 0.343; flags: SHORT_LEG_CARRIES
+  reading [val]: VW Q5-Q1 0.500, EW Q5-Q1 0.188; IC share smallest tercile 0.197 (T1 0.0088 T2 0.0228 T3 0.0129); VW short-leg share 0.706 long-leg share 0.294; cost/gross L-U 0.035; flags: SHORT_LEG_CARRIES
+
+== Value  (months dev 300, val 60; costs 1.5x; borrow NOT modelled) ==
+  dev VW: Q1 0.791(1.88) Q2 0.617(2.25) Q3 0.804(3.49) Q4 0.991(4.17) Q5 1.203(4.47) | U 0.877(3.54) | Q5-Q1 0.412(1.06) Q5-U 0.326(2.19) Q1-U -0.086(-0.33) D10-D1 0.334(0.68)
+  dev EW: Q1 0.670(1.39) Q2 0.827(2.52) Q3 1.044(3.91) Q4 1.129(4.27) Q5 1.374(4.67) | U 1.009(3.43) | Q5-Q1 0.704(1.63) Q5-U 0.365(2.24) Q1-U -0.339(-1.22) D10-D1 0.772(1.55)
+  dev costs: gross L-U 0.326(2.19) L-cost 0.120 S-cost 0.109 turnover1way L 13.376% S 12.167% | net L-U 0.206(1.39) | gross LS 0.412(1.06) net LS 0.183(0.47)
+  dev size terciles (T1 smallest): IC T1 0.0351(3.51) T2 0.0294(2.97) T3 0.0260(2.52) | EW Q5-Q1 T1 0.860(1.84) T2 0.723(1.67) T3 0.461(1.14)
+  val VW: Q1 1.302(2.09) Q2 1.058(2.52) Q3 0.918(2.21) Q4 0.918(2.01) Q5 0.902(1.51) | U 0.982(2.14) | Q5-Q1 -0.401(-0.79) Q5-U -0.080(-0.31) Q1-U 0.320(0.99) D10-D1 -0.835(-1.18)
+  val EW: Q1 0.961(1.41) Q2 0.831(1.68) Q3 0.797(1.60) Q4 0.826(1.53) Q5 0.772(1.22) | U 0.838(1.54) | Q5-Q1 -0.189(-0.39) Q5-U -0.066(-0.32) Q1-U 0.123(0.39) D10-D1 -0.367(-0.54)
+  val costs: gross L-U -0.080(-0.31) L-cost 0.010 S-cost 0.012 turnover1way L 10.074% S 7.817% | net L-U -0.091(-0.35) | gross LS -0.401(-0.79) net LS -0.423(-0.84)
+  val size terciles (T1 smallest): IC T1 -0.0007(-0.03) T2 -0.0006(-0.03) T3 -0.0188(-0.82) | EW Q5-Q1 T1 -0.164(-0.27) T2 -0.144(-0.27) T3 -0.420(-0.94)
+  reading [dev]: VW Q5-Q1 0.412, EW Q5-Q1 0.704; IC share smallest tercile 0.388 (T1 0.0351 T2 0.0294 T3 0.0260); VW short-leg share 0.209 long-leg share 0.791; cost/gross L-U 0.367; flags: EW>>VW
+  reading [val]: VW Q5-Q1 -0.401, EW Q5-Q1 -0.189; IC share smallest tercile nan (T1 -0.0007 T2 -0.0006 T3 -0.0188); VW short-leg share nan long-leg share nan; cost/gross L-U nan; flags: VW_Q5Q1<=0, GROSS_LU<=0, EW>>VW
+
+== Momentum  (months dev 300, val 60; costs 1.5x; borrow NOT modelled) ==
+  dev VW: Q1 0.756(2.08) Q2 0.855(3.19) Q3 0.888(3.81) Q4 0.972(4.15) Q5 1.048(3.63) | U 0.876(3.55) | Q5-Q1 0.293(0.87) Q5-U 0.172(1.00) Q1-U -0.120(-0.61) D10-D1 0.605(1.36)
+  dev EW: Q1 0.783(1.90) Q2 0.996(3.33) Q3 0.938(3.54) Q4 1.057(4.04) Q5 1.268(3.94) | U 1.009(3.50) | Q5-Q1 0.485(1.38) Q5-U 0.259(1.45) Q1-U -0.226(-1.16) D10-D1 0.735(1.64)
+  dev costs: gross L-U 0.172(1.00) L-cost 0.256 S-cost 0.323 turnover1way L 35.100% S 33.709% | net L-U -0.084(-0.49) | gross LS 0.293(0.87) net LS -0.287(-0.85)
+  dev size terciles (T1 smallest): IC T1 0.0159(1.91) T2 0.0091(1.00) T3 0.0110(1.06) | EW Q5-Q1 T1 0.639(1.69) T2 0.387(1.04) T3 0.475(1.40)
+  val VW: Q1 0.762(1.18) Q2 1.165(2.29) Q3 0.941(1.96) Q4 1.086(2.32) Q5 0.931(2.06) | U 0.989(2.16) | Q5-Q1 0.170(0.32) Q5-U -0.058(-0.23) Q1-U -0.227(-0.73) D10-D1 0.315(0.44)
+  val EW: Q1 0.698(0.95) Q2 0.881(1.50) Q3 0.850(1.60) Q4 0.921(1.90) Q5 0.932(1.87) | U 0.857(1.59) | Q5-Q1 0.234(0.43) Q5-U 0.076(0.29) Q1-U -0.158(-0.53) D10-D1 0.300(0.43)
+  val costs: gross L-U -0.058(-0.23) L-cost 0.037 S-cost 0.044 turnover1way L 33.440% S 33.690% | net L-U -0.095(-0.39) | gross LS 0.170(0.32) net LS 0.088(0.17)
+  val size terciles (T1 smallest): IC T1 0.0093(0.45) T2 0.0106(0.41) T3 -0.0030(-0.11) | EW Q5-Q1 T1 0.358(0.60) T2 0.365(0.61) T3 -0.046(-0.09)
+  reading [dev]: VW Q5-Q1 0.293, EW Q5-Q1 0.485; IC share smallest tercile 0.442 (T1 0.0159 T2 0.0091 T3 0.0110); VW short-leg share 0.411 long-leg share 0.589; cost/gross L-U 1.487; flags: EW>>VW, COSTS_EXPLAIN_GAP
+  reading [val]: VW Q5-Q1 0.170, EW Q5-Q1 0.234; IC share smallest tercile 0.551 (T1 0.0093 T2 0.0106 T3 -0.0030); VW short-leg share 1.339 long-leg share -0.339; cost/gross L-U nan; flags: GROSS_LU<=0, SHORT_LEG_CARRIES
+
+INFORMATION ONLY, 2020+ not used, no trials logged
