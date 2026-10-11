@@ -317,47 +317,102 @@ def test_shortfall_is_in_excess_of_rf():
 
 # ---------- return-based detection ----------
 def _det_world(nullable=False):
-    """30 stocks (eq) x 24 months from 2020; ETFs: 8001 L=-2, 8002 L=+2, 8003 L=-1 (small noise), 8004 covered-call-like (beta .6),
-    8005 non-eq share class (L=+1), 8006 only 6 months. Share class 8005 has the same permco as its stock (also excluded by permco)."""
+    """30 eq stocks (company ME 5000) x 24 months from 2020. Never-eq permnos: ETFs 8001 L=-2, 8002 L=+2, 8003 L=-1, 8007 L=+1.25 (small
+    noise); 8004 covered-call-like (beta .6); 8005 beta .8 (not an allowed leverage); 8006 only 6 months; 8008 a NON-ETF stock-like
+    permno with beta 2 / rho ~.99 (not flagged FUND/ETF in the names)."""
     rng = np.random.default_rng(3)
     T, N = 24, 30
     mi = 2020 * 12 + np.arange(T)
     R = rng.normal(0, 0.08, (T, N))
-    rows = [(100 + j, 100 + j, mi[t], R[t, j], True) for j in range(N) for t in range(T)]
+    rows = [(100 + j, 100 + j, mi[t], R[t, j], True, 5000.0) for j in range(N) for t in range(T)]
+
     def etf(pid, u, L, noise, n=T, pco=None):
         r = L * R[:, u] + rng.normal(0, noise, T)
-        return [(pid, pid if pco is None else pco, mi[t], r[t], False) for t in range(T - n, T)]
+        return [(pid, pid if pco is None else pco, mi[t], r[t], False, np.nan) for t in range(T - n, T)]
     rows += etf(8001, 3, -2, 0.003) + etf(8002, 7, 2, 0.003) + etf(8003, 11, -1, 0.003) + etf(8004, 5, 0.6, 0.02)
-    rows += etf(8005, 9, 1.0, 0.001, pco=999) + etf(8006, 13, 2, 0.003, n=6)
-    d = pd.DataFrame(rows, columns=["permno", "permco", "mi", "mthret_adj", "eq"])
+    rows += etf(8005, 9, 0.8, 0.001, pco=999) + etf(8006, 13, 2, 0.003, n=6) + etf(8007, 15, 1.25, 0.003) + etf(8008, 17, 2, 0.01)
+    d = pd.DataFrame(rows, columns=["permno", "permco", "mi", "mthret_adj", "eq", "me_co"])
     if nullable:
-        d = d.astype({"permno": "Int64", "permco": "Int64", "mi": "Int64", "mthret_adj": "Float64", "eq": "boolean"})
+        d = d.astype({"permno": "Int64", "permco": "Int64", "mi": "Int64", "mthret_adj": "Float64", "eq": "boolean", "me_co": "Float64"})
+    return d
+
+
+def _det_names(minimal=False):
+    ids = [8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 103, 8001]
+    typ = ["FUND"] * 7 + ["EQTY", "EQTY", "FUND"]
+    sub = ["ETF"] * 7 + ["COM", "COM", "ETF"]
+    d = pd.DataFrame({"permno": pd.array(ids, dtype="Int64"), "securitytype": pd.array(typ, dtype="string"),
+                      "securitysubtype": pd.array(sub, dtype="string")})
+    if minimal:
+        return d
+    d["ticker"] = pd.array(["OLD", "UP", "INV", "CC", "B8", "SHORT", "G125", "STK8", "STK3", "NEWT"], dtype="string")
+    d["issuernm"] = pd.array(["X", "Y TRUST", "Z", "A", "B", "C", "D", "E", "STOCK 3", "TRUST A"], dtype="string")
+    d["namedt"] = pd.to_datetime(["2021-01-01"] * 8 + ["2000-01-01", "2022-01-01"])
+    d["nameenddt"] = pd.to_datetime([None] * 10)
     return d
 
 
 @pytest.mark.parametrize("nullable", [False, True])
 def test_detect_by_returns(nullable):
-    names = pd.DataFrame({"permno": pd.array([8001, 8002, 8003, 103, 8001], dtype="Int64"),
-                          "ticker": pd.array(["OLD", "UP", "INV", "STK3", "NEWT"], dtype="string"),
-                          "issuernm": pd.array(["X", "Y TRUST", "Z", "STOCK 3", "TRUST A"], dtype="string"),
-                          "namedt": pd.to_datetime(["2021-01-01", "2021-01-01", "2021-01-01", "2000-01-01", "2022-01-01"]),
-                          "nameenddt": pd.to_datetime([None] * 5)})
-    t = detect_by_returns(_det_world(nullable), names).set_index("etf_permno")
-    assert list(t.index) == [8001, 8002, 8003]                   # covered call (8004), L=+1 share class (8005), 6 months (8006) rejected
-    assert t["L"].tolist() == [-2, 2, -1] and t["underlying_permno"].tolist() == [103, 107, 111]
+    t = detect_by_returns(_det_world(nullable), _det_names()).set_index("etf_permno")
+    # rejected: covered call 8004 (rho .92), beta .8 (8005), 6 months (8006), non-ETF stock with beta 2 and rho .99 (8008)
+    assert list(t.index) == [8001, 8002, 8003, 8007]
+    assert t["L"].tolist() == [-2, 2, -1, 1.25] and t["underlying_permno"].tolist() == [103, 107, 111, 115]
     assert set(t["method"]) == {"returns"} and (t["n_months"] == 24).all() and (t["rho"].abs() > 0.99).all()
     assert t.loc[8001, "etf_ticker"] == "NEWT" and t.loc[8001, "name"] == "TRUST A" and t.loc[8001, "underlying_ticker"] == "STK3"
     assert t.loc[8002, "underlying_ticker"] == "" and t.loc[8001, "first_mi"] == 2020 * 12 and t.loc[8001, "last_mi"] == 2020 * 12 + 23
     assert t.loc[8001, "beta"] == pytest.approx(-2, abs=0.1) and set(ETF_COLS) <= set(t.reset_index().columns)
-    assert detect_by_returns(_det_world(), None).shape[0] == 3         # no names frame: blank labels
-    assert detect_by_returns(_det_world(), start_mi=2021 * 12 + 6).shape[0] == 0       # only 6 months left in the window: min_months 12
+    assert detect_by_returns(_det_world(), _det_names(True)).shape[0] == 4         # minimal names frame: blank labels
+    r = detect_by_returns(_det_world(), _det_names(), start_mi=2021 * 12 + 6)         # only 6 months left in the window: min_months 12
+    assert r.shape[0] == 0 and r.attrs["funnel"]["n >= 12 months"] == 0
+
+
+def test_funnel_counts_and_flag_rule():
+    f = list(detect_by_returns(_det_world(), _det_names()).attrs["funnel"].values())
+    # candidates 8001-8008; flagged 8001-8007; n>=12 drops 8006; rho>=.95 drops covered call 8004; L drops 8005; ME keeps 4
+    assert f == [8, 7, 6, 5, 4, 4]
+    g = list(detect_by_returns(_det_world(), _det_names(True).assign(securitytype="EQTY")).attrs["funnel"].values())
+    assert g[:3] == [8, 0, 0] and detect_by_returns(_det_world(), _det_names(True).assign(securitytype="EQTY")).empty
+    n = _det_names(True)
+    n.loc[n.permno == 8008, ["securitytype", "securitysubtype"]] = ["FUND", "ETF"]                    # control: flagged -> detected
+    assert 8008 in set(detect_by_returns(_det_world(), n)["etf_permno"])
+    with pytest.raises(ValueError) as e:
+        detect_by_returns(_det_world(), _det_names(True).drop(columns="securitysubtype"))
+    assert "securitysubtype" in str(e.value) and "available columns" in str(e.value)
+    with pytest.raises(ValueError):
+        detect_by_returns(_det_world(), None)
+
+
+def test_tiny_underlying_dropped_before_choosing_best_target():
+    rng = np.random.default_rng(11)
+    T = 24
+    mi = 2020 * 12 + np.arange(T)
+    A = rng.normal(0, .08, T)                       # tiny stock (ME 50): the ETF is built exactly on it
+    B = A + rng.normal(0, .02, T)                   # large stock correlated .97 with A (beta of ETF on B about 1.9)
+    C = rng.normal(0, .08, T)                       # large unrelated
+    rows = []
+    for pid, r, me in ((1, A, 50.0), (2, B, 3000.0), (3, C, 3000.0)):
+        rows += [(pid, pid, mi[t], r[t], True, me) for t in range(T)]
+    rows += [(9, 9, mi[t], 2 * A[t], False, np.nan) for t in range(T)]
+    w = pd.DataFrame(rows, columns=["permno", "permco", "mi", "mthret_adj", "eq", "me_co"])
+    n = pd.DataFrame({"permno": [9], "securitytype": ["FUND"], "securitysubtype": ["ETF"]})
+    t = detect_by_returns(w, n, rho_min=0.95)
+    assert t["underlying_permno"].tolist() == [2] and t["rho"].iloc[0] < 0.99 and t["L"].iloc[0] == 2   # next-best large target
+    big = detect_by_returns(w.assign(me_co=lambda d: d["me_co"].where(d["permno"] != 2, 40.0)), n)
+    assert big.empty and big.attrs["funnel"][f"|rho| >= 0.95 (any target)"] == 1                         # tiny tracks only; none large enough
+    assert detect_by_returns(w, n, min_me=10.0)["underlying_permno"].tolist() == [1]                     # without the ME rule A wins
+    # nearest available month: ME known only later than the ETF's first month is still used
+    late = w.copy()
+    late.loc[(late.permno == 2) & (late.mi < mi[10]), "me_co"] = np.nan
+    assert detect_by_returns(late, n)["underlying_permno"].tolist() == [2]
 
 
 def test_detect_params_and_empty():
-    w = _det_world()
-    assert set(detect_by_returns(w, tol=0.01, rho_min=0.999)["etf_permno"]) <= {8001, 8002, 8003}
-    assert detect_by_returns(w[w["eq"]], None).empty                    # no candidates
-    assert list(detect_by_returns(w[w["eq"]], None).columns)[-3:] == ["rho", "beta", "n_months"] 
+    w, n = _det_world(), _det_names()
+    assert set(detect_by_returns(w, n, tol=0.01, rho_min=0.999)["etf_permno"]) <= {8001, 8002, 8003, 8007}
+    assert detect_by_returns(w[w["eq"]], n).empty                    # no candidates
+    assert list(detect_by_returns(w[w["eq"]], n).columns)[-3:] == ["rho", "beta", "n_months"]
+    assert detect_by_returns(w[w["eq"]], n).attrs["funnel"]
 
 
 def test_masked_corr_matches_pandas_pairwise():

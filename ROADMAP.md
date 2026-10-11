@@ -372,3 +372,4 @@ underlying *returns*, never signal returns, so the sealed 2020+ window is not op
   allowed leverages; a funnel is printed. These filters can only REMOVE products, so they cannot raise coverage: the coverage clause
   (bottom-quintile VW coverage < 30%) is robust to the cleaning (even the contaminated list covered 2 of ~265 bottom-quintile names in 2025-12);
   the carry estimate is what will change.
+  The 1.25x family uses a tight band (beta 1.125-1.375) so that plain 1x funds are not labelled 1.25x; other leverages keep the 25% band.

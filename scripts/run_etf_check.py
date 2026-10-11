@@ -1,7 +1,7 @@
 """Single-stock leveraged/inverse ETF check (pre-registration v5). INFORMATION ONLY.
 
-The inventory is RETURN-BASED (crsp.stocknames_v2 has no fund names): a never-eq permno whose monthly returns since 2019 track one
-eq stock with |rho| >= 0.90 and slope near an allowed leverage is a leveraged / inverse single-stock product. The name parser is run
+The inventory is RETURN-BASED (crsp.stocknames_v2 has no fund names): a never-eq permno flagged FUND/ETF in the names frame whose monthly returns since 2019 track one
+eq stock with |rho| >= 0.95 and slope near an allowed leverage is a leveraged / inverse single-stock product. The name parser is run
 only as a cross-check. With fewer than 10 matched ETFs the verdict is INVALID, never NOT VIABLE.
 
     python scripts/wrds_extract.py crsp_names      # once (select * from crsp.stocknames_v2)
@@ -53,6 +53,9 @@ def _run(log) -> None:
         for k, v in names.groupby(tc, dropna=False).size().sort_values(ascending=False).head(15).items():
             log(f"  {k}: {v:,}")
     etf = detect_by_returns(panel, names)
+    log("detection funnel (fixed rules: names flag FUND/ETF, rho >= 0.95, underlying ME >= 1000 $M):")
+    for k, v in etf.attrs["funnel"].items():
+        log(f"  {k}: {v}")
     parsed = build_etf_table(names, panel)
     found, byname = set(etf["etf_permno"]), set(parsed["etf_permno"])
     log(f"return-detected ETFs: {len(etf)} ({int(etf['underlying_permno'].notna().sum())} matched); name-parsed: {len(parsed)}; "
@@ -61,7 +64,7 @@ def _run(log) -> None:
     for r in extra.itertuples():
         log(f"  name-parsed only: {r.etf_ticker} {r.name} L={r.L:+.1f} underlying {r.underlying_ticker} ({r.method})")
     log("eyeball for false positives: ticker, issuernm, L, underlying, rho, beta, months, first-last")
-    for r in etf.itertuples():
+    for r in etf.sort_values(["first_mi", "etf_ticker"]).itertuples():
         log(f"  {r.etf_ticker or '-':8s} {r.name[:40]:40s} L={r.L:+.1f} {r.underlying_ticker or r.underlying_permno:>8} rho {r.rho:+.3f} "
             f"beta {r.beta:+.2f} n {int(r.n_months)} {mi_str(r.first_mi)}..{mi_str(r.last_mi)}")
     excl = excluded_etfs(names)

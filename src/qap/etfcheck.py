@@ -30,7 +30,11 @@ NAME_COLS = ("securitynm", "issuernm", "comnam", "securityname", "issuername", "
 FIRST_YEAR = 2022            # coverage years start here (products launched 2022+)
 LAST_FULL_YEAR = 2025        # decision rule: bottom-quintile VW coverage in this year
 MIN_ETFS = 10                # fewer matched ETFs than this: the check is INVALID (no viability label)
-ALLOWED_L = (-3.0, -2.0, -1.5, -1.0, 1.5, 2.0, 3.0)
+TOL_125 = 0.10     # the 1.25x product family gets a tight band (beta 1.125-1.375) so plain 1x funds are not labelled 1.25x
+ALLOWED_L = (-3.0, -2.0, -1.5, -1.0, 1.25, 1.5, 2.0, 3.0)
+RHO_MIN = 0.95               # return-based detection (fixed cleaning rules)
+MIN_UNDERLYING_ME = 1000.0   # underlying company ME, $ millions
+ETF_SECTYPE, ETF_SUBTYPE = "FUND", "ETF"
 COVERAGE_MIN = 0.30          # decision rule thresholds (pre-registration v5 section 4)
 CARRY_SHARE = 0.50
 GAINS = {"slow10": (0.641, 0.412), "all13": (0.480, 0.263), "Quality": (0.181, 0.309), "gpa": (0.081, 0.221)}  # (dev, val) %/mo Q1-U
@@ -255,66 +259,125 @@ def masked_corr_beta(C: np.ndarray, X: np.ndarray, min_n: int = 2) -> tuple:
     return n, np.where(bad, np.nan, rho), np.where(bad, np.nan, beta)
 
 
-def detect_by_returns(panel: pd.DataFrame, names: pd.DataFrame = None, start_mi: int = 2019 * 12, min_months: int = 12,
-                      rho_min: float = 0.90, tol: float = 0.25, allowed=ALLOWED_L, chunk: int = 500) -> pd.DataFrame:
-    """Leveraged single-stock products found from returns alone (no fund-name column needed).
+def etf_flagged_permnos(names: pd.DataFrame) -> set:
+    """Permnos with any names row securitytype == ETF_SECTYPE and securitysubtype == ETF_SUBTYPE; ValueError if the columns are absent."""
+    low = {c.lower(): c for c in (names.columns if names is not None else [])}
+    if "securitytype" not in low or "securitysubtype" not in low or "permno" not in low:
+        raise ValueError("detect_by_returns needs a names frame with permno, securitytype and securitysubtype columns; available columns: "
+                         f"{list(names.columns) if names is not None else None}")
+    up = lambda c: names[low[c]].astype("string").str.strip().str.upper()
+    ok = ((up("securitytype") == ETF_SECTYPE) & (up("securitysubtype") == ETF_SUBTYPE)).fillna(False).to_numpy(dtype=bool)
+    pn = pd.to_numeric(names[low["permno"]].astype("float64"), errors="coerce")
+    return {int(x) for x in pn[ok & pn.notna().to_numpy()]}
 
-    Candidates: permnos never flagged eq with >= min_months returns at/after start_mi. Targets: permnos flagged eq in some month.
-    For each candidate, the target with the largest |rho| (pairwise-complete months >= start_mi, n >= min_months; same permco
-    excluded; ties -> lower permno) is accepted if |rho| >= rho_min and the slope beta of the candidate on the stock is within
-    tol (relative) of the nearest allowed leverage L. Same schema as build_etf_table (method 'returns') plus rho, beta, n_months.
+
+def _nearest_valid(M: np.ndarray) -> np.ndarray:
+    """Per column, replace each entry by the value at the nearest non-NaN row (ties -> earlier); all-NaN columns stay NaN."""
+    out = np.full_like(M, np.nan)
+    t = np.arange(M.shape[0])
+    for j in range(M.shape[1]):
+        v = np.flatnonzero(np.isfinite(M[:, j]))
+        if len(v):
+            k = np.clip(np.searchsorted(v, t), 1, len(v) - 1) if len(v) > 1 else np.zeros(len(t), int)
+            lo, hi = (v[k - 1], v[k]) if len(v) > 1 else (v[k], v[k])
+            out[:, j] = M[np.where(t - lo <= hi - t, lo, hi), j]
+    return out
+
+
+def detect_by_returns(panel: pd.DataFrame, names: pd.DataFrame, start_mi: int = 2019 * 12, min_months: int = 12,
+                      rho_min: float = RHO_MIN, tol: float = 0.25, allowed=ALLOWED_L, min_me: float = MIN_UNDERLYING_ME,
+                      chunk: int = 500) -> pd.DataFrame:
+    """Leveraged single-stock ETFs found from returns, cleaned by fixed rules (funnel in `result.attrs['funnel']`).
+
+    Candidates: permnos never flagged eq, flagged ETF in `names` (securitytype FUND, securitysubtype ETF; ValueError if the columns
+    are missing), with >= min_months returns at/after start_mi. Targets: permnos flagged eq in some month AND with company ME
+    (`me_co`, $ millions) >= min_me at the candidate's first window month (nearest available month); small targets are dropped BEFORE
+    the best-|rho| target is chosen (pairwise-complete months >= start_mi, n >= min_months; same permco excluded; ties -> lower permno).
+    Accepted if |rho| >= rho_min and beta of the candidate on the stock is within tol (relative) of the nearest allowed leverage.
+    Same schema as build_etf_table (method 'returns') plus rho, beta, n_months.
     """
     cols = ETF_COLS + ["rho", "beta", "n_months"]
-    p = panel[["permno", "mi", "mthret_adj", "eq"] + (["permco"] if "permco" in panel.columns else [])].copy()
+    if "me_co" not in panel.columns:
+        raise ValueError(f"detect_by_returns needs a panel with me_co; available columns: {list(panel.columns)}")
+    flagged = etf_flagged_permnos(names)
+    p = panel[["permno", "mi", "mthret_adj", "eq", "me_co"] + (["permco"] if "permco" in panel.columns else [])].copy()
     p["permno"], p["mi"] = p["permno"].astype("int64"), p["mi"].astype("int64")
     p["r"] = p["mthret_adj"].to_numpy(dtype="float64", na_value=np.nan)
+    p["me"] = p["me_co"].to_numpy(dtype="float64", na_value=np.nan)
     p["eqb"] = p["eq"].to_numpy(dtype=bool, na_value=False)
     p = p[np.isfinite(p["r"])]
     first_last = p.groupby("permno")["mi"].agg(["min", "max"])
     tgt_ids = np.sort(p.loc[p["eqb"], "permno"].unique())
+    tset = set(tgt_ids.tolist())
     q = p[p["mi"] >= start_mi]
     cnt = q.groupby("permno").size()
-    cand_ids = np.sort(np.array([i for i in cnt.index[cnt >= min_months] if i not in set(tgt_ids)], dtype="int64"))
+    pool0 = [int(i) for i in cnt.index if i not in tset]
+    pool1 = [i for i in pool0 if i in flagged]
+    cand_ids = np.sort(np.array([i for i in pool1 if cnt[i] >= min_months], dtype="int64"))
+    fun = {"candidates (never eq, return since start)": len(pool0), "flagged FUND/ETF in names": len(pool1),
+           f"n >= {min_months} months": len(cand_ids), f"|rho| >= {rho_min} (any target)": 0, "L within tolerance (any target)": 0,
+           f"underlying ME >= {min_me:g} (targets pre-filtered; final)": 0}
     empty = pd.DataFrame({c: pd.Series(dtype=object if c in ("etf_ticker", "name", "underlying_ticker", "method") else "float64") for c in cols})
+
+    def done(rows):
+        out = (pd.DataFrame(rows, columns=cols).sort_values(["first_mi", "etf_permno"]).reset_index(drop=True) if rows else empty)
+        fun[next(reversed(fun))] = len(out)
+        out.attrs["funnel"] = dict(fun)
+        return out
+
     if len(cand_ids) == 0 or len(tgt_ids) == 0:
-        return empty
+        return done([])
     months = np.sort(q["mi"].unique())
     pc = (p.drop_duplicates("permno").set_index("permno")["permco"] if "permco" in p.columns else None)
 
-    def wide(ids):
+    def wide(ids, col="r"):
         w = np.full((len(months), len(ids)), np.nan)
         s = q[q["permno"].isin(ids)]
-        w[np.searchsorted(months, s["mi"].to_numpy()), np.searchsorted(ids, s["permno"].to_numpy())] = s["r"].to_numpy()
+        w[np.searchsorted(months, s["mi"].to_numpy()), np.searchsorted(ids, s["permno"].to_numpy())] = s[col].to_numpy()
         return w
 
     X = wide(tgt_ids)
+    ME = _nearest_valid(wide(tgt_ids, "me"))
     tco = None if pc is None else pc.reindex(tgt_ids).to_numpy(dtype="float64", na_value=np.nan)
     allowed = np.asarray(allowed, dtype="float64")
     nmap = _latest_names(names)
     rows = []
+
+    def leverage(b):
+        L = float(allowed[np.argmin(np.abs(allowed - b))])
+        return L, abs(b - L) <= (min(tol, TOL_125) if L == 1.25 else tol) * abs(L)
+
     for i in range(0, len(cand_ids), chunk):
         ids = cand_ids[i:i + chunk]
-        n, rho, beta = masked_corr_beta(wide(ids), X)
+        C = wide(ids)
+        n, rho, beta = masked_corr_beta(C, X)
         rho = np.where(n >= min_months, rho, np.nan)
         if tco is not None:
             cco = pc.reindex(ids).to_numpy(dtype="float64", na_value=np.nan)
             rho = np.where(cco[:, None] == tco[None, :], np.nan, rho)
-        score = np.where(np.isfinite(rho), np.abs(rho), -1.0)
-        j = np.argmax(score, axis=1)                      # first max = lowest target permno
+        f0 = np.argmax(np.isfinite(C), axis=0)                          # candidate's first window month
+        big = ME[f0, :] >= min_me                                       # False for NaN
+        s_any = np.where(np.isfinite(rho), np.abs(rho), -1.0)
+        s_big = np.where(big & np.isfinite(rho), np.abs(rho), -1.0)
+        j_any, j_big = np.argmax(s_any, axis=1), np.argmax(s_big, axis=1)       # first max = lowest target permno
         for a, pid in enumerate(ids):
-            r, b = rho[a, j[a]], beta[a, j[a]]
-            if not np.isfinite(r) or abs(r) < rho_min:
+            ja = j_any[a]
+            if s_any[a, ja] >= rho_min:
+                fun[f"|rho| >= {rho_min} (any target)"] += 1
+                if np.isfinite(beta[a, ja]) and leverage(beta[a, ja])[1]:
+                    fun["L within tolerance (any target)"] += 1
+            jb = j_big[a]
+            r, b = rho[a, jb], beta[a, jb]
+            if s_big[a, jb] < rho_min or not np.isfinite(b):
                 continue
-            L = float(allowed[np.argmin(np.abs(allowed - b))])
-            if abs(b - L) > tol * abs(L):
+            L, ok = leverage(b)
+            if not ok:
                 continue
-            u = int(tgt_ids[j[a]])
+            u = int(tgt_ids[jb])
             tk, nme = nmap.get(int(pid), ("", ""))
             rows.append((int(pid), tk, nme, L, float(u), nmap.get(u, ("", ""))[0], "returns", float(first_last.at[pid, "min"]),
-                         float(first_last.at[pid, "max"]), 1, float(r), float(b), float(n[a, j[a]])))
-    if not rows:
-        return empty
-    return pd.DataFrame(rows, columns=cols).sort_values(["first_mi", "etf_permno"]).reset_index(drop=True)
+                         float(first_last.at[pid, "max"]), 1, float(r), float(b), float(n[a, jb])))
+    return done(rows)
 
 
 def excluded_etfs(names: pd.DataFrame) -> pd.DataFrame:
