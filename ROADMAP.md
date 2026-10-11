@@ -242,3 +242,43 @@ columns missing; coverage 99.1%). **Nothing promoted in either study.** Cumulati
   not printed: Study A "extraction rows by year and share with permno" and Study B "link hit rate". Study B's U is the set of
   firms with a non-missing signal (covered universe), as pre-registered; the L-U is therefore not on gpa's universe.
 - Compute note: user has 36 cores / 31.5 GB; per-signal costed backtests are independent and should be parallelised next time.
+
+## Pre-registration v4: (b) conversion diagnostic and (a) forward paper-trading harness (written before either runs)
+
+User chose "b alongside with a" after Studies A/B. No new signal is tested, so **no new trials**; nothing here can promote anything.
+
+### (b) Conversion diagnostic (information only; 2020+ stays sealed; nothing is logged as a trial)
+Question: why does `jkp_all13` have dev rank IC t 7.2 yet net long-minus-universe ~0? Fixed signal list: `gpa`, `jkp_all13`,
+`jkp_slow10`, `Quality`, `Profitability`, `Value`, `Momentum` (themes as in Study A). Same eligible universe, ex-microcaps, same
+quintile definition, by split (dev 1990-2014, validation 2015-2019). Reported per signal and split:
+1. Gross monthly return (%) of each quintile Q1..Q5, value-weighted AND equal-weighted, and the spreads Q5-Q1, Q5-U, Q1-U (U =
+   VW covered universe); decile D10-D1 (VW and EW).
+2. Costs (1.5x, $10M 2019 market-size): L-leg and S-leg cost, one-way turnover, net L-U and net long-short (borrow NOT modelled).
+3. Size dependence: within-month size terciles of company ME among eligible names: rank IC and EW Q5-Q1 gross inside each tercile.
+Reading rule fixed in advance: if EW Q5-Q1 is clearly larger than VW Q5-Q1 and the IC lives in the smallest tercile, the
+information is a small-cap/EW effect that the VW long-only construction cannot hold; if the short leg (Q1-U) carries most of Q5-Q1,
+the information is a short-leg effect (needs borrow, which we do not have data for); if costs explain the gap, turnover is the
+cause. Any construction designed from this can be validated only on the still-sealed 2020+ data (never opened for the JKP
+composites), as a new pre-registered trial.
+
+### (a) Forward paper-trading harness for the gpa tilt (spec (c) of v2, unchanged: entry 0.80 / exit 0.70 / 3% cap)
+Purpose: the only clean out-of-sample test left. CRSP and JKP end 2025-12 but Compustat runs to 2026-09, so (i) the months
+2026-01..2026-09 are **retrospective-unseen** (no result of ours has used them, but they were realised before the harness
+existed) and (ii) every formation from the 2026-09 month-end on is **live** (weights frozen and committed before the month realises).
+- Price source: `comp.secm` (monthly; total return `trt1m`), common stock (`tpci='0'`), `fic='USA'`, `curcdm='USD'`; company ME =
+  sum over a gvkey's issues of prccm*cshom (scale calibrated against CRSP ME in the overlap, must come out a power of ten),
+  NYSE = `exchg` 11. Fundamentals: Compustat annual, same 4-month PIT lag and 548-day staleness as before. gpa = (revt-cogs)/at.
+- **Check printed before any forward result:** on the CRSP overlap (2024-01..2025-12) the Compustat-built universe and tilt
+  must reproduce the CRSP-built ones: ME scale, share of CRSP-eligible gvkeys found, rank correlation of gpa, weight overlap
+  (sum of min weights) of the tilt and of the benchmark, and the correlation and mean difference of monthly tilt-vs-benchmark
+  active returns. Tolerance fixed now: weight overlap >= 0.80 and active-return correlation >= 0.90, else the harness is
+  reported as not reproducing the research and is not used for evaluation.
+- The buffered tilt is path dependent: holdings state starts 2024-01 (24-month burn-in).
+- Ledger: each formation writes `data/paper/forms/{yyyymm}.parquet` (spec weights, benchmark weights, spec commit) and a sha256
+  manifest line; live files are committed to git before the month starts.
+- Information-only implementable variant for the USD 35k account: the 50 largest spec weights, renormalised, 3% cap (tracking
+  difference to spec reported; fractional shares assumed).
+- Settlement: next-month `trt1m` of each held (gvkey, iid); missing returns counted 0 and their weight reported. Reported:
+  active return = tilt minus benchmark (costless, gross; costs from the research model are informational), by group
+  retrospective-unseen / live, with t-stats and the plain statement that 9 months have no power (a 0.2%/mo edge with ~5% annual
+  tracking error needs decades for t = 2).
