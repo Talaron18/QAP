@@ -419,3 +419,20 @@ value-weighted slow10 short basket on these assumptions; the binding constraints
 at USD 35k across 266 names, and the dependence on JKP data that ends 2025-12 on WRDS (no forward updates without rebuilding the 153 characteristics).
 Not yet done: the sealed 2020-2025 window is unopened for JKP composites. A one-shot long-short test there would have low power (monthly sd ~3.9%, 71 months => SE ~0.46%/mo; if the
 true net edge equals the pooled 0.52%/mo the expected t is ~1.1 and P(t >= 2) is ~20%), so it can refute, not confirm.
+
+## Pre-registration v6: one-shot sealed-window test of a long-short jkp_slow10 (written and committed BEFORE the script exists or runs)
+User chose to spend the sealed 2020-2025 window once for this. It has never been opened for any JKP composite (the earlier 2020+ openings were gpa models only).
+- **Strategy (fixed, no tuning):** signal `jkp_slow10` exactly as Study A (10 themes: all except Size, Short-Term Reversal and Seasonality; needs >= 8 themes). Formation universe =
+  JKP-merged eligible universe, ex-microcaps (NYSE 20th percentile of company ME). Value-weighted top quintile LONG and bottom quintile SHORT (the `quintile_legs` definition), capital 1 on
+  each leg, monthly rebalance. Formation months 2019-12 .. 2025-11, realised months 2020-01 .. 2025-12 (72).
+- **Costs:** the same cost model as the diagnostic (half spread, square-root impact, $10M in 2019 market-size dollars, 1.5x stress, benchmark irrelevant) on BOTH legs. Borrow: each month
+  the short leg pays sum_i w_i fee_i / 12 where fee_i = the BASE-scenario assumed fee for the name's company-ME tier (`qap.basket.assumed_fee(me, "base")`) plus an assumed 1.0%/yr rebate shortfall
+  on the short notional. Optimistic and pessimistic scenarios are printed as sensitivity only. The fees are assumptions (no measured borrow data), fixed here.
+- **Primary statistic:** net long-short return per month, `gross L-S - 1.5 x (L cost + S cost) - borrow`, mean (%/mo) and OLS t over the 72 months (Newey-West 6 lags also printed).
+- **Decision rule (fixed now):** REFUTED if base-scenario net mean <= 0; SUPPORTS FURTHER WORK only if net mean >= 0.20 %/mo AND t >= 1.0; otherwise INCONCLUSIVE. No result of this test can
+  promote the strategy to deployment: at best it licenses a further pre-registered step. A failure retires long-short slow10; there is no second look at 2020+ for JKP composites.
+- **Information only (not decision inputs):** by-calendar-year returns, first vs second half, max drawdown, beta and alpha on the FF market factor (and FF4 loadings), the long-only
+  (L-U) and short-only (U-S) legs separately, turnover per leg, and the gross rank IC.
+- **Power, stated honestly:** monthly sd of net L-S ~3.9% => SE ~0.46%/mo over 72 months. If the true edge equals the pooled dev+validation estimate (0.52%/mo) the expected t is ~1.1 and
+  P(t >= 2) is ~20%; the test can refute a large failure, it cannot confirm a modest edge. Counted as trial 66 (a new use of a Study A signal).
+- **One shot:** the script writes a marker file and refuses to run again; the result is recorded in this file whatever it is.
