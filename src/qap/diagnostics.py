@@ -174,6 +174,10 @@ def reading(r: dict, split: str) -> str:
     g, c = _m(co["gross_LU"][split][0]), _m(co["cost_L"][split][0])
     cost_share = c / g if np.isfinite(g) and g > 0 and np.isfinite(c) else float("nan")
     flags = []
+    if np.isfinite(vw) and vw <= 0:
+        flags.append("VW_Q5Q1<=0")
+    if np.isfinite(g) and g <= 0:
+        flags.append("GROSS_LU<=0")
     if _clear(ew, vw) and small:
         flags.append("SMALLCAP_EW_EFFECT")
     elif _clear(ew, vw):
@@ -185,7 +189,7 @@ def reading(r: dict, split: str) -> str:
     if np.isfinite(cost_share) and cost_share >= SHARE_HALF:
         flags.append("COSTS_EXPLAIN_GAP")
     return (f"reading [{split}]: VW Q5-Q1 {_f(vw)}, EW Q5-Q1 {_f(ew)}; IC share smallest tercile {_f(share_ic)} "
-            f"(T1 {_f(ics[0], 4)} T2 {_f(ics[1], 4)} T3 {_f(ics[2], 4)}); VW short-leg share {_f(short_share)} long-leg share "
+            f"(T1 {_f(ics[0])} T2 {_f(ics[1])} T3 {_f(ics[2])}); VW short-leg share {_f(short_share)} long-leg share "
             f"{_f(long_share)}; cost/gross L-U {_f(cost_share)}; flags: {', '.join(flags) if flags else 'NONE'}")
 
 
@@ -202,9 +206,9 @@ def format_report(results: list) -> list:
                 sd = " ".join(f"{n} {_mt(ret[f'{n}_{w}'][sp])}" for n in ("Q5-Q1", "Q5-U", "Q1-U", "D10-D1"))
                 L.append(f"  {sp} {w.upper()}: {q} | U {_mt(ret[f'U_{w}'][sp])} | {sd}")
             L.append(f"  {sp} costs: gross L-U {_mt(co['gross_LU'][sp])} L-cost {_f(co['cost_L'][sp][0])} S-cost "
-                     f"{_f(co['cost_S'][sp][0])} turnover1way L {_f(co['turnover_L'][sp][0], 1)}% S {_f(co['turnover_S'][sp][0], 1)}% | "
+                     f"{_f(co['cost_S'][sp][0])} turnover1way L {_f(co['turnover_L'][sp][0])}% S {_f(co['turnover_S'][sp][0])}% | "
                      f"net L-U {_mt(co['net_LU'][sp])} | gross LS {_mt(co['gross_LS'][sp])} net LS {_mt(co['net_LS'][sp])}")
-            L.append(f"  {sp} size terciles (T1 smallest): IC " + " ".join(f"T{k} {_mt(r['tercile_ic'][f'ic_T{k}'][sp], 4)}" for k in (1, 2, 3))
+            L.append(f"  {sp} size terciles (T1 smallest): IC " + " ".join(f"T{k} {_mt(r['tercile_ic'][f'ic_T{k}'][sp])}" for k in (1, 2, 3))
                      + " | EW Q5-Q1 " + " ".join(f"T{k} {_mt(r['tercile_ew'][f'ew_T{k}'][sp])}" for k in (1, 2, 3)))
         for sp in SPLITS:
             L.append("  " + reading(r, sp))

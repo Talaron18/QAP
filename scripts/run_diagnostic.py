@@ -20,7 +20,7 @@ BANNER = "INFORMATION ONLY, 2020+ not used, no trials logged"
 
 def _one(name: str) -> dict:
     c = context()
-    return diagnose_signal(c["sigs"]["gpa" if name == "gpa" else "themes"], c["panel"], c["inp"], c["aum_t"], name)
+    return diagnose_signal(c["sig"], c["panel"], c["inp"], c["aum_t"], name)
 
 
 def main(jobs: int) -> None:
@@ -41,13 +41,12 @@ def _run(log, jobs) -> None:
     require_inputs([JKP_DIR], "Run: python scripts/wrds_extract.py jkp_us")
     log(BANNER)
     panel, links, funda, inp, aum_t = load_context()
-    sig_g = build_research_signals(panel, prepare_annual(funda), links)[["permno", "mi", "me", "me_co", "primaryexch", "gpa"]]
-    sig_g = sig_g.astype({"permno": "int64"})
+    gpa = build_research_signals(panel, prepare_annual(funda), links)[["permno", "mi", "gpa"]].astype({"permno": "int64", "mi": "int64"})
     themes, _ = build_theme_signals(eligible_universe(panel), JKP_DIR)
-    themes = themes.astype({"permno": "int64"})
-    set_context(sigs={"gpa": sig_g, "themes": themes}, panel=panel[["permno", "mi", "mthret_adj"]], inp=inp, aum_t=aum_t)
+    themes = themes.astype({"permno": "int64", "mi": "int64"}).merge(gpa, on=["permno", "mi"], how="left")
+    set_context(sig=themes, panel=panel[["permno", "mi", "mthret_adj"]], inp=inp, aum_t=aum_t)
     log(f"signals: {', '.join(NAMES)}; costs 1.5x, $10M (2019 market-size); dev 1990-2014, validation 2015-2019")
-    log("gpa uses its own research-signal universe (as in Studies A/B); JKP composites and themes use the JKP-merged eligible universe\n")
+    log("all signals on the JKP-merged eligible universe (gpa merged on permno, mi)\n")
     for line in format_report(pmap(_one, NAMES, jobs, say=log)):
         log(line)
     log(BANNER)

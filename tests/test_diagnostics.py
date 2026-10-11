@@ -112,6 +112,7 @@ def test_reading_flags():
     assert "SHORT_LEG_CARRIES" in reading(res(0.4, 0.4, [.02, .02, .02], -.3, .1, .1, .02), "dev")
     assert "COSTS_EXPLAIN_GAP" in reading(res(0.4, 0.4, [.02, .02, .02], -.1, .3, .3, .25), "dev")
     assert reading(res(0.4, 0.45, [.02, .02, .02], -.1, .3, .3, .05), "dev").endswith("flags: NONE")
+    assert "GROSS_LU<=0" in reading(res(-0.1, 0.0, [.02, .02, .02], .1, -.1, -.1, .02), "dev")
 
 
 def test_end_to_end_matches_net_lu_series_and_logs_no_trials(tmp_path, monkeypatch):
@@ -143,6 +144,14 @@ def test_end_to_end_matches_net_lu_series_and_logs_no_trials(tmp_path, monkeypat
         assert 0 < r["costs"]["turnover_L"][sp][0] < 100
         assert r["returns"]["Q5-Q1_vw"][sp][0] == pytest.approx(r["returns"]["Q5_vw"][sp][0] - r["returns"]["Q1_vw"][sp][0])
     assert r["months"]["dev"] > 30
+    nul = lambda d: d.astype({c: ("Int64" if d[c].dtype.kind in "iu" else "Float64") for c in d if d[c].dtype.kind in "iuf"})
+    r2 = diagnose_signal(nul(sig), nul(p), nul(inp), aum_t, "gpa")
+    assert r2 == r
+    from qap.portfolio import costed_books
+    gl = costed_books(sig, p, inp, "gpa", aum_t)["L_minus_U"]["gross"]
+    qt = quintile_table(sig, p, "gpa")
+    pd.testing.assert_series_equal((qt["Q5_vw"] - qt["U_vw"]).reindex(gl.index[gl.index < SEALED_CUT]), gl[gl.index < SEALED_CUT],
+                                   check_names=False, atol=1e-12, rtol=0)
     lines = format_report([r])
     assert lines[0].startswith("== gpa") and any(l.strip().startswith("reading [dev]") for l in lines)
     assert not (tmp_path / "data" / "trials.jsonl").exists()
