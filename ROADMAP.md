@@ -518,3 +518,23 @@ tax treatment is assumed taxable; fractional shares assumed; sectors/industry ma
   Biases against harvesting: monthly steps, pro-rata (not industry-matched) substitution; in favour: hold-indefinitely treatment, today's high tax rates applied to all eras.
 - Report-line bug found in review: the printed 'universe cost: harvest median TE vs ETF' reused the harvest-vs-no-harvest median (fixed in code after the run; the DECISION line and all benefit
   statistics were unaffected).
+
+## Pre-registration v8: forward-only machine-learning cross-sectional check (written before any code or run)
+User chose to run this alongside cheap alternative-data probes. All historical windows are spent, so this is built to be judged FORWARD ONLY. No claim can come from any backtest here.
+- **Pipeline independence:** features, labels and the universe are built only from Compustat (`comp.secm` monthly prices/shares/total return `trt1m`, annual fundamentals with the same 4-month PIT lag and 548-day
+  staleness), so the identical code produces training data (1990-2025) and forward data (2026-). Universe: common stock (`tpci` '0'), US, ME >= NYSE 20th percentile, as in the paper harness.
+- **Features (fixed list, 20, each cross-sectionally rank-transformed to [-0.5, 0.5] every month, missing -> 0):** log ME, book-to-market, earnings/price, cash-flow/price, gross profit/assets, ROA, asset growth,
+  capex/assets, accruals (Sloan), leverage, cash/assets, sales growth, R&D/assets, net share issuance (12m change in shares), momentum 12-1, 1-month reversal, 12-month return volatility, 36-month market beta,
+  dividend-free price level proxy is NOT used, 12-month turnover is NOT used (not in the fixed list). Features that cannot be built for a month are missing, never imputed from the future.
+- **Target:** next-month return rank-transformed within the month. **Model (fixed, no tuning, no cross-validation, no architecture search):** `HistGradientBoostingRegressor(max_depth=3, learning_rate=0.05,
+  max_iter=200, min_samples_leaf=500, l2_regularization=1.0, random_state=0)`, expanding training window from 1990-01, retrained each January on formation months up to the previous November (labels through
+  December), predictions for the next 12 formation months are a deterministic function of the frozen model and that month's features. Trial count: 2 (the ML model and its comparator).
+- **Comparators:** (i) equal-weight composite of the same 20 features with literature signs (value-type +, gpa +, ROA +, asset growth -, accruals -, issuance -, leverage -, momentum +, reversal +, volatility -,
+  beta -, size -, ...; signs fixed in code before any run), (ii) gpa alone (incumbent).
+- **Evaluation (forward only):** formation months from 2025-12 on. Months 2026-01..2026-09 are PSEUDO-FORWARD (model frozen with data through 2025-12; these months were realised before the harness but have not been
+  used by any result so far); later months are LIVE (predictions hashed into a tracked manifest before the month realises, as in the paper ledger). Metrics per signal: mean monthly rank IC (t), VW top-quintile minus
+  VW universe gross return and net of an assumed 10 bp per one-way turnover, turnover. Checkpoints at 12, 24, 36 forward months; DECISION only at 36 months: 'ML ADDS VALUE' if its net long-minus-universe exceeds the
+  composite's by >= 0.15 %/mo with a paired t >= 2 and also exceeds gpa's; 'NO EVIDENCE' otherwise. Interim checkpoints are reported but never trigger deployment.
+- **Information only (not evidence):** a walk-forward 1995-2025 run of the same frozen protocol, with the explicit caveat that its inputs, features and model class were chosen with knowledge of this period; useful only
+  to catch gross implementation errors (an ML IC far above the composite's in-sample would signal leakage, not skill).
+- **Power, honestly:** with ~5% tracking error a 0.15 %/mo edge needs many years to confirm; the realistic outcome of the 36-month decision is 'NO EVIDENCE'. The value of this protocol is that it cannot fool us.
