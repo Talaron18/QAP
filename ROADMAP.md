@@ -282,3 +282,10 @@ existed) and (ii) every formation from the 2026-09 month-end on is **live** (wei
   active return = tilt minus benchmark (costless, gross; costs from the research model are informational), by group
   retrospective-unseen / live, with t-stats and the plain statement that 9 months have no power (a 0.2%/mo edge with ~5% annual
   tracking error needs decades for t = 2).
+
+- **(b) implementation constants, fixed before any real result (the pre-registration gave no numbers):** "clearly larger" EW vs VW
+  Q5-Q1 = gap >= 0.10 %/mo AND ratio >= 1.5; "IC concentrated in the smallest tercile" = its share of the summed tercile ICs >= 0.5
+  and it is the largest; "short leg carries" = -(Q1-U)/(Q5-Q1) >= 0.5 (VW); "costs explain the gap" = L-leg cost / gross L-U >= 0.5.
+  Flags only; no conclusion is drawn from them mechanically. In (b) all seven signals use the JKP-merged eligible universe (gpa merged
+  on permno, month), so its numbers differ slightly from the Study A/B gpa series. `inp` and `aum_t` are cut at 2020 before costing.
+  Implemented in `qap.diagnostics` / `scripts/run_diagnostic.py` (`--jobs N`; jobs 1 and 4 give byte-identical reports on synthetic data).
