@@ -39,7 +39,12 @@ def extract_jkp_us(db, out: pathlib.Path, first_year: int = 1963, last_year: int
     from qap.jkp_themes import ALL_CHARACTERISTICS
     lib, table = config.JKP_TABLE.split(".")
     have = set(db.describe_table(library=lib, table=table)["name"])
-    cols = [c for c in ALL_CHARACTERISTICS if c in have]
+    required = ["permno", "eom", "size_grp", "ret_exc_lead1m", "me", "excntry", "common", "primary_sec", "exch_main", "obs_main"]
+    absent = [c for c in required if c not in have]
+    if absent:
+        raise SystemExit(f"[jkp_us] required columns absent from {config.JKP_TABLE}: {absent}. Run "
+                         "`python scripts/wrds_probe.py contrib_global_factor.global_factor --full` and paste it.")
+    cols =[c for c in ALL_CHARACTERISTICS if c in have]
     missing = [c for c in ALL_CHARACTERISTICS if c not in have]
     parts = out / "jkp_us"
     parts.mkdir(exist_ok=True)

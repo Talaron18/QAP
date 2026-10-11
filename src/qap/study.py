@@ -102,3 +102,12 @@ def holdout_alpha(rc: pd.Series, rg: pd.Series) -> dict:
     return {"months": int(n), "beta_dev": round(float(b), 2), "alpha_pct_mo": round(float(e.mean()) * 100, 3),
             "t": round(float(e.mean() / (e.std(ddof=1) / np.sqrt(n))), 2) if n > 2 else None,
             "standalone_pct_mo": round(float(h["c"].mean()) * 100, 3)}
+
+
+def require_inputs(paths, hint: str) -> None:
+    """Fail fast with a clear message when raw inputs are missing (before any heavy compute)."""
+    import glob
+    import pathlib
+    bad = [str(p) for p in paths if not (glob.glob(str(pathlib.Path(p) / "[0-9]*.parquet")) if pathlib.Path(p).suffix == "" else pathlib.Path(p).exists())]
+    if bad:
+        raise SystemExit(f"Missing raw inputs: {bad}\n{hint}")

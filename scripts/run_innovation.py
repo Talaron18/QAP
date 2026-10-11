@@ -14,7 +14,7 @@ from qap.evaluate import build_research_signals
 from qap.fundamentals import prepare_annual
 from qap.innovation import build_innovation_signals
 from qap.panel import to_mi
-from qap.study import (eligible_universe, holdout_alpha, load_context, net_lu_series, run_promotion_report)
+from qap.study import (eligible_universe, holdout_alpha, load_context, net_lu_series, require_inputs, run_promotion_report)
 from qap.trials import trial_count
 
 PREREG = "e10516f"
@@ -37,6 +37,8 @@ def main(open_holdout: bool) -> None:
 
 
 def _run(log, open_holdout) -> None:
+    require_inputs([RAW / f"{n}.parquet" for n in ("rq_data", "kpss_patents", "patent_grants")],
+                   "Run: python scripts/wrds_extract.py rq_data kpss_patents patent_grants")
     panel, links, funda, inp, aum_t = load_context()
     annual = prepare_annual(funda)
     sig_g = build_research_signals(panel, annual, links)

@@ -14,7 +14,7 @@ from qap.evaluate import build_research_signals
 from qap.fundamentals import prepare_annual
 from qap.jkp import build_theme_signals, rank_corr_by_month
 from qap.jkp_themes import ALL_CHARACTERISTICS, THEMES
-from qap.study import (eligible_universe, holdout_alpha, load_context, net_lu_series, run_promotion_report)
+from qap.study import (eligible_universe, holdout_alpha, load_context, net_lu_series, require_inputs, run_promotion_report)
 from qap.trials import trial_count
 
 PREREG = "e10516f"
@@ -37,6 +37,7 @@ def main(open_holdout: bool) -> None:
 
 
 def _run(log, open_holdout) -> None:
+    require_inputs([JKP_DIR], "Run: python scripts/wrds_extract.py jkp_us")
     panel, links, funda, inp, aum_t = load_context()
     sig_g = build_research_signals(panel, prepare_annual(funda), links)          # incumbent gpa, as before
     eligible = eligible_universe(panel)
