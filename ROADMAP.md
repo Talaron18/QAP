@@ -173,3 +173,49 @@ Compustat runs to 2026-09; Compustat security price tables or another feed would
   no I/B/E/S, 13F, insiders, OptionMetrics, TAQ, RavenPack. Accessible new data: JKP global_factor (to 2025-12), KPSS patent
   values, patent firm-year panel, Research Quotient, intangible value (to 2018), blockholders, XBRL complexity, 10-K risk text.
   See docs/research_directions.md. No new research pre-registered yet.
+
+## Pre-registration v3: Study A (JKP themes through 2025) and Study B (innovation family)
+
+Committed BEFORE any test code or result exists. Data facts, the JKP theme table (`src/qap/jkp_themes.py`, from Table 9 of
+the supplied Global Factor Data Documentation: 13 themes, 153 characteristics, original signs) and the access verdict are in
+`docs/research_directions.md`. Both studies reuse the validated pipeline (CRSP CIZ panel, delisting-adjusted returns,
+eligibility mask, ex-microcap rule, point-in-time handling, costs at $10M 2019-market-scaled, Y=1, 1.5x stress, benchmark = VW
+eligible universe, costless). Labels are OUR next-month delisting-adjusted returns (not JKP's).
+
+**Judging (both studies, fixed):** net long-minus-universe monthly series (top quintile VW minus VW universe, 1.5x costs) per
+signal; incumbent = gpa. PROMOTE iff dev (1990-2014) alpha t >= 2.0 of the signal's net series regressed on gpa's, AND validation
+(2015-2019) alpha, computed with the DEV beta, is > 0. Information only: standalone net mean/t, IC, correlation with gpa,
+equal-weight gpa+signal vs gpa. Promoted = provisional; 2020+ opens ONCE for promoted signals only (not clean for anything
+tied to gpa, whose 2020+ gross spreads were printed earlier). With 19 trials, about 0.4 false promotions are expected by chance
+at t >= 2; the sealed holdout is what decides. 65 cumulative unique trials after this study (46 logged so far + 19).
+
+### Study A: JKP themes (15 trials)
+- **Data:** `contrib_global_factor.global_factor`, US only (`excntry='USA'`), CRSP-sourced rows (`permno` not null), JKP screens
+  `common=1, primary_sec=1, exch_main=1, obs_main=1`, `size_grp` in {mega, large, small} (micro/nano dropped at extraction),
+  months 1963-01..2025-12; keys `permno`, `eom` (information available at `eom`; JKP says lag characteristics one month or use the
+  next-month return, which is exactly our label convention). Only the 153 theme members are fetched.
+- **Theme score** (per stock-month): mean over available members of `sign_k * (percentile_rank_k - 0.5)`, where the rank is within
+  the month among stocks that pass OUR eligibility (common-equity mask, positive company ME, ex NYSE-20th-percentile microcaps)
+  and have JKP data; needs >= max(3, ceil(half of the theme's members)) available members, else missing.
+- **Signals (15):** the 13 theme scores (Accruals, Debt Issuance, Investment, Low Leverage, Low Risk, Momentum, Profit Growth,
+  Profitability, Quality, Seasonality, Size, Short-Term Reversal, Value); `jkp_all13` = equal-weight mean of the 13 theme-score
+  percentile ranks (needs >= 10 themes); `jkp_slow10` = the same without Size, Short-Term Reversal and Seasonality (needs >= 8).
+- **Checks printed before results:** extraction rows by year and share with `permno`; `size_grp` values; missing theme-member
+  columns (reported, never guessed); our `gpa` vs JKP `gp_at` and our be/ME vs JKP `be_me` monthly rank correlations; JKP
+  `ret_exc_lead1m` vs our next-month return minus risk-free (correlation); theme availability by decade.
+
+### Study B: innovation family (4 trials)
+- **Sources:** `rq_all.rq_data` (gvkey-fyear, `rawrq`), `contrib_kpss.kpss_patents` (permno, `issue_date`, `xi_nominal`),
+  `contrib_patent_firm_link.patent_level` aggregated by (gvkey, `grant_year`) on the server (count, sum and count of
+  `num_cite_3y`; the firm-year panel's `year` is ambiguous between filing and grant year, so it is not used), Compustat `xrd`.
+- **Signals (4):** (1) `rq` = latest `rawrq`, available June 30 of fyear+1; (2) `kpss_xi_me` = sum of `xi_nominal` over patents
+  issued in the 36 months to month-end t, divided by company ME at t (missing before a firm's first patent, 0 after if none in
+  window; evaluated only through the last month with complete KPSS issue dates); (3) `pat_flow_rd` = patents granted in year y
+  / R&D capital at y, R&D capital = sum_{j=0..4} (1 - 0.2 j) xrd_{y-j} (needs >= 3 observed years, stock > 0), available June
+  30 of y+1; (4) `pat_quality3` = sum `num_cite_3y` / count of patents with `num_cite_3y` for the grant cohort y-3 (its 3-year
+  window is complete at year-end y), available June 30 of y+1. Linked to permno through CCM, date-bounded, as before.
+- **Excluded on purpose:** forward citation totals (look-ahead), exploration/exploitation measures, R&D-to-market (it is a JKP Size
+  member, tested in Study A), `int_xsec` (ends 2018-05; overlaps the earlier `bm_int` test), any tuning of windows or weights.
+- **Universe note:** these signals exist only for innovating/R&D firms, so each is ranked within the firms that have it and
+  benchmarked to that covered universe; this differs from gpa's universe (information only).
+- **Checks printed first:** coverage by decade; last KPSS issue date; patents per grant year; link hit rate; `rawrq` scale.
