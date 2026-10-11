@@ -457,3 +457,7 @@ Gate passed (reproduced diagnostic (b) exactly). 72 realised months.
   for choosing slow10 among 15 Study A signals and then diagnostic (b); 66 cumulative trials.
 - Reading: weak, regime-dependent evidence of a short-side premium that did not persist after 2022, carried by size/momentum tilts, with 30% drawdowns and a data feed (JKP) that ends 2025-12.
   Not a basis for deploying USD 35k.
+
+- **Ledger timing note (recorded 2026-10-11):** all ten frozen formations were created on 2026-10-11, so `paper_settle.py` (prospective = formed within 7 days of the target month's start) will label them retrospective.
+  The rule is left unchanged. The first formation that can be prospective is 2026-10 (needs formation and a pushed manifest by about 2026-11-07). If WRDS posts the month-end row later, report zero prospective months
+  honestly rather than loosening the rule after the fact.

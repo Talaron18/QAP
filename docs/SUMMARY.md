@@ -53,7 +53,7 @@ long-only investor cannot use (short leg, small and illiquid names, high turnove
 
 Forward test of the gpa tilt (spec: entry 0.80 / exit 0.70 / 3% cap, value-weighted, benchmark = value-weighted eligible universe), built on
 Compustat `comp.secm` because CRSP and JKP stop at 2025-12. It reproduced the CRSP research on the overlap (weight overlap 0.884, active-return
-correlation 0.974). Ten formations (2025-12 .. 2026-09) are frozen; the 2026-09 one is the first live formation.
+correlation 0.974). Ten formations (2025-12 .. 2026-09) are frozen. All ten were formed on 2026-10-11, so by the settle script's rule (formed within 7 days of the target month's start) they settle as **retrospective**; the first formation that can count as prospective is 2026-10, and only if it is formed and its manifest pushed by about Nov 7. If WRDS posts the month-end `comp.secm` row later than that, the prospective count stays 0 and the weaker claim is only that weights are a deterministic function of month-end data under an unchanged spec commit.
 9-12 months have essentially no power (a +0.2 %/mo edge at ~5% tracking error needs decades for t = 2): it is an implementation check.
 
 Monthly routine (after the month closes and WRDS has the new `comp.secm` month):
@@ -70,7 +70,7 @@ python scripts/paper_settle.py                    # verifies hashes, settles rea
 - The investable edge found is at most a small profitability/quality tilt, with an uncertain sign out of sample and tracking noise of ~USD 1,600/yr
   on this account size (5% tracking error) against an expected benefit of roughly USD 20-35 a month.
 - Long-short `jkp_slow10` is not a basis to deploy: 30% drawdown, factor-explained returns, regime concentration, a data feed that ends 2025-12, and margin/short
-  operational risk. It is also the only strategy whose break-even borrow cost looks comfortable, so it is the one to revisit if better data ever arrives.
+  operational risk. Its break-even borrow cost (4.6-6.5 %/yr) is comfortable against assumed fees, but so are those of Quality (3.6 dev / 7.1 val), Profitability (4.2 / 5.5) and gpa (2.7 / 4.4); the binding constraints are statistical and structural, not borrow.
 - Taxes were ignored all along. In a taxable account they are probably the largest controllable cost; monthly-turnover strategies realise short-term gains.
   This is the main untested lever (tax-aware construction / loss harvesting is mechanical, so it does not decay like alpha).
 - The highest-value non-research levers: savings rate, fees, diversification (including international), asset location, and not trading.
