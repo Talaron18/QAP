@@ -95,3 +95,14 @@ def test_active_stats_and_ff_regression_recover_known_loadings():
     assert set(st) == {"pre1990", "dev1990_2014", "valid2015_2019", "pre2020", "post1990"}
     assert st["dev1990_2014"]["IR_ann"] > 0 and st["dev1990_2014"]["TE_ann_pct"] > 0
     assert "holdout2020+" in active_stats(pd.Series(act.to_numpy(), index=idx), include_holdout=True)
+
+
+def test_tilt_accepts_pandas_nullable_dtypes_like_wrds_parquet():
+    sig = _sig(n=100, months=3)
+    sig["permno"] = sig["permno"].astype("Int64")
+    for c in ("me", "me_co", "gpa"):
+        sig[c] = sig[c].astype("Float64")
+    ref = tilt_weights(_sig(n=100, months=3), entry=0.8, exit_=0.7, cap=0.03)
+    out = tilt_weights(sig, entry=0.8, exit_=0.7, cap=0.03)
+    assert len(out) == len(ref) and out["w"].to_numpy(dtype="float64") == pytest.approx(ref["w"].to_numpy())
+    holding_stats(out, benchmark_weights(sig))

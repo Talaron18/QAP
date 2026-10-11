@@ -43,9 +43,12 @@ def tilt_weights(sig: pd.DataFrame, name: str = "gpa", entry: float = ENTRY, exi
     entry == exit_ disables the buffer; cap=None disables the position cap. Weights are value weights within the held set.
     """
     s = eligible(sig, name)
-    out, held = [], np.array([], dtype=s["permno"].dtype)
+    out, held = [], np.array([], dtype="int64")
     for mi, g in s.groupby("mi", sort=True):
-        pct, perm, me = g["pct"].to_numpy(), g["permno"].to_numpy(), g["me"].to_numpy()
+        # explicit dtypes: WRDS parquet gives pandas nullable Int64/Float64, which np.array(dtype=...) cannot interpret
+        pct = g["pct"].to_numpy(dtype="float64")
+        perm = g["permno"].to_numpy(dtype="int64")
+        me = g["me"].to_numpy(dtype="float64")
         keep = pct > entry
         if exit_ < entry:
             keep |= np.isin(perm, held) & (pct > exit_)
