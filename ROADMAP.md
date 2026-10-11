@@ -232,7 +232,13 @@ columns missing; coverage 99.1%). **Nothing promoted in either study.** Cumulati
   and decayed after 2014, and a value-weighted long-only top-quintile ex-microcaps after 1.5x costs does not capture it.
 - **Study B (4 trials):** no innovation signal has dev alpha over gpa (|t| < 1.4); RQ and patent quality ~0. kpss_xi_me is the
   best (dev +0.084, t 1.34; val +0.155) and is not distinguishable from noise.
-- **gpa remains the sole survivor** (dev +0.184%/mo, t 1.88; val +0.098, t 0.60 in this universe) and its 2020+ holdout was
-  already opened once (+0.056, t 0.36). Verdict unchanged: no validated out-of-sample edge in long-only net-of-cost equity
-  factor tilts; the pipeline, data and honesty machinery are the product.
+- **gpa remains the sole survivor, but weaker than the 2.0 bar the challengers had to clear:** dev (1990-2014) net L-U +0.184%/mo,
+  t 1.88; validation (2015-2019) +0.098, t 0.60. The earlier +0.17 (t 1.98) was the pooled 1990-2019 window, not a changed number.
+  Separately, the long-only gpa *tilt* (a different construct: active return vs the benchmark) had holdout 2020+ +0.056, t 0.36,
+  opened once. Verdict unchanged: no validated out-of-sample edge in long-only net-of-cost equity factor tilts.
+- **Reading the composites:** most JKP characteristics' original publication samples overlap 1990-2014, so a dev IC t of 7.2 is
+  roughly what in-sample data produces; the finding is the validation drop (IC t 0.8) together with net L-U ~ 0.
+- **Pre-registration deviations/omissions (recorded after seeing results, not backfilled):** two promised pre-result checks were
+  not printed: Study A "extraction rows by year and share with permno" and Study B "link hit rate". Study B's U is the set of
+  firms with a non-missing signal (covered universe), as pre-registered; the L-U is therefore not on gpa's universe.
 - Compute note: user has 36 cores / 31.5 GB; per-signal costed backtests are independent and should be parallelised next time.
