@@ -362,3 +362,13 @@ underlying *returns*, never signal returns, so the sealed 2020+ window is not op
   whose slope is within 25% of an allowed leverage (-3, -2, -1.5, -1, 1.5, 2, 3); the name parser is kept only as a cross-check; (ii) the decision
   rule returns INVALID (never NOT VIABLE) when fewer than 10 ETFs are matched. Limits to remember: ETFs with < 12 months of history are missed and
   underlyings that are not in our common-equity universe (ADRs) cannot match.
+
+- **v5 second real run (return-based inventory): contaminated, verdict NOT used** (raw report kept as docs/etf_check_report_run2_contaminated.txt).
+  254 'ETFs' were detected, but most are false positives (SPACs, ADRs, closed-end funds, ordinary stocks flagged non-eq, and 1.5x index ETFs
+  matched to obscure tiny banks at n=12-19 where spurious |rho| reaches ~0.9); the ETF shortfall noise of 17%/mo confirms it. The ~100 genuine
+  single-stock products (e.g. AAPB, TSLL, NVDL, MSFU) are in the list with rho >= 0.97 and large underlyings. Printed numbers (carry drag
+  0.73%/mo; coverage 1-8% VW of the bottom quintile) are therefore unreliable as stated. Cleaning rules fixed before the third run, from
+  inspecting false positives only: candidates must be names-flagged FUND/ETF; rho >= 0.95; underlying company ME >= $1,000M; 1.25 added to the
+  allowed leverages; a funnel is printed. These filters can only REMOVE products, so they cannot raise coverage: the coverage clause
+  (bottom-quintile VW coverage < 30%) is robust to the cleaning (even the contaminated list covered 2 of ~265 bottom-quintile names in 2025-12);
+  the carry estimate is what will change.

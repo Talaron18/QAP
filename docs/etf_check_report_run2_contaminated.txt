@@ -1,0 +1,589 @@
+INFORMATION ONLY: no signal returns used, 2020+ signal performance not opened, no trials logged
+crsp_names: 87,839 rows; columns: ['permno', 'permco', 'namedt', 'nameenddt', 'securitybegdt', 'securityenddt', 'hdrcusip', 'hdrcusip9', 'cusip', 'cusip9', 'ticker', 'issuernm', 'primaryexch', 'conditionaltype', 'tradingstatusflg', 'shareclass', 'sharetype', 'securitytype', 'securitysubtype', 'usincflg', 'issuertype', 'siccd']
+names: securitytype x securitysubtype (top 15 of rows)
+  ('EQTY', 'COM'): 74,779
+  ('FUND', 'ETF'): 9,692
+  ('FUND', 'CEF'): 3,287
+  ('DERV', 'ATR'): 81
+return-detected ETFs: 254 (254 matched); name-parsed: 0; name-parsed also return-detected: 0
+eyeball for false positives: ticker, issuernm, L, underlying, rho, beta, months, first-last
+  BCS      BARCLAYS PLC                             L=+1.5      OPB rho +0.910 beta +1.21 n 17 1986-09..2025-12
+  CCL      CARNIVAL CORP                            L=+1.5     IBKC rho +0.902 beta +1.23 n 19 1987-07..2025-12
+  DUC      DUFF & PHELPS UT & CORP BD TR IN         L=-1.0     ALGR rho -0.910 beta -0.95 n 16 1993-01..2021-03
+  AMRN     AMARIN CORP PLC                          L=+2.0     CARO rho +0.916 beta +2.43 n 17 1993-04..2025-12
+  SJR      SHAW COMMUNICATIONS INC                  L=-2.0     ZWRK rho -0.916 beta -2.12 n 22 1998-07..2023-04
+  MBT      MOBILE TELESYSTEMS PUB JO ST CO          L=+3.0     SOND rho +0.979 beta +2.71 n 12 2000-07..2022-02
+  MUI      BLACKROCK MUNI INCOME FUND INC           L=+1.5     OSRH rho +0.975 beta +1.36 n 24 2003-07..2025-02
+  GAIN     GLADSTONE INVESTMENT CORP                L=+1.5     CARO rho +0.917 beta +1.15 n 17 2005-06..2025-12
+  CODI     COMPASS DIVERSIFIED HOLDINGS             L=+1.5     CARO rho +0.951 beta +1.45 n 17 2006-05..2025-12
+  OBE      OBSIDIAN ENERGY LTD                      L=+1.5     WEBK rho +0.904 beta +1.56 n 16 2006-06..2025-12
+  SAA      PROSHARES TRUST                          L=+1.5     IBKC rho +0.937 beta +1.16 n 19 2007-01..2025-12
+  UWM      PROSHARES TRUST                          L=+1.5     IBKC rho +0.927 beta +1.14 n 19 2007-01..2025-12
+  DUG      PROSHARES TRUST                          L=-2.0      XOM rho -0.931 beta -1.78 n 84 2007-02..2025-12
+  DIG      PROSHARES TRUST                          L=+2.0      XOM rho +0.941 beta +2.02 n 84 2007-02..2025-12
+  PNNT     PENNANTPARK INVESTMENT CORP              L=+1.5      HDS rho +0.915 beta +1.49 n 24 2007-04..2025-12
+  RSX      VANECK E T F TRUST                       L=+1.5     SOND rho +0.950 beta +1.71 n 13 2007-05..2022-03
+  BCOM     B COMMUNICATIONS LTD                     L=+2.0     CBPX rho +0.904 beta +2.34 n 13 2007-11..2020-09
+  FAS      DIREXION SHARES E T F TRUST              L=+2.0      BAC rho +0.922 beta +1.90 n 84 2008-11..2025-12
+  TNA      DIREXION SHARES E T F TRUST              L=+1.5     IBKC rho +0.924 beta +1.66 n 19 2008-11..2025-12
+  ERY      DIREXION SHARES E T F TRUST              L=-2.0      XOM rho -0.912 beta -1.90 n 84 2008-11..2025-12
+  ERX      DIREXION SHARES E T F TRUST              L=+1.5      EOG rho +0.937 beta +1.67 n 84 2008-11..2025-12
+  DZK      DIREXION SHARES E T F TRUST              L=+1.5      TKR rho +0.940 beta +1.22 n 22 2008-12..2020-10
+  DPK      DIREXION SHARES E T F TRUST              L=-1.0      THR rho -0.939 beta -0.98 n 15 2008-12..2020-03
+  MIDZ     DIREXION SHARES E T F TRUST              L=-3.0      MBI rho -0.973 beta -2.91 n 15 2009-01..2020-03
+  MIDU     DIREXION SHARES E T F TRUST              L=+1.5     IBKC rho +0.910 beta +1.63 n 19 2009-01..2025-12
+  PEB      PEBBLEBROOK HOTEL TRUST                  L=+1.5      HDS rho +0.919 beta +1.47 n 24 2009-12..2025-12
+  URTY     PROSHARES TRUST                          L=+1.5     IBKC rho +0.926 beta +1.67 n 19 2010-02..2025-12
+  UMDD     PROSHARES TRUST                          L=+1.5     IBKC rho +0.909 beta +1.61 n 19 2010-02..2025-12
+  UDOW     PROSHARES TRUST                          L=+1.5     IBKC rho +0.904 beta +1.31 n 19 2010-02..2025-12
+  SDRL     SEADRILL LTD 2021                        L=+1.5     BOLD rho +0.910 beta +1.29 n 13 2010-04..2025-12
+  NEGG     NEWEGG COMMERCE INC                      L=+1.5     STAB rho +0.936 beta +1.16 n 49 2010-04..2025-12
+  GASL     DIREXION SHARES E T F TRUST              L=+1.5      CPE rho +0.957 beta +1.52 n 15 2010-07..2020-03
+  GLBS     GLOBUS MARITIME LTD                      L=-3.0     MBSC rho -0.922 beta -3.57 n 22 2010-11..2025-12
+  JMF      NUVEEN ENERGY M L P TOTAL RET FD         L=+2.0      KMI rho +0.940 beta +1.97 n 17 2011-02..2020-05
+  RSXJ     VANECK E T F TRUST                       L=-1.5     NRGV rho -0.954 beta -1.40 n 13 2011-04..2022-03
+  NGL      N G L ENERGY PARTNERS LP                 L=-1.0     RNER rho -0.911 beta -1.23 n 14 2011-05..2025-12
+  MTBL     MOATABLE INC                             L=+3.0     STML rho +0.936 beta +2.56 n 18 2011-05..2024-04
+  NBIS     NEBIUS GROUP N V                         L=+2.0     GRNA rho +0.927 beta +2.13 n 12 2011-05..2025-12
+  CHKR     CHESAPEAKE GRANITE WASH TRUST            L=+1.5      NOW rho +0.906 beta +1.55 n 14 2011-11..2020-02
+  RPAI     RETAIL PROPERTIES OF AMERICA INC         L=+1.5     ROIC rho +0.957 beta +1.34 n 34 2012-04..2021-10
+  FINZ     PROSHARES TRUST                          L=-1.0     SANM rho -0.908 beta -1.19 n 15 2012-07..2020-03
+  FINU     PROSHARES TRUST                          L=+2.0      STL rho +0.986 beta +1.79 n 15 2012-07..2020-03
+  NDP      TORTOISE ENERGY INDPNDCE FD INC          L=+1.5      CXO rho +0.911 beta +1.16 n 25 2012-07..2024-12
+  MANU     MANCHESTER UNITED PLC                    L=-1.0      AXH rho -0.923 beta -0.87 n 12 2012-08..2025-12
+  VET      VERMILION ENERGY INC                     L=+1.5      XEC rho +0.941 beta +1.23 n 33 2013-03..2025-12
+  QIWI     QIWI PLC                                 L=+1.5     SOND rho +0.959 beta +1.22 n 12 2013-05..2022-02
+  VLRS     CONTROLADORA VUELA COMP DE AVIA          L=+2.0      FSB rho +0.919 beta +1.80 n 20 2013-09..2025-12
+  GMZ      GOLDMAN SACHS MLP INC OPPS FD            L=+2.0      CFB rho +0.961 beta +1.97 n 14 2013-11..2020-09
+  ENLC     ENLINK MIDSTREAM LLC                     L=+1.5       PE rho +0.901 beta +1.33 n 25 2014-03..2025-01
+  JMLP     NUVEEN ALL CAP ENERGY MLP OPP FD         L=+2.0      KMI rho +0.955 beta +1.94 n 17 2014-03..2020-05
+  DSE      DUFF & PHELPS SEL M M ENR FD INC         L=+1.5      OKE rho +0.918 beta +1.18 n 30 2014-06..2021-06
+  ERUS     ISHARES INC                              L=-3.0     NRGV rho -0.978 beta -2.96 n 13 2015-01..2022-03
+  GUSH     DIREXION SHARES E T F TRUST              L=+1.5      WPX rho +0.951 beta +1.57 n 25 2015-05..2025-12
+  ADAP     ADAPTIMMUNE THERAPEUTICS PLC             L=+2.0      CSS rho +0.907 beta +1.79 n 15 2015-05..2025-10
+  BETS     BIT BROTHER LTD                          L=-1.5      AXH rho -0.904 beta -1.49 n 12 2015-06..2024-03
+  GPP      GREEN PLAINS PARTNERS LP                 L=+2.0     OTTW rho +0.919 beta +2.44 n 18 2015-06..2024-01
+  WDRW     DIREXION SHARES E T F TRUST              L=-3.0     GBCI rho -0.956 beta -3.60 n 15 2015-08..2020-03
+  DPST     DIREXION SHARES E T F TRUST              L=+2.0      STL rho +0.955 beta +2.16 n 37 2015-08..2025-12
+  NAIL     DIREXION SHARES E T F TRUST              L=+2.0      DHI rho +0.944 beta +2.31 n 84 2015-08..2025-12
+  ASET     FLEXSHARES TRUST                         L=-2.0     AMCI rho -0.968 beta -2.26 n 34 2015-11..2025-10
+  PPBT     PURPLE BIOTECH LTD                       L=-2.0     PAAC rho -0.917 beta -2.13 n 13 2015-11..2025-12
+  GASX     DIREXION SHARES E T F TRUST              L=-2.0     SBOW rho -0.917 beta -1.91 n 15 2015-12..2020-03
+  BDRX     BIODEXA PHARMACEUTICALS PLC              L=+3.0     ONCE rho +0.966 beta +2.64 n 12 2015-12..2025-12
+  EUFL     DIREXION SHARES E T F TRUST              L=+2.0     FFIC rho +0.964 beta +1.94 n 15 2016-07..2020-03
+  NBLX     NOBLE MIDSTREAM PARTNERS LP              L=+1.5     HESM rho +0.939 beta +1.52 n 18 2016-09..2021-05
+  NISN     NISUN INTL ENT DEV GP CO LTD             L=-3.0     CETU rho -0.930 beta -3.02 n 17 2016-12..2025-12
+  OILD     PROSHARES TRUST II                       L=-2.0      WCC rho -0.949 beta -2.42 n 15 2017-03..2020-03
+  OILU     PROSHARES TRUST II                       L=+1.5     PTEN rho +0.951 beta +1.70 n 15 2017-03..2020-03
+  HESM     HESS MIDSTREAM PARTNERS LP               L=+2.0     WABC rho +0.966 beta +1.93 n 12 2017-04..2019-12
+  DUSL     DIREXION SHARES E T F TRUST              L=+1.5     IBKC rho +0.906 beta +1.54 n 19 2017-05..2025-12
+  USOU     U S C F FUNDS TRUST                      L=+2.0     RDFN rho +0.933 beta +1.95 n 12 2017-07..2019-12
+  USOD     U S C F FUNDS TRUST                      L=-1.5     TTMI rho -0.932 beta -1.57 n 12 2017-07..2019-12
+  AHG      AKSO HEALTH GROUP                        L=-3.0     PNAC rho -0.968 beta -3.04 n 14 2017-11..2025-12
+  ESTR     ESTRE AMBIENTAL INC                      L=+2.0      SEI rho +0.907 beta +2.36 n 13 2017-12..2020-01
+  BUYN     U S C F ETF TRUST                        L=+1.5      APH rho +0.965 beta +1.57 n 16 2017-12..2020-04
+  DOGS     ARROW INVESTMENTS TRUST                  L=+1.5      BWB rho +0.906 beta +1.18 n 17 2018-01..2020-05
+  RWGE     REGALWOOD GLOBAL ENERGY LTD              L=+1.5     TTCF rho +0.932 beta +1.18 n 12 2018-01..2019-12
+  AIU      META DATA LTD                            L=-1.5     CETU rho -0.941 beta -1.73 n 17 2018-03..2024-08
+  AGMH     A G M GROUP HOLDINGS INC                 L=+3.0     TMTS rho +0.928 beta +3.51 n 12 2018-04..2025-12
+  ITRM     ITERUM THERAPEUTICS PLC                  L=+2.0     CRZO rho +0.908 beta +2.16 n 12 2018-05..2025-12
+  SOHU     SOHU COM LTD                             L=+2.0     NGHC rho +0.913 beta +2.42 n 24 2018-06..2025-12
+  DWSH     ADVISORSHARES TRUST                      L=-1.0     FNJN rho -0.904 beta -0.81 n 19 2018-07..2025-12
+  SOLO     ELECTRAMECCANICA VEHICLES CORP           L=+1.5     ONCE rho +0.976 beta +1.57 n 12 2018-08..2024-03
+  RVLP     R V L PHARMACEUTICALS PLC                L=+3.0     CBPX rho +0.917 beta +2.70 n 13 2018-10..2023-10
+  TME      TENCENT MUSIC ENTERTAINMENT GRP          L=-1.0      AXH rho -0.911 beta -1.23 n 12 2018-12..2025-12
+  UCOM     PROSHARES TRUST                          L=+1.5     PIPR rho +0.965 beta +1.71 n 15 2019-01..2020-03
+  SCOM     PROSHARES TRUST                          L=-2.0     BKSC rho -0.953 beta -1.93 n 15 2019-01..2020-03
+  UFO      PROCURE ETF TRUST II                     L=+1.5     FSBC rho +0.920 beta +1.60 n 13 2019-04..2025-12
+  HHR      HEADHUNTER GROUP PLC                     L=+2.0     SOND rho +0.927 beta +2.20 n 12 2019-05..2022-02
+  EIC      EAGLE POINT INCOME CO INC                L=+1.5     BCTF rho +0.901 beta +1.44 n 14 2019-07..2025-12
+  SNDL     SNDL INC                                 L=+1.5     FPRX rho +0.923 beta +1.26 n 21 2019-08..2025-12
+  SCPE     S C HEALTH CORP                          L=+1.5     IRNT rho +0.987 beta +1.45 n 18 2019-09..2021-08
+  WKEY     WISEKEY INTERNATIONAL HOLDING AG         L=-3.0     ATEK rho -0.948 beta -3.61 n 36 2019-12..2025-12
+  HUIZ     HUIZE HOLDING LTD                        L=-1.5      AXH rho -0.916 beta -1.59 n 12 2020-02..2025-12
+  SCVX     S C V X CORP                             L=+2.0     FOXO rho +0.963 beta +1.96 n 14 2020-03..2022-03
+  TMC      TMC THE METALS CO INC                    L=+2.0      PTK rho +0.986 beta +2.07 n 13 2020-06..2025-12
+  DADA     DADA NEXUS LTD                           L=-2.0     PKBO rho -0.921 beta -1.93 n 23 2020-06..2025-06
+  XPEV     XPENG INC                                L=+3.0     WORK rho +0.906 beta +2.70 n 12 2020-08..2025-12
+  GP       GREENPOWER MOTOR CO INC                  L=+2.0     ALSK rho +0.942 beta +2.37 n 12 2020-08..2025-12
+  PRPB     C C NEUBERGER PRINCIPAL HLDG II          L=+1.5      OCA rho +0.923 beta +1.66 n 17 2020-09..2022-07
+  YAC      YUCAIPA ACQUISITION CORP                 L=+1.5     CONX rho +0.905 beta +1.58 n 13 2020-09..2021-12
+  MNSO     M I N I S O GROUP HOLDING LTD            L=-1.5      AXH rho -0.903 beta -1.71 n 12 2020-10..2025-12
+  LEAP     RIBBIT LEAP LTD                          L=+1.5     HAAC rho +0.944 beta +1.56 n 20 2020-11..2022-08
+  BOAC     BLUESCAPE OPPORTUNITIES ACQ CORP         L=+1.5      EQD rho +0.930 beta +1.27 n 22 2020-12..2023-10
+  ADOC     EDOC ACQUISITION CORP                    L=-1.0     SZZL rho -0.990 beta -0.83 n 25 2020-12..2024-03
+  PHAR     PHARMING GROUP N V                       L=+3.0     RVAC rho +0.911 beta +3.71 n 12 2020-12..2025-12
+  FPAC     FAR PEAK ACQUISITION CORP                L=+1.5     CPAA rho +0.950 beta +1.60 n 18 2021-01..2023-03
+  BTNB     BRIDGETOWN 2 HOLDINGS LTD                L=+2.0     SPAQ rho +0.930 beta +1.88 n 12 2021-01..2022-03
+  OMEG     OMEGA ALPHA S P A C                      L=+1.5      EQD rho +0.961 beta +1.25 n 21 2021-01..2022-12
+  PV       PRIMAVERA CAPITAL ACQ CORP               L=-1.0     RNER rho -0.997 beta -1.15 n 12 2021-03..2022-12
+  EEIQ     EPICQUEST EDUCATION GROUP INT LT         L=+1.5    DISCB rho +0.977 beta +1.52 n 14 2021-03..2025-12
+  NRAC     NORTHERN REVIVAL ACQ CORP                L=-1.0     SZZL rho -0.995 beta -0.75 n 25 2021-03..2024-02
+  LDTC     LEDDARTECH HOLDINGS INC                  L=+2.0     SUAC rho +0.990 beta +1.79 n 24 2021-03..2025-06
+  RMGC     R M G ACQUISITION CORP III               L=+1.5     AVAC rho +0.940 beta +1.72 n 19 2021-03..2024-04
+  AUS      AUSTERLITZ ACQUISITION CORP I            L=+2.0     CERO rho +0.955 beta +2.35 n 13 2021-04..2022-11
+  WPCA     WARBURG PINCUS CAP CORP I A              L=+1.5     GNAC rho +0.938 beta +1.52 n 21 2021-04..2023-03
+  STIX     SEMANTIX INC                             L=-1.0     NUAN rho -0.980 beta -1.11 n 12 2021-04..2024-04
+  FTAA     FTAC ATHENA ACQUISITION CORP             L=-1.0     NUAN rho -0.993 beta -1.07 n 12 2021-04..2023-02
+  SDA      SUNCAR TECHNOLOGY GROUP INC              L=+1.5     CIIG rho +0.996 beta +1.24 n 18 2021-04..2025-12
+  NMG      NOUVEAU MONDE GRAPHITE INC               L=+1.5      TSC rho +0.939 beta +1.36 n 13 2021-05..2025-12
+  MBTC     NOCTURNE ACQUISITION CORP                L=-1.0     HUDA rho -0.946 beta -0.87 n 17 2021-05..2024-04
+  WALD     WALDENCAST PLC                           L=+3.0     KWAC rho +0.953 beta +2.74 n 15 2021-05..2025-12
+  TENG     DIREXION SHARES E T F TRUST              L=+1.5     AMAT rho +0.968 beta +1.23 n 16 2021-06..2022-09
+  SINV     E T F MANAGERS TRUST                     L=-1.5      CVU rho -0.943 beta -1.52 n 12 2021-06..2022-07
+  MMV      MULTIMETAVERSE HOLDINGS LTD              L=+3.0     LJAQ rho +0.993 beta +2.54 n 19 2021-06..2025-01
+  POND     ANGEL POND HOLDINGS CORP                 L=-1.5     RNER rho -0.979 beta -1.43 n 12 2021-07..2022-12
+  BSGA     BLUE SAFARI GROUP ACQ CORP               L=+1.5     CIIG rho +0.992 beta +1.52 n 18 2021-07..2023-04
+  CPAR     CATALYST PARTNERS ACQ CORP               L=+1.5     FACA rho +0.958 beta +1.33 n 18 2021-07..2023-01
+  RGC      REGENCELL BIOSCIENCE HLDGS LTD           L=-2.0     CETU rho -0.956 beta -2.44 n 17 2021-07..2025-12
+  NSR      NOMAD ROYALTY CO LTD                     L=+1.5      ELV rho +0.918 beta +1.57 n 12 2021-09..2022-08
+  BWC      BLUE WHALE ACQUISITION CORP I            L=+2.0     REVE rho +0.988 beta +1.78 n 19 2021-09..2023-08
+  DOZR     DIREXION SHARES E T F TRUST              L=+1.5      WAB rho +0.923 beta +1.66 n 18 2021-09..2023-02
+  BSAQ     BLACK SPADE ACQUISITION CO               L=-2.0     PNAC rho -0.995 beta -2.46 n 14 2021-09..2023-08
+  NOVV     NOVA VISION ACQUISITION CORP             L=+1.5     REVE rho +0.986 beta +1.68 n 19 2021-10..2024-09
+  MJIN     E T F MANAGERS TRUST                     L=-3.0     GWRS rho -0.916 beta -3.13 n 14 2021-10..2022-11
+  HHGC     H H G CAPITAL CORP                       L=-3.0     SBXC rho -0.924 beta -3.13 n 18 2021-11..2024-10
+  IXAQ     I X ACQUISITION CORP                     L=+2.0     ASAQ rho +0.908 beta +2.27 n 12 2021-11..2024-10
+  LCW      LEARN C W INVESTMENT CORP                L=+3.0     SBXC rho +0.974 beta +3.68 n 18 2021-11..2024-10
+  MNM      DIREXION SHARES E T F TRUST              L=+1.5     STLD rho +0.923 beta +1.50 n 17 2021-12..2023-04
+  SWAR     DIREXION SHARES E T F TRUST              L=+1.5     AAPL rho +0.901 beta +1.39 n 17 2021-12..2023-04
+  PGSS     PEGASUS DIGI MOBILITY ACQ CORP           L=-3.0     CTOR rho -0.997 beta -3.73 n 17 2021-12..2024-04
+  GOGN     GOGREEN INVESTMENTS CORP                 L=+1.5     PSQH rho +0.998 beta +1.35 n 20 2021-12..2023-07
+  LGVC     L A M F GLOBAL VENTURES CORP I           L=+1.5     PLTN rho +0.955 beta +1.46 n 17 2021-12..2024-05
+  ROSE     ROSE HILL ACQUISITION CORP               L=+2.0     NUKK rho +0.969 beta +1.85 n 24 2021-12..2023-11
+  USCT     ROTH C H ACQUISITION CO                  L=-1.5     CTOR rho -0.990 beta -1.28 n 17 2021-12..2024-04
+  VLNS     VALENS CO INC                            L=+1.5     CARS rho +0.916 beta +1.37 n 14 2021-12..2023-01
+  ZGEN     E A SERIES TRUST                         L=+1.5      WSO rho +0.944 beta +1.22 n 16 2021-12..2023-03
+  RDZN     ROADZEN INC                              L=+1.5     MPRA rho +0.994 beta +1.59 n 21 2022-01..2025-12
+  ONG      DIREXION SHARES E T F TRUST              L=+2.0      CHX rho +0.929 beta +1.81 n 16 2022-01..2023-04
+  AKAN     AKANDA CORP                              L=+1.5     ALBO rho +0.901 beta +1.28 n 13 2022-03..2025-12
+  HCMA     H C M ACQUISITION CORP                   L=-1.0     SZZL rho -0.996 beta -1.03 n 24 2022-03..2024-03
+  KYCH     KEYARCH ACQUISITION CORP                 L=+1.5     KLTO rho +0.997 beta +1.71 n 24 2022-03..2024-04
+  LCFY     LOCAFY LTD                               L=+2.0     SUMO rho +0.919 beta +2.31 n 15 2022-03..2025-12
+  RVSN     RAIL VISION LTD                          L=+1.5     NEXI rho +0.982 beta +1.46 n 28 2022-04..2025-12
+  TIPD     DIREXION SHARES E T F TRUST              L=-1.0     MGEE rho -0.923 beta -0.89 n 13 2022-04..2023-04
+  GNS      GENIUS GROUP LTD                         L=+3.0     CUEN rho +0.963 beta +2.87 n 21 2022-04..2025-12
+  JGGC     JAGUAR GLOBAL GROWTH CORP I              L=+1.5     MPRA rho +0.996 beta +1.14 n 18 2022-04..2023-11
+  LBBB     LAKESHORE ACQUISITION II CORP            L=-1.5     SZZL rho -0.997 beta -1.30 n 23 2022-04..2024-03
+  DECA     DENALI CAPITAL ACQUISITION CORP          L=+1.5     HWKZ rho +0.977 beta +1.20 n 14 2022-06..2025-04
+  NKEL     INVESTMENT MANAGERS SERIES TR II         L=+2.0      NKE rho +0.994 beta +1.90 n 12 2022-07..2023-06
+  NKEQ     INVESTMENT MANAGERS SERIES TR II         L=-2.0      NKE rho -0.991 beta -2.14 n 12 2022-07..2023-06
+  NVDS     INVESTMENT MANAGERS SERIES TR II         L=-1.0     NVDA rho -0.979 beta -1.11 n 42 2022-07..2025-12
+  PFEL     INVESTMENT MANAGERS SERIES TR II         L=+2.0      PFE rho +0.958 beta +1.97 n 12 2022-07..2023-06
+  PFES     INVESTMENT MANAGERS SERIES TR II         L=-2.0      PFE rho -0.946 beta -2.12 n 12 2022-07..2023-06
+  PYPS     INVESTMENT MANAGERS SERIES TR II         L=-1.5     PYPL rho -0.983 beta -1.39 n 12 2022-07..2023-06
+  PYPT     INVESTMENT MANAGERS SERIES TR II         L=+1.5     PYPL rho +0.998 beta +1.54 n 14 2022-07..2023-08
+  TSLQ     INVESTMENT MANAGERS SERIES TR II         L=-1.0     TSLA rho -0.900 beta -1.23 n 42 2022-07..2025-12
+  SPKY     CONVEXITYSHARES TRUST                    L=-2.0       WY rho -0.917 beta -1.80 n 16 2022-08..2023-11
+  SPKX     CONVEXITYSHARES TRUST                    L=-1.5       WY rho -0.926 beta -1.26 n 16 2022-08..2023-11
+  AAPB     GRANITESHARES E T F TRUST                L=+2.0     AAPL rho +0.995 beta +1.87 n 41 2022-08..2025-12
+  AAPD     DIREXION SHARES E T F TRUST              L=-1.0     AAPL rho -0.990 beta -0.97 n 41 2022-08..2025-12
+  AAPU     DIREXION SHARES E T F TRUST              L=+1.5     AAPL rho +0.986 beta +1.72 n 41 2022-08..2025-12
+  CONL     GRANITESHARES E T F TRUST                L=+2.0     COIN rho +0.977 beta +1.80 n 41 2022-08..2025-12
+  TSL      GRANITESHARES E T F TRUST                L=+1.5     TSLA rho +0.999 beta +1.24 n 41 2022-08..2025-12
+  TSLL     DIREXION SHARES E T F TRUST              L=+1.5     TSLA rho +0.982 beta +1.71 n 41 2022-08..2025-12
+  TSLS     DIREXION SHARES E T F TRUST              L=-1.0     TSLA rho -0.971 beta -0.98 n 41 2022-08..2025-12
+  AMZD     DIREXION SHARES E T F TRUST              L=-1.0     AMZN rho -0.992 beta -0.95 n 40 2022-09..2025-12
+  AMZU     DIREXION SHARES E T F TRUST              L=+1.5     AMZN rho +0.990 beta +1.71 n 40 2022-09..2025-12
+  GGLL     DIREXION SHARES E T F TRUST              L=+2.0    GOOGL rho +0.989 beta +1.77 n 40 2022-09..2025-12
+  GGLS     DIREXION SHARES E T F TRUST              L=-1.0    GOOGL rho -0.994 beta -0.99 n 40 2022-09..2025-12
+  HMAC     HAINAN MANASLU ACQUISITION CORP          L=-1.0     GENQ rho -0.985 beta -0.97 n 12 2022-09..2023-08
+  MSFD     DIREXION SHARES E T F TRUST              L=-1.0     MSFT rho -0.996 beta -0.95 n 40 2022-09..2025-12
+  MSFU     DIREXION SHARES E T F TRUST              L=+1.5     MSFT rho +0.985 beta +1.75 n 40 2022-09..2025-12
+  WLDS     WEARABLE DEVICES LTD                     L=+2.0     MDWT rho +0.923 beta +2.13 n 16 2022-09..2025-12
+  AIIO     ROBO AI INC                              L=+3.0     HZNP rho +0.934 beta +3.43 n 12 2022-11..2025-12
+  MRDB     MARIADB PLC                              L=-3.0     ARIZ rho -0.901 beta -2.65 n 15 2022-12..2024-08
+  FBL      GRANITESHARES E T F TRUST                L=+2.0     META rho +0.987 beta +1.85 n 37 2022-12..2025-12
+  NVDL     GRANITESHARES E T F TRUST                L=+2.0     NVDA rho +0.985 beta +1.84 n 37 2022-12..2025-12
+  ETAO     ETAO INTERNATIONAL CO LTD                L=+1.5      BVH rho +0.911 beta +1.32 n 12 2023-02..2024-05
+  CD       CHAINCE DIGITAL HOLDINGS INC             L=+1.5     PSTX rho +0.905 beta +1.65 n 23 2023-03..2025-12
+  YGF      YANGUFANG INTERNATIONAL GROUP LT         L=+1.5     PNST rho +0.961 beta +1.14 n 12 2023-03..2024-02
+  ZJYL     JIN MEDICAL INTERNATIONAL LTD            L=+2.0      POL rho +0.951 beta +2.04 n 12 2023-03..2025-12
+  HOVR     NEW HORIZON AIRCRAFT LTD                 L=-1.0     MCAF rho -0.950 beta -1.06 n 12 2023-04..2025-12
+  GODN     GOLDEN STAR ACQUISITION CORP             L=+1.5     RFAC rho +0.999 beta +1.53 n 20 2023-06..2025-01
+  AMDS     GRANITESHARES E T F TRUST                L=-1.0      AMD rho -0.946 beta -0.81 n 23 2023-08..2025-06
+  NVD      GRANITESHARES E T F TRUST                L=-1.5     NVDA rho -0.960 beta -1.49 n 29 2023-08..2025-12
+  TSDD     GRANITESHARES E T F TRUST                L=-1.5     TSLA rho -0.928 beta -1.73 n 29 2023-08..2025-12
+  TSLR     GRANITESHARES E T F TRUST                L=+2.0     TSLA rho +0.979 beta +1.95 n 29 2023-08..2025-12
+  BOWN     BOWEN ACQUISITION CORP                   L=+1.5     BRAC rho +0.996 beta +1.42 n 18 2023-08..2025-07
+  NVDD     DIREXION SHARES E T F TRUST              L=-1.0     NVDA rho -0.984 beta -0.82 n 28 2023-09..2025-12
+  NVDU     DIREXION SHARES E T F TRUST              L=+2.0     NVDA rho +0.975 beta +1.84 n 28 2023-09..2025-12
+  TURB     TURBO ENERGY S A                         L=-2.0     UCFI rho -0.901 beta -1.91 n 21 2023-09..2025-12
+  NVDQ     E T F OPPORTUNITIES TRUST                L=-1.5     NVDA rho -0.968 beta -1.48 n 27 2023-10..2025-12
+  NVDX     E T F OPPORTUNITIES TRUST                L=+2.0     NVDA rho +0.995 beta +2.11 n 27 2023-10..2025-12
+  ABVX     ABIVAX S A                               L=+2.0     LIXT rho +0.960 beta +2.29 n 27 2023-10..2025-12
+  TSLT     E T F OPPORTUNITIES TRUST                L=+2.0     TSLA rho +0.983 beta +1.94 n 27 2023-10..2025-12
+  TSLZ     E T F OPPORTUNITIES TRUST                L=-2.0     TSLA rho -0.927 beta -1.76 n 27 2023-10..2025-12
+  SKRE     E T F OPPORTUNITIES TRUST                L=-1.5      FNB rho -0.954 beta -1.73 n 24 2024-01..2025-12
+  MSFX     E T F OPPORTUNITIES TRUST                L=+2.0     MSFT rho +0.995 beta +2.04 n 24 2024-01..2025-12
+  GOOX     E T F OPPORTUNITIES TRUST                L=+2.0     GOOG rho +0.997 beta +2.02 n 24 2024-01..2025-12
+  AAPX     E T F OPPORTUNITIES TRUST                L=+2.0     AAPL rho +0.987 beta +1.98 n 24 2024-01..2025-12
+  NA       NANO LABS LTD                            L=+1.5     OMIC rho +0.931 beta +1.24 n 13 2024-02..2025-12
+  AMDL     GRANITESHARES E T F TRUST                L=+2.0      AMD rho +0.998 beta +2.16 n 22 2024-03..2025-12
+  AMZZ     GRANITESHARES E T F TRUST                L=+2.0     AMZN rho +0.996 beta +2.02 n 22 2024-03..2025-12
+  MSFL     GRANITESHARES E T F TRUST                L=+2.0     MSFT rho +0.998 beta +2.03 n 22 2024-03..2025-12
+  SUPX     SUPERX AI TECHNOLOGY LTD                 L=+1.5     GATE rho +0.959 beta +1.44 n 13 2024-04..2025-12
+  TWG      TOP WEALTH GROUP HOLDING LTD             L=+3.0     VBFC rho +0.927 beta +3.00 n 12 2024-04..2025-12
+  METD     DIREXION SHARES E T F TRUST              L=-1.0     META rho -0.984 beta -0.92 n 19 2024-06..2025-12
+  METU     DIREXION SHARES E T F TRUST              L=+2.0     META rho +0.985 beta +2.02 n 19 2024-06..2025-12
+  DIPS     TIDAL TRUST II                           L=-1.0     NVDA rho -0.950 beta -0.77 n 18 2024-07..2025-12
+  LLYX     TIDAL TRUST II                           L=+2.0      LLY rho +0.991 beta +1.94 n 17 2024-08..2025-12
+  AVGX     TIDAL TRUST II                           L=+2.0     AVGO rho +0.997 beta +2.03 n 17 2024-08..2025-12
+  MSTX     TIDAL TRUST II                           L=+1.5     MSTR rho +0.981 beta +1.66 n 17 2024-08..2025-12
+  SMCX     TIDAL TRUST II                           L=+1.5     SMCI rho +0.977 beta +1.68 n 17 2024-08..2025-12
+  SMST     TIDAL TRUST II                           L=-1.5     MSTR rho -0.928 beta -1.64 n 17 2024-08..2025-12
+  NFLU     E T F OPPORTUNITIES TRUST                L=+2.0     NFLX rho +0.999 beta +2.03 n 16 2024-09..2025-12
+  MSTZ     E T F OPPORTUNITIES TRUST                L=-2.0     MSTR rho -0.949 beta -1.77 n 16 2024-09..2025-12
+  MSTU     E T F OPPORTUNITIES TRUST                L=+2.0     MSTR rho +0.995 beta +1.89 n 16 2024-09..2025-12
+  CONI     GRANITESHARES E T F TRUST                L=-3.0      ETN rho -0.916 beta -3.39 n 16 2024-09..2025-12
+  PTIR     GRANITESHARES E T F TRUST                L=+2.0     PLTR rho +0.994 beta +2.29 n 16 2024-09..2025-12
+  UBRL     GRANITESHARES E T F TRUST                L=+2.0     UBER rho +0.996 beta +1.94 n 16 2024-09..2025-12
+  TDTH     TRIDENT DIGITAL TECH HLDGS LTD           L=+1.5     PROK rho +0.972 beta +1.37 n 16 2024-09..2025-12
+  AVL      DIREXION SHARES E T F TRUST              L=+2.0     AVGO rho +0.993 beta +2.09 n 15 2024-10..2025-12
+  AVS      DIREXION SHARES E T F TRUST              L=-1.0     AVGO rho -0.980 beta -0.91 n 15 2024-10..2025-12
+  MUD      DIREXION SHARES E T F TRUST              L=-1.0       MU rho -0.980 beta -0.78 n 15 2024-10..2025-12
+  MUU      DIREXION SHARES E T F TRUST              L=+2.0       MU rho +0.997 beta +2.23 n 15 2024-10..2025-12
+  NFXL     DIREXION SHARES E T F TRUST              L=+2.0     NFLX rho +0.999 beta +2.02 n 15 2024-10..2025-12
+  NFXS     DIREXION SHARES E T F TRUST              L=-1.0     NFLX rho -0.993 beta -0.96 n 15 2024-10..2025-12
+  CRWL     GRANITESHARES E T F TRUST                L=+2.0     CRWD rho +0.930 beta +1.75 n 14 2024-11..2025-12
+  MULL     GRANITESHARES E T F TRUST                L=+2.0       MU rho +0.996 beta +2.23 n 14 2024-11..2025-12
+  BRKD     DIREXION SHARES E T F TRUST              L=-1.0      BRK rho -0.970 beta -0.89 n 13 2024-12..2025-12
+  BRKU     DIREXION SHARES E T F TRUST              L=+2.0      BRK rho +0.968 beta +1.82 n 13 2024-12..2025-12
+  NVDG     THEMES E T F TRUST                       L=+2.0     NVDA rho +0.991 beta +2.08 n 13 2024-12..2025-12
+  PLTD     DIREXION SHARES E T F TRUST              L=-1.0     PLTR rho -0.946 beta -0.81 n 13 2024-12..2025-12
+  PLTU     DIREXION SHARES E T F TRUST              L=+2.0     PLTR rho +0.980 beta +2.05 n 13 2024-12..2025-12
+  SMCL     GRANITESHARES E T F TRUST                L=+2.0     SMCI rho +0.982 beta +1.80 n 13 2024-12..2025-12
+  TNMG     TNL MEDIAGENE                            L=+1.5      AKA rho +0.917 beta +1.63 n 13 2024-12..2025-12
+  TSLG     THEMES E T F TRUST                       L=+1.5      APP rho +0.900 beta +1.30 n 13 2024-12..2025-12
+  RIOX     TIDAL TRUST II                           L=+2.0     RIOT rho +0.954 beta +1.92 n 12 2025-01..2025-12
+  AMDG     THEMES E T F TRUST                       L=+2.0      AMD rho +0.998 beta +2.20 n 12 2025-01..2025-12
+  ARMG     THEMES E T F TRUST                       L=+1.5     XBIO rho +0.908 beta +1.71 n 12 2025-01..2025-12
+  ASPC     A SPAC III ACQUISITION CORP              L=+1.5     ESHA rho +0.999 beta +1.68 n 12 2025-01..2025-12
+  KBSX     FST CORP                                 L=+1.5     FSTR rho +0.903 beta +1.68 n 12 2025-01..2025-12
+  SOFX     TIDAL TRUST II                           L=+2.0     SOFI rho +0.987 beta +2.11 n 12 2025-01..2025-12
+signals (ranks only): gpa, Quality, Profitability, jkp_slow10, jkp_all13; eligible universe as the diagnostic, gpa merged on (permno, mi)
+
+== PARSED SINGLE-STOCK LEVERAGED / INVERSE ETF CANDIDATES (254) ==
+etf           L underlying method    first    last     name (full text of all name columns)
+BCS        +1.5 OPB        returns   1986-09  2025-12  BARCLAYS PLC
+CCL        +1.5 IBKC       returns   1987-07  2025-12  CARNIVAL CORP
+DUC        -1.0 ALGR       returns   1993-01  2021-03  DUFF & PHELPS UT & CORP BD TR IN
+AMRN       +2.0 CARO       returns   1993-04  2025-12  AMARIN CORP PLC
+SJR        -2.0 ZWRK       returns   1998-07  2023-04  SHAW COMMUNICATIONS INC
+MBT        +3.0 SOND       returns   2000-07  2022-02  MOBILE TELESYSTEMS PUB JO ST CO
+MUI        +1.5 OSRH       returns   2003-07  2025-02  BLACKROCK MUNI INCOME FUND INC
+GAIN       +1.5 CARO       returns   2005-06  2025-12  GLADSTONE INVESTMENT CORP
+CODI       +1.5 CARO       returns   2006-05  2025-12  COMPASS DIVERSIFIED HOLDINGS
+OBE        +1.5 WEBK       returns   2006-06  2025-12  OBSIDIAN ENERGY LTD
+SAA        +1.5 IBKC       returns   2007-01  2025-12  PROSHARES TRUST
+UWM        +1.5 IBKC       returns   2007-01  2025-12  PROSHARES TRUST
+DUG        -2.0 XOM        returns   2007-02  2025-12  PROSHARES TRUST
+DIG        +2.0 XOM        returns   2007-02  2025-12  PROSHARES TRUST
+PNNT       +1.5 HDS        returns   2007-04  2025-12  PENNANTPARK INVESTMENT CORP
+RSX        +1.5 SOND       returns   2007-05  2022-03  VANECK E T F TRUST
+BCOM       +2.0 CBPX       returns   2007-11  2020-09  B COMMUNICATIONS LTD
+FAS        +2.0 BAC        returns   2008-11  2025-12  DIREXION SHARES E T F TRUST
+TNA        +1.5 IBKC       returns   2008-11  2025-12  DIREXION SHARES E T F TRUST
+ERY        -2.0 XOM        returns   2008-11  2025-12  DIREXION SHARES E T F TRUST
+ERX        +1.5 EOG        returns   2008-11  2025-12  DIREXION SHARES E T F TRUST
+DZK        +1.5 TKR        returns   2008-12  2020-10  DIREXION SHARES E T F TRUST
+DPK        -1.0 THR        returns   2008-12  2020-03  DIREXION SHARES E T F TRUST
+MIDZ       -3.0 MBI        returns   2009-01  2020-03  DIREXION SHARES E T F TRUST
+MIDU       +1.5 IBKC       returns   2009-01  2025-12  DIREXION SHARES E T F TRUST
+PEB        +1.5 HDS        returns   2009-12  2025-12  PEBBLEBROOK HOTEL TRUST
+URTY       +1.5 IBKC       returns   2010-02  2025-12  PROSHARES TRUST
+UMDD       +1.5 IBKC       returns   2010-02  2025-12  PROSHARES TRUST
+UDOW       +1.5 IBKC       returns   2010-02  2025-12  PROSHARES TRUST
+SDRL       +1.5 BOLD       returns   2010-04  2025-12  SEADRILL LTD 2021
+NEGG       +1.5 STAB       returns   2010-04  2025-12  NEWEGG COMMERCE INC
+GASL       +1.5 CPE        returns   2010-07  2020-03  DIREXION SHARES E T F TRUST
+GLBS       -3.0 MBSC       returns   2010-11  2025-12  GLOBUS MARITIME LTD
+JMF        +2.0 KMI        returns   2011-02  2020-05  NUVEEN ENERGY M L P TOTAL RET FD
+RSXJ       -1.5 NRGV       returns   2011-04  2022-03  VANECK E T F TRUST
+NGL        -1.0 RNER       returns   2011-05  2025-12  N G L ENERGY PARTNERS LP
+MTBL       +3.0 STML       returns   2011-05  2024-04  MOATABLE INC
+NBIS       +2.0 GRNA       returns   2011-05  2025-12  NEBIUS GROUP N V
+CHKR       +1.5 NOW        returns   2011-11  2020-02  CHESAPEAKE GRANITE WASH TRUST
+RPAI       +1.5 ROIC       returns   2012-04  2021-10  RETAIL PROPERTIES OF AMERICA INC
+FINZ       -1.0 SANM       returns   2012-07  2020-03  PROSHARES TRUST
+FINU       +2.0 STL        returns   2012-07  2020-03  PROSHARES TRUST
+NDP        +1.5 CXO        returns   2012-07  2024-12  TORTOISE ENERGY INDPNDCE FD INC
+MANU       -1.0 AXH        returns   2012-08  2025-12  MANCHESTER UNITED PLC
+VET        +1.5 XEC        returns   2013-03  2025-12  VERMILION ENERGY INC
+QIWI       +1.5 SOND       returns   2013-05  2022-02  QIWI PLC
+VLRS       +2.0 FSB        returns   2013-09  2025-12  CONTROLADORA VUELA COMP DE AVIA
+GMZ        +2.0 CFB        returns   2013-11  2020-09  GOLDMAN SACHS MLP INC OPPS FD
+ENLC       +1.5 PE         returns   2014-03  2025-01  ENLINK MIDSTREAM LLC
+JMLP       +2.0 KMI        returns   2014-03  2020-05  NUVEEN ALL CAP ENERGY MLP OPP FD
+DSE        +1.5 OKE        returns   2014-06  2021-06  DUFF & PHELPS SEL M M ENR FD INC
+ERUS       -3.0 NRGV       returns   2015-01  2022-03  ISHARES INC
+GUSH       +1.5 WPX        returns   2015-05  2025-12  DIREXION SHARES E T F TRUST
+ADAP       +2.0 CSS        returns   2015-05  2025-10  ADAPTIMMUNE THERAPEUTICS PLC
+BETS       -1.5 AXH        returns   2015-06  2024-03  BIT BROTHER LTD
+GPP        +2.0 OTTW       returns   2015-06  2024-01  GREEN PLAINS PARTNERS LP
+WDRW       -3.0 GBCI       returns   2015-08  2020-03  DIREXION SHARES E T F TRUST
+DPST       +2.0 STL        returns   2015-08  2025-12  DIREXION SHARES E T F TRUST
+NAIL       +2.0 DHI        returns   2015-08  2025-12  DIREXION SHARES E T F TRUST
+ASET       -2.0 AMCI       returns   2015-11  2025-10  FLEXSHARES TRUST
+PPBT       -2.0 PAAC       returns   2015-11  2025-12  PURPLE BIOTECH LTD
+GASX       -2.0 SBOW       returns   2015-12  2020-03  DIREXION SHARES E T F TRUST
+BDRX       +3.0 ONCE       returns   2015-12  2025-12  BIODEXA PHARMACEUTICALS PLC
+EUFL       +2.0 FFIC       returns   2016-07  2020-03  DIREXION SHARES E T F TRUST
+NBLX       +1.5 HESM       returns   2016-09  2021-05  NOBLE MIDSTREAM PARTNERS LP
+NISN       -3.0 CETU       returns   2016-12  2025-12  NISUN INTL ENT DEV GP CO LTD
+OILD       -2.0 WCC        returns   2017-03  2020-03  PROSHARES TRUST II
+OILU       +1.5 PTEN       returns   2017-03  2020-03  PROSHARES TRUST II
+HESM       +2.0 WABC       returns   2017-04  2019-12  HESS MIDSTREAM PARTNERS LP
+DUSL       +1.5 IBKC       returns   2017-05  2025-12  DIREXION SHARES E T F TRUST
+USOU       +2.0 RDFN       returns   2017-07  2019-12  U S C F FUNDS TRUST
+USOD       -1.5 TTMI       returns   2017-07  2019-12  U S C F FUNDS TRUST
+AHG        -3.0 PNAC       returns   2017-11  2025-12  AKSO HEALTH GROUP
+ESTR       +2.0 SEI        returns   2017-12  2020-01  ESTRE AMBIENTAL INC
+BUYN       +1.5 APH        returns   2017-12  2020-04  U S C F ETF TRUST
+DOGS       +1.5 BWB        returns   2018-01  2020-05  ARROW INVESTMENTS TRUST
+RWGE       +1.5 TTCF       returns   2018-01  2019-12  REGALWOOD GLOBAL ENERGY LTD
+AIU        -1.5 CETU       returns   2018-03  2024-08  META DATA LTD
+AGMH       +3.0 TMTS       returns   2018-04  2025-12  A G M GROUP HOLDINGS INC
+ITRM       +2.0 CRZO       returns   2018-05  2025-12  ITERUM THERAPEUTICS PLC
+SOHU       +2.0 NGHC       returns   2018-06  2025-12  SOHU COM LTD
+DWSH       -1.0 FNJN       returns   2018-07  2025-12  ADVISORSHARES TRUST
+SOLO       +1.5 ONCE       returns   2018-08  2024-03  ELECTRAMECCANICA VEHICLES CORP
+RVLP       +3.0 CBPX       returns   2018-10  2023-10  R V L PHARMACEUTICALS PLC
+TME        -1.0 AXH        returns   2018-12  2025-12  TENCENT MUSIC ENTERTAINMENT GRP
+UCOM       +1.5 PIPR       returns   2019-01  2020-03  PROSHARES TRUST
+SCOM       -2.0 BKSC       returns   2019-01  2020-03  PROSHARES TRUST
+UFO        +1.5 FSBC       returns   2019-04  2025-12  PROCURE ETF TRUST II
+HHR        +2.0 SOND       returns   2019-05  2022-02  HEADHUNTER GROUP PLC
+EIC        +1.5 BCTF       returns   2019-07  2025-12  EAGLE POINT INCOME CO INC
+SNDL       +1.5 FPRX       returns   2019-08  2025-12  SNDL INC
+SCPE       +1.5 IRNT       returns   2019-09  2021-08  S C HEALTH CORP
+WKEY       -3.0 ATEK       returns   2019-12  2025-12  WISEKEY INTERNATIONAL HOLDING AG
+HUIZ       -1.5 AXH        returns   2020-02  2025-12  HUIZE HOLDING LTD
+SCVX       +2.0 FOXO       returns   2020-03  2022-03  S C V X CORP
+TMC        +2.0 PTK        returns   2020-06  2025-12  TMC THE METALS CO INC
+DADA       -2.0 PKBO       returns   2020-06  2025-06  DADA NEXUS LTD
+XPEV       +3.0 WORK       returns   2020-08  2025-12  XPENG INC
+GP         +2.0 ALSK       returns   2020-08  2025-12  GREENPOWER MOTOR CO INC
+PRPB       +1.5 OCA        returns   2020-09  2022-07  C C NEUBERGER PRINCIPAL HLDG II
+YAC        +1.5 CONX       returns   2020-09  2021-12  YUCAIPA ACQUISITION CORP
+MNSO       -1.5 AXH        returns   2020-10  2025-12  M I N I S O GROUP HOLDING LTD
+LEAP       +1.5 HAAC       returns   2020-11  2022-08  RIBBIT LEAP LTD
+BOAC       +1.5 EQD        returns   2020-12  2023-10  BLUESCAPE OPPORTUNITIES ACQ CORP
+ADOC       -1.0 SZZL       returns   2020-12  2024-03  EDOC ACQUISITION CORP
+PHAR       +3.0 RVAC       returns   2020-12  2025-12  PHARMING GROUP N V
+FPAC       +1.5 CPAA       returns   2021-01  2023-03  FAR PEAK ACQUISITION CORP
+BTNB       +2.0 SPAQ       returns   2021-01  2022-03  BRIDGETOWN 2 HOLDINGS LTD
+OMEG       +1.5 EQD        returns   2021-01  2022-12  OMEGA ALPHA S P A C
+PV         -1.0 RNER       returns   2021-03  2022-12  PRIMAVERA CAPITAL ACQ CORP
+EEIQ       +1.5 DISCB      returns   2021-03  2025-12  EPICQUEST EDUCATION GROUP INT LT
+NRAC       -1.0 SZZL       returns   2021-03  2024-02  NORTHERN REVIVAL ACQ CORP
+LDTC       +2.0 SUAC       returns   2021-03  2025-06  LEDDARTECH HOLDINGS INC
+RMGC       +1.5 AVAC       returns   2021-03  2024-04  R M G ACQUISITION CORP III
+AUS        +2.0 CERO       returns   2021-04  2022-11  AUSTERLITZ ACQUISITION CORP I
+WPCA       +1.5 GNAC       returns   2021-04  2023-03  WARBURG PINCUS CAP CORP I A
+STIX       -1.0 NUAN       returns   2021-04  2024-04  SEMANTIX INC
+FTAA       -1.0 NUAN       returns   2021-04  2023-02  FTAC ATHENA ACQUISITION CORP
+SDA        +1.5 CIIG       returns   2021-04  2025-12  SUNCAR TECHNOLOGY GROUP INC
+NMG        +1.5 TSC        returns   2021-05  2025-12  NOUVEAU MONDE GRAPHITE INC
+MBTC       -1.0 HUDA       returns   2021-05  2024-04  NOCTURNE ACQUISITION CORP
+WALD       +3.0 KWAC       returns   2021-05  2025-12  WALDENCAST PLC
+TENG       +1.5 AMAT       returns   2021-06  2022-09  DIREXION SHARES E T F TRUST
+SINV       -1.5 CVU        returns   2021-06  2022-07  E T F MANAGERS TRUST
+MMV        +3.0 LJAQ       returns   2021-06  2025-01  MULTIMETAVERSE HOLDINGS LTD
+POND       -1.5 RNER       returns   2021-07  2022-12  ANGEL POND HOLDINGS CORP
+BSGA       +1.5 CIIG       returns   2021-07  2023-04  BLUE SAFARI GROUP ACQ CORP
+CPAR       +1.5 FACA       returns   2021-07  2023-01  CATALYST PARTNERS ACQ CORP
+RGC        -2.0 CETU       returns   2021-07  2025-12  REGENCELL BIOSCIENCE HLDGS LTD
+NSR        +1.5 ELV        returns   2021-09  2022-08  NOMAD ROYALTY CO LTD
+BWC        +2.0 REVE       returns   2021-09  2023-08  BLUE WHALE ACQUISITION CORP I
+DOZR       +1.5 WAB        returns   2021-09  2023-02  DIREXION SHARES E T F TRUST
+BSAQ       -2.0 PNAC       returns   2021-09  2023-08  BLACK SPADE ACQUISITION CO
+NOVV       +1.5 REVE       returns   2021-10  2024-09  NOVA VISION ACQUISITION CORP
+MJIN       -3.0 GWRS       returns   2021-10  2022-11  E T F MANAGERS TRUST
+HHGC       -3.0 SBXC       returns   2021-11  2024-10  H H G CAPITAL CORP
+IXAQ       +2.0 ASAQ       returns   2021-11  2024-10  I X ACQUISITION CORP
+LCW        +3.0 SBXC       returns   2021-11  2024-10  LEARN C W INVESTMENT CORP
+MNM        +1.5 STLD       returns   2021-12  2023-04  DIREXION SHARES E T F TRUST
+SWAR       +1.5 AAPL       returns   2021-12  2023-04  DIREXION SHARES E T F TRUST
+PGSS       -3.0 CTOR       returns   2021-12  2024-04  PEGASUS DIGI MOBILITY ACQ CORP
+GOGN       +1.5 PSQH       returns   2021-12  2023-07  GOGREEN INVESTMENTS CORP
+LGVC       +1.5 PLTN       returns   2021-12  2024-05  L A M F GLOBAL VENTURES CORP I
+ROSE       +2.0 NUKK       returns   2021-12  2023-11  ROSE HILL ACQUISITION CORP
+USCT       -1.5 CTOR       returns   2021-12  2024-04  ROTH C H ACQUISITION CO
+VLNS       +1.5 CARS       returns   2021-12  2023-01  VALENS CO INC
+ZGEN       +1.5 WSO        returns   2021-12  2023-03  E A SERIES TRUST
+RDZN       +1.5 MPRA       returns   2022-01  2025-12  ROADZEN INC
+ONG        +2.0 CHX        returns   2022-01  2023-04  DIREXION SHARES E T F TRUST
+AKAN       +1.5 ALBO       returns   2022-03  2025-12  AKANDA CORP
+HCMA       -1.0 SZZL       returns   2022-03  2024-03  H C M ACQUISITION CORP
+KYCH       +1.5 KLTO       returns   2022-03  2024-04  KEYARCH ACQUISITION CORP
+LCFY       +2.0 SUMO       returns   2022-03  2025-12  LOCAFY LTD
+RVSN       +1.5 NEXI       returns   2022-04  2025-12  RAIL VISION LTD
+TIPD       -1.0 MGEE       returns   2022-04  2023-04  DIREXION SHARES E T F TRUST
+GNS        +3.0 CUEN       returns   2022-04  2025-12  GENIUS GROUP LTD
+JGGC       +1.5 MPRA       returns   2022-04  2023-11  JAGUAR GLOBAL GROWTH CORP I
+LBBB       -1.5 SZZL       returns   2022-04  2024-03  LAKESHORE ACQUISITION II CORP
+DECA       +1.5 HWKZ       returns   2022-06  2025-04  DENALI CAPITAL ACQUISITION CORP
+NKEL       +2.0 NKE        returns   2022-07  2023-06  INVESTMENT MANAGERS SERIES TR II
+NKEQ       -2.0 NKE        returns   2022-07  2023-06  INVESTMENT MANAGERS SERIES TR II
+NVDS       -1.0 NVDA       returns   2022-07  2025-12  INVESTMENT MANAGERS SERIES TR II
+PFEL       +2.0 PFE        returns   2022-07  2023-06  INVESTMENT MANAGERS SERIES TR II
+PFES       -2.0 PFE        returns   2022-07  2023-06  INVESTMENT MANAGERS SERIES TR II
+PYPS       -1.5 PYPL       returns   2022-07  2023-06  INVESTMENT MANAGERS SERIES TR II
+PYPT       +1.5 PYPL       returns   2022-07  2023-08  INVESTMENT MANAGERS SERIES TR II
+TSLQ       -1.0 TSLA       returns   2022-07  2025-12  INVESTMENT MANAGERS SERIES TR II
+SPKY       -2.0 WY         returns   2022-08  2023-11  CONVEXITYSHARES TRUST
+SPKX       -1.5 WY         returns   2022-08  2023-11  CONVEXITYSHARES TRUST
+AAPB       +2.0 AAPL       returns   2022-08  2025-12  GRANITESHARES E T F TRUST
+AAPD       -1.0 AAPL       returns   2022-08  2025-12  DIREXION SHARES E T F TRUST
+AAPU       +1.5 AAPL       returns   2022-08  2025-12  DIREXION SHARES E T F TRUST
+CONL       +2.0 COIN       returns   2022-08  2025-12  GRANITESHARES E T F TRUST
+TSL        +1.5 TSLA       returns   2022-08  2025-12  GRANITESHARES E T F TRUST
+TSLL       +1.5 TSLA       returns   2022-08  2025-12  DIREXION SHARES E T F TRUST
+TSLS       -1.0 TSLA       returns   2022-08  2025-12  DIREXION SHARES E T F TRUST
+AMZD       -1.0 AMZN       returns   2022-09  2025-12  DIREXION SHARES E T F TRUST
+AMZU       +1.5 AMZN       returns   2022-09  2025-12  DIREXION SHARES E T F TRUST
+GGLL       +2.0 GOOGL      returns   2022-09  2025-12  DIREXION SHARES E T F TRUST
+GGLS       -1.0 GOOGL      returns   2022-09  2025-12  DIREXION SHARES E T F TRUST
+HMAC       -1.0 GENQ       returns   2022-09  2023-08  HAINAN MANASLU ACQUISITION CORP
+MSFD       -1.0 MSFT       returns   2022-09  2025-12  DIREXION SHARES E T F TRUST
+MSFU       +1.5 MSFT       returns   2022-09  2025-12  DIREXION SHARES E T F TRUST
+WLDS       +2.0 MDWT       returns   2022-09  2025-12  WEARABLE DEVICES LTD
+AIIO       +3.0 HZNP       returns   2022-11  2025-12  ROBO AI INC
+MRDB       -3.0 ARIZ       returns   2022-12  2024-08  MARIADB PLC
+FBL        +2.0 META       returns   2022-12  2025-12  GRANITESHARES E T F TRUST
+NVDL       +2.0 NVDA       returns   2022-12  2025-12  GRANITESHARES E T F TRUST
+ETAO       +1.5 BVH        returns   2023-02  2024-05  ETAO INTERNATIONAL CO LTD
+CD         +1.5 PSTX       returns   2023-03  2025-12  CHAINCE DIGITAL HOLDINGS INC
+YGF        +1.5 PNST       returns   2023-03  2024-02  YANGUFANG INTERNATIONAL GROUP LT
+ZJYL       +2.0 POL        returns   2023-03  2025-12  JIN MEDICAL INTERNATIONAL LTD
+HOVR       -1.0 MCAF       returns   2023-04  2025-12  NEW HORIZON AIRCRAFT LTD
+GODN       +1.5 RFAC       returns   2023-06  2025-01  GOLDEN STAR ACQUISITION CORP
+AMDS       -1.0 AMD        returns   2023-08  2025-06  GRANITESHARES E T F TRUST
+NVD        -1.5 NVDA       returns   2023-08  2025-12  GRANITESHARES E T F TRUST
+TSDD       -1.5 TSLA       returns   2023-08  2025-12  GRANITESHARES E T F TRUST
+TSLR       +2.0 TSLA       returns   2023-08  2025-12  GRANITESHARES E T F TRUST
+BOWN       +1.5 BRAC       returns   2023-08  2025-07  BOWEN ACQUISITION CORP
+NVDD       -1.0 NVDA       returns   2023-09  2025-12  DIREXION SHARES E T F TRUST
+NVDU       +2.0 NVDA       returns   2023-09  2025-12  DIREXION SHARES E T F TRUST
+TURB       -2.0 UCFI       returns   2023-09  2025-12  TURBO ENERGY S A
+NVDQ       -1.5 NVDA       returns   2023-10  2025-12  E T F OPPORTUNITIES TRUST
+NVDX       +2.0 NVDA       returns   2023-10  2025-12  E T F OPPORTUNITIES TRUST
+ABVX       +2.0 LIXT       returns   2023-10  2025-12  ABIVAX S A
+TSLT       +2.0 TSLA       returns   2023-10  2025-12  E T F OPPORTUNITIES TRUST
+TSLZ       -2.0 TSLA       returns   2023-10  2025-12  E T F OPPORTUNITIES TRUST
+SKRE       -1.5 FNB        returns   2024-01  2025-12  E T F OPPORTUNITIES TRUST
+MSFX       +2.0 MSFT       returns   2024-01  2025-12  E T F OPPORTUNITIES TRUST
+GOOX       +2.0 GOOG       returns   2024-01  2025-12  E T F OPPORTUNITIES TRUST
+AAPX       +2.0 AAPL       returns   2024-01  2025-12  E T F OPPORTUNITIES TRUST
+NA         +1.5 OMIC       returns   2024-02  2025-12  NANO LABS LTD
+AMDL       +2.0 AMD        returns   2024-03  2025-12  GRANITESHARES E T F TRUST
+AMZZ       +2.0 AMZN       returns   2024-03  2025-12  GRANITESHARES E T F TRUST
+MSFL       +2.0 MSFT       returns   2024-03  2025-12  GRANITESHARES E T F TRUST
+SUPX       +1.5 GATE       returns   2024-04  2025-12  SUPERX AI TECHNOLOGY LTD
+TWG        +3.0 VBFC       returns   2024-04  2025-12  TOP WEALTH GROUP HOLDING LTD
+METD       -1.0 META       returns   2024-06  2025-12  DIREXION SHARES E T F TRUST
+METU       +2.0 META       returns   2024-06  2025-12  DIREXION SHARES E T F TRUST
+DIPS       -1.0 NVDA       returns   2024-07  2025-12  TIDAL TRUST II
+LLYX       +2.0 LLY        returns   2024-08  2025-12  TIDAL TRUST II
+AVGX       +2.0 AVGO       returns   2024-08  2025-12  TIDAL TRUST II
+MSTX       +1.5 MSTR       returns   2024-08  2025-12  TIDAL TRUST II
+SMCX       +1.5 SMCI       returns   2024-08  2025-12  TIDAL TRUST II
+SMST       -1.5 MSTR       returns   2024-08  2025-12  TIDAL TRUST II
+NFLU       +2.0 NFLX       returns   2024-09  2025-12  E T F OPPORTUNITIES TRUST
+MSTZ       -2.0 MSTR       returns   2024-09  2025-12  E T F OPPORTUNITIES TRUST
+MSTU       +2.0 MSTR       returns   2024-09  2025-12  E T F OPPORTUNITIES TRUST
+CONI       -3.0 ETN        returns   2024-09  2025-12  GRANITESHARES E T F TRUST
+PTIR       +2.0 PLTR       returns   2024-09  2025-12  GRANITESHARES E T F TRUST
+UBRL       +2.0 UBER       returns   2024-09  2025-12  GRANITESHARES E T F TRUST
+TDTH       +1.5 PROK       returns   2024-09  2025-12  TRIDENT DIGITAL TECH HLDGS LTD
+AVL        +2.0 AVGO       returns   2024-10  2025-12  DIREXION SHARES E T F TRUST
+AVS        -1.0 AVGO       returns   2024-10  2025-12  DIREXION SHARES E T F TRUST
+MUD        -1.0 MU         returns   2024-10  2025-12  DIREXION SHARES E T F TRUST
+MUU        +2.0 MU         returns   2024-10  2025-12  DIREXION SHARES E T F TRUST
+NFXL       +2.0 NFLX       returns   2024-10  2025-12  DIREXION SHARES E T F TRUST
+NFXS       -1.0 NFLX       returns   2024-10  2025-12  DIREXION SHARES E T F TRUST
+CRWL       +2.0 CRWD       returns   2024-11  2025-12  GRANITESHARES E T F TRUST
+MULL       +2.0 MU         returns   2024-11  2025-12  GRANITESHARES E T F TRUST
+BRKD       -1.0 BRK        returns   2024-12  2025-12  DIREXION SHARES E T F TRUST
+BRKU       +2.0 BRK        returns   2024-12  2025-12  DIREXION SHARES E T F TRUST
+NVDG       +2.0 NVDA       returns   2024-12  2025-12  THEMES E T F TRUST
+PLTD       -1.0 PLTR       returns   2024-12  2025-12  DIREXION SHARES E T F TRUST
+PLTU       +2.0 PLTR       returns   2024-12  2025-12  DIREXION SHARES E T F TRUST
+SMCL       +2.0 SMCI       returns   2024-12  2025-12  GRANITESHARES E T F TRUST
+TNMG       +1.5 AKA        returns   2024-12  2025-12  TNL MEDIAGENE
+TSLG       +1.5 APP        returns   2024-12  2025-12  THEMES E T F TRUST
+RIOX       +2.0 RIOT       returns   2025-01  2025-12  TIDAL TRUST II
+AMDG       +2.0 AMD        returns   2025-01  2025-12  THEMES E T F TRUST
+ARMG       +1.5 XBIO       returns   2025-01  2025-12  THEMES E T F TRUST
+ASPC       +1.5 ESHA       returns   2025-01  2025-12  A SPAC III ACQUISITION CORP
+KBSX       +1.5 FSTR       returns   2025-01  2025-12  FST CORP
+SOFX       +2.0 SOFI       returns   2025-01  2025-12  TIDAL TRUST II
+
+== UNMATCHED (0) ==
+
+== LEVERAGED-LOOKING BUT EXCLUDED BY THE WORD LIST (0) ==
+
+== COVERAGE of the bottom / top quintile by a live inverse / long single-stock product (means over the year's months) ==
+  gpa:
+    year months  bot n  bot cnt   bot VW  top cnt   top VW inv live long live
+    2022     12    312     0.1%     2.2%     1.8%    28.4%       47        95
+    2023     12    286     0.0%     0.0%     2.7%    54.2%       43        86
+    2024     12    269     0.4%     0.1%     2.5%    57.1%       42       105
+    2025     12    263     0.7%     1.0%     2.9%    63.0%       39       102
+    last month 2025-12: bottom-quintile names covered 2 of 264
+  Quality:
+    year months  bot n  bot cnt   bot VW  top cnt   top VW inv live long live
+    2022     12    317     0.0%     0.0%     2.6%    25.4%       47        95
+    2023     12    291     0.0%     0.0%     3.3%    48.5%       43        86
+    2024     12    273     0.5%     0.5%     3.6%    58.4%       42       105
+    2025     12    267     0.7%     1.6%     5.0%    66.5%       39       102
+    last month 2025-12: bottom-quintile names covered 2 of 269
+  Profitability:
+    year months  bot n  bot cnt   bot VW  top cnt   top VW inv live long live
+    2022     12    317     0.1%     0.2%     2.5%    20.4%       47        95
+    2023     12    290     0.0%     0.0%     3.2%    37.6%       43        86
+    2024     12    273     0.2%     1.3%     3.7%    50.7%       42       105
+    2025     12    266     0.3%     2.6%     5.0%    56.0%       39       102
+    last month 2025-12: bottom-quintile names covered 0 of 267
+  jkp_slow10:
+    year months  bot n  bot cnt   bot VW  top cnt   top VW inv live long live
+    2022     12    314     0.2%     6.6%     1.8%    21.7%       47        95
+    2023     12    289     0.1%     4.4%     1.9%    34.6%       43        86
+    2024     12    272     1.0%    21.3%     2.7%    49.4%       42       105
+    2025     12    265     1.0%     7.1%     3.9%    56.9%       39       102
+    last month 2025-12: bottom-quintile names covered 2 of 266
+  jkp_all13:
+    year months  bot n  bot cnt   bot VW  top cnt   top VW inv live long live
+    2022     12    314     0.4%     8.2%     1.3%    17.0%       47        95
+    2023     12    289     0.7%    19.4%     1.4%    31.8%       43        86
+    2024     12    272     1.0%    15.3%     1.6%    46.3%       42       105
+    2025     12    265     1.1%     7.7%     1.6%    44.5%       39       102
+    last month 2025-12: bottom-quintile names covered 2 of 266
+
+== REALISED SHORTFALL = r_ETF - L * r_underlying (monthly, %; first and last ETF month dropped) ==
+  shortfall: Fama-MacBeth monthly cross-sectional mean, mean / std over months / t; noise = std over ETF-months
+    all      ETFs 254 obs 9087 months 368: mean -0.785 std 9.075 t -1.66 | noise 17.758
+    L<=-2    ETFs  29 obs 1087 months 225: mean -0.978 std 12.344 t -1.19 | noise 20.260
+    -2<L<0   ETFs  50 obs 1139 months 168: mean -1.234 std 7.816 t -2.05 | noise 8.838
+    L>0      ETFs 175 obs 6861 months 368: mean -0.696 std 9.470 t -1.41 | noise 18.429
+  shortfall per unit exposure (/|L|): Fama-MacBeth monthly cross-sectional mean, mean / std over months / t; noise = std over ETF-months
+    all      ETFs 254 obs 9087 months 368: mean -0.503 std 5.889 t -1.64 | noise 9.531
+    L<=-2    ETFs  29 obs 1087 months 225: mean -0.516 std 4.545 t -1.70 | noise 7.637
+    -2<L<0   ETFs  50 obs 1139 months 168: mean -1.049 std 7.523 t -1.81 | noise 7.453
+    L>0      ETFs 175 obs 6861 months 368: mean -0.439 std 6.194 t -1.36 | noise 10.089
+  convexity regression shortfall ~ a + b * (L^2 - L)/2 * (r_u^2 - v), month-clustered SEs (a in %/mo; b should be ~1)
+    all    n 9081 clusters 368: a -0.925 (se 0.232, t -3.98) b 0.003 (se 0.008, t 0.40) | a/mean|L| -0.535 %/mo (mean|L| 1.73)
+    short  n 2224 clusters 225: a -1.248 (se 0.396, t -3.15) b 0.100 (se 0.062, t 1.61) | a/mean|L| -0.727 %/mo (mean|L| 1.72)
+    long   n 6857 clusters 368: a -0.773 (se 0.293, t -2.64) b 0.002 (se 0.009, t 0.20) | a/mean|L| -0.446 %/mo (mean|L| 1.73)
+
+== DECISION RULE (pre-registration v5 section 4; labels only) ==
+  intercept per unit exposure, L<0 ETFs: -0.727 %/mo (carry drag = 0.727 %/mo)
+  short-leg gross gains from diagnostic (b), %/mo Q1-U (dev, val); carry rule: drag >= 50% of val; coverage rule: 2025 VW bottom-quintile coverage < 30%
+  slow10  gain dev 0.641 val 0.412 | carry >= 50% of val: YES | 2025 VW coverage 7.1% < 30%: YES -> NOT VIABLE
+  all13   gain dev 0.480 val 0.263 | carry >= 50% of val: YES | 2025 VW coverage 7.7% < 30%: YES -> NOT VIABLE
+  Quality gain dev 0.181 val 0.309 | carry >= 50% of val: YES | 2025 VW coverage 1.6% < 30%: YES -> NOT VIABLE
+  gpa     gain dev 0.081 val 0.221 | carry >= 50% of val: YES | 2025 VW coverage 1.0% < 30%: YES -> NOT VIABLE
+VERDICT: NOT VIABLE    (NOT VIABLE only if the rule holds for EVERY listed signal; per-signal lines above)
+
+INFORMATION ONLY: no signal returns used, 2020+ signal performance not opened, no trials logged
