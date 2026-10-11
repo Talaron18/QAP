@@ -6,6 +6,9 @@
         it cannot be shorted).
     python scripts/short_basket.py --signal jkp_slow10 --fees data/short_basket_jkp_slow10_202512.csv
         weight-averages the fees you entered and compares with the break-even table. Uses your sheet only (no WRDS data needed).
+    python scripts/short_basket.py --signal jkp_slow10 --assume data/short_basket_jkp_slow10_202512.csv
+        no real fees available: applies a common-sense fee schedule by market-cap tier (ASSUMPTIONS, three scenarios) and shows where the
+        idea survives or fails. This is a sensitivity analysis, not a measurement.
 Note: JKP data ends 2025-12, so the basket is as of that month; borrow fees are today's. Names persist only partly, so treat it as a sample.
 """
 import argparse
@@ -13,7 +16,7 @@ import pathlib
 
 import pandas as pd
 
-from qap.basket import BREAK_EVEN, attach_names, blended_fee, short_basket, verdict_lines
+from qap.basket import BREAK_EVEN, assumed_summary, attach_names, blended_fee, short_basket, verdict_lines
 
 SIGNALS = list(BREAK_EVEN)
 
@@ -50,6 +53,14 @@ def build(signal: str, month: str, top: int) -> None:
     print(f"wrote {out} -- fill borrow_fee_pct (annual %) and available (N if not shortable) for at least the top {top} rows, then run with --fees")
 
 
+def assume(signal: str, path: str) -> None:
+    sheet = pd.read_csv(path)
+    print(f"INFORMATION ONLY. Assumed-fee sensitivity for {signal} from {path} ({len(sheet)} names)")
+    for line in assumed_summary(sheet, signal):
+        print(line)
+    print("These fees come from an assumed schedule in qap.basket (GC_FEE, SCENARIOS), not from any broker or data source. Replace with real fees when available.")
+
+
 def check(signal: str, path: str) -> None:
     sheet = pd.read_csv(path)
     st = blended_fee(sheet)
@@ -65,5 +76,11 @@ if __name__ == "__main__":
     ap.add_argument("--month", default="", help="YYYY-MM (default: last JKP month)")
     ap.add_argument("--top", type=int, default=60)
     ap.add_argument("--fees", default="", help="filled sheet to evaluate")
+    ap.add_argument("--assume", default="", help="sheet to evaluate with the ASSUMED market-cap fee schedule")
     a = ap.parse_args()
-    check(a.signal, a.fees) if a.fees else build(a.signal, a.month, a.top)
+    if a.assume:
+        assume(a.signal, a.assume)
+    elif a.fees:
+        check(a.signal, a.fees)
+    else:
+        build(a.signal, a.month, a.top)

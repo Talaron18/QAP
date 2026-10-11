@@ -405,3 +405,8 @@ and 17% at F=25%; development (BE 6.5) 63% and 24%. The weight share of hard-to-
 Statistical caveats: slow10 net LS validation t is only 1.10 (95% CI roughly +-8%/yr), pooled dev+val t ~2.5 but slow10 is one of 15 Study A trials chosen for a new use (long-short),
 65 cumulative trials, and its gross edge decayed (validation gross L-U 0.04). The sealed 2020+ window is unopened for JKP composites, so a long-short slow10 would be a new
 pre-registered trial there, with borrow fees taken from the broker's live shortable list for a sample basket.
+
+- **Borrow fees: none measured (user cannot look them up now), so a labelled ASSUMPTION schedule is used for sensitivity only** (`scripts/short_basket.py --assume`).
+  General-collateral fee by company-ME tier (<$500M / $0.5-2B / $2-10B / >=$10B): 3.0 / 1.5 / 0.6 / 0.3 %/yr; hard-to-borrow weight share by tier and fee: optimistic
+  5/2/0/0% at 10%/yr, base 12/5/1/0% at 15%, pessimistic 25/10/3/1% at 25%; plus an assumed 1.0%/yr rebate shortfall. These numbers are common-sense guesses (no data),
+  fixed here before seeing the real basket. Outcome on a real basket is a sensitivity table, never a validation.

@@ -54,3 +54,17 @@ def test_verdict_labels():
     mid = dict(ok, fee_low=1.0, fee_high=20.0, known_share_of_tradable=0.5)
     assert "UNDETERMINED" in "\n".join(verdict_lines("jkp_slow10", mid))
     assert "CLEARS" not in "\n".join(verdict_lines("jkp_all13", dict(ok, fee_low=2.0, fee_high=2.0)))        # 3.0 > 2.5 break-even
+
+
+def test_assumed_fee_tiers_and_summary_by_hand():
+    from qap.basket import GC_FEE, assumed_fee, assumed_summary
+    me = np.array([100.0, 1000.0, 5000.0, 50000.0])
+    assert assumed_fee(me, "base").tolist() == pytest.approx([3.0 * 0.88 + 15 * 0.12, 1.5 * 0.95 + 15 * 0.05, 0.6 * 0.99 + 15 * 0.01, 0.3])
+    assert (assumed_fee(me, "pessimistic") > assumed_fee(me, "base")).all() and (assumed_fee(me, "optimistic") <= assumed_fee(me, "base")).all()
+    sheet = pd.DataFrame({"w": [0.25, 0.25, 0.25, 0.25], "me": me})
+    lines = assumed_summary(sheet, "jkp_slow10")
+    assert "25% / 25% / 25% / 25%" in lines[0]
+    gc = np.mean(GC_FEE)
+    assert f"{gc:.2f}%/yr" in "\n".join(lines)
+    base = np.mean(assumed_fee(me, "base"))
+    assert f"weighted fee {base:5.2f}" in [l for l in lines if l.strip().startswith("base")][0]

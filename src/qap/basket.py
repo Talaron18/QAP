@@ -79,3 +79,44 @@ def verdict_lines(name: str, stats: dict, hurdle_extra: float = 1.0) -> list:
             tag = "CLEARS" if hi < b else ("FAILS" if lo >= b else "UNDETERMINED (depends on names with no fee)")
             L.append(f"  vs {label} break-even {b:.1f}%/yr (hurdle = fee + {hurdle_extra:.1f}% rebate shortfall = {lo:.2f}-{hi:.2f}%): {tag}")
     return L
+
+
+# ---- ASSUMED fees (not data): a common-sense schedule by market-cap tier, used only when real borrow fees are not available ----
+TIER_EDGES = (500.0, 2000.0, 10000.0)                      # $ millions; tiers: <500, 500-2000, 2000-10000, >=10000
+GC_FEE = (3.0, 1.5, 0.6, 0.3)                              # general-collateral borrow fee, %/yr, by tier (smallest first)
+# (share of tier weight that is hard-to-borrow, per tier smallest first; hard-to-borrow fee %/yr) per scenario
+SCENARIOS = {"optimistic": ((0.05, 0.02, 0.0, 0.0), 10.0), "base": ((0.12, 0.05, 0.01, 0.0), 15.0), "pessimistic": ((0.25, 0.10, 0.03, 0.01), 25.0)}
+
+
+def assumed_fee(me, scenario: str) -> np.ndarray:
+    """Expected borrow fee (%/yr) for each market cap (in $ millions): general-collateral fee, blended with the hard-to-borrow share."""
+    share, htb = SCENARIOS[scenario]
+    tier = np.digitize(np.asarray(me, dtype="float64"), TIER_EDGES)             # 0 = smallest
+    gc, s = np.asarray(GC_FEE)[tier], np.asarray(share)[tier]
+    return gc * (1.0 - s) + htb * s
+
+
+def assumed_summary(sheet: pd.DataFrame, name: str, rebate_shortfall: float = 1.0) -> list:
+    """Weight-averaged ASSUMED all-in fee by scenario vs the break-even table, plus the hard-to-borrow weight share that would break even."""
+    w = pd.to_numeric(sheet["w"], errors="coerce").fillna(0.0).to_numpy(dtype="float64")
+    me = pd.to_numeric(sheet["me"], errors="coerce").to_numpy(dtype="float64")
+    ok = np.isfinite(me) & (w > 0)
+    w, me = w[ok] / w[ok].sum(), me[ok]
+    tier_w = np.bincount(np.digitize(me, TIER_EDGES), weights=w, minlength=4)
+    L = ["ASSUMED fees (a common-sense schedule, NOT measured data); weight by market-cap tier <500M / 500M-2B / 2-10B / >=10B: "
+         + " / ".join(f"{x:.0%}" for x in tier_w)]
+    be = BREAK_EVEN.get(name)
+    gc_avg = float((w * np.asarray(GC_FEE)[np.digitize(me, TIER_EDGES)]).sum())
+    for sc in SCENARIOS:
+        fee = float((w * assumed_fee(me, sc)).sum())
+        hurdle = fee + rebate_shortfall
+        line = f"  {sc:12s} weighted fee {fee:5.2f}%/yr, hurdle with {rebate_shortfall:.1f}% rebate shortfall {hurdle:5.2f}%/yr"
+        if be:
+            line += " | " + ", ".join(f"{lab} BE {b:.1f}: {'clears' if hurdle < b else 'FAILS'}" for lab, b in zip(("dev", "val"), be))
+        L.append(line)
+    if be:
+        htb = {sc: SCENARIOS[sc][1] for sc in SCENARIOS}["base"]
+        for lab, b in zip(("dev", "val"), be):
+            h = (b - rebate_shortfall - gc_avg) / (htb - gc_avg)
+            L.append(f"  break-even {lab}: tolerates at most {max(h, 0.0):.0%} of basket weight at {htb:.0f}%/yr hard-to-borrow (the rest at the general-collateral schedule, avg {gc_avg:.2f}%/yr)")
+    return L
