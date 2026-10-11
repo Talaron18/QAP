@@ -33,6 +33,7 @@ python scripts/paper_form.py     # CRSP-overlap check, then frozen ledger files 
 python scripts/paper_settle.py   # settle the ledger against realised comp.secm returns; data/paper_report.txt
 python scripts/run_etf_check.py  # single-stock leveraged/inverse ETF check (information only); data/etf_check_report.txt
 python scripts/short_basket.py   # bottom-quintile basket sheet for the borrow-fee check; then --fees <filled csv>
+python scripts/run_taxsim.py --jobs 8 [--sensitivities]   # v7 tax-lot harvesting simulation (information only); data/taxsim_report.txt
 python scripts/wrds_inventory.py # every library this account can see, with table/row counts (data/wrds_inventory.txt)
 ```
 

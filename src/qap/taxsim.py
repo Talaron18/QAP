@@ -38,6 +38,7 @@ class TaxParams:
     harvest_min_usd: float = 50.0
     n_names: int = 150
     lt_months: int = 12             # long-term iff held MORE than this many months
+    wash_rule: str = "proportional"  # 'proportional' (sell up to qualifying value minus last month's purchases) or 'literal' (old: skip the name)
 
     def with_(self, **kw) -> "TaxParams":
         return dataclasses.replace(self, **kw)
@@ -141,21 +142,59 @@ class _Arm:
         self.pr, self.dy, self.exitm, self.w0 = pr, dy, exitm, w0
         self.start_mi, self.p, self.harvest, self.bp = start_mi, p, harvest, cost_bp / 1e4
 
-    def _sell(self, mask, t, year, led):
-        """Sell the masked lots at month end; returns (proceeds, st_loss, lt_loss) and records gains in the ledger."""
+    def _sell(self, mask, t, year, led, frac=None):
+        """Sell the masked lots (or the fraction `frac` of each) at month end; returns (proceeds, st_loss, lt_loss).
+
+        A partial sale scales basis with the fraction sold; the remainder keeps its purchase month (holding period).
+        """
+        full = frac is None
         val = self.lot_val[mask]
-        proceeds = val * (1.0 - self.bp)
-        gain = proceeds - self.lot_basis[mask]
+        sval = val if full else val * frac
+        proceeds = sval * (1.0 - self.bp)
+        gain = proceeds - (self.lot_basis[mask] if full else self.lot_basis[mask] * frac)
         lt = is_long_term(t, self.lot_mon[mask], self.p)
         led.add_gain(year, float(gain[lt].sum()), True)
         led.add_gain(year, float(gain[~lt].sum()), False)
-        self.sold_notional += float(val.sum())
-        self.costs += self.bp * float(val.sum())
+        self.sold_notional += float(sval.sum())
+        self.costs += self.bp * float(sval.sum())
+        if not full:
+            ii = np.nonzero(mask)[0]
+            rem = 1.0 - frac
+            self.lot_val = self.lot_val.copy()
+            self.lot_basis = self.lot_basis.copy()
+            self.lot_val[ii] = val * rem
+            self.lot_basis[ii] = self.lot_basis[ii] * rem
+            mask = mask.copy()
+            mask[ii[frac < 1.0]] = False
         keep = ~mask
         self.lot_name, self.lot_basis = self.lot_name[keep], self.lot_basis[keep]
         self.lot_val, self.lot_mon = self.lot_val[keep], self.lot_mon[keep]
         loss = np.where(gain < 0, -gain, 0.0)
         return float(proceeds.sum()), float(loss[~lt].sum()), float(loss[lt].sum())
+
+    def _proportional(self, q, loss, prev_buy):
+        """Proportional wash rule: per name, sell qualifying loss lots (largest loss % first, partial last lot) up to
+        max(0, qualifying value - dollars of that name bought last month). Returns (mask over lots, fraction per masked lot)."""
+        qi = np.nonzero(q)[0]
+        pct = loss[qi] / self.lot_basis[qi]
+        o = qi[np.lexsort((qi, -pct))]
+        nm = self.lot_name[o]
+        order2 = np.argsort(nm, kind="stable")
+        o, nm = o[order2], nm[order2]
+        vals = self.lot_val[o]
+        frac = np.zeros(self.lot_val.size)
+        self._withheld = 0.0
+        starts = np.r_[0, np.nonzero(nm[1:] != nm[:-1])[0] + 1, len(o)]
+        for a, b in zip(starts[:-1], starts[1:]):
+            v = vals[a:b]
+            allowed = max(0.0, float(v.sum()) - float(prev_buy[nm[a]]))
+            self._withheld += float(v.sum()) - allowed
+            cum = np.cumsum(v)
+            take = np.clip(allowed - (cum - v), 0.0, v)
+            frac[o[a:b]] = np.where(v > 0, take / np.where(v > 0, v, 1.0), 0.0)
+        frac = np.minimum(frac, 1.0)
+        h = frac > 0
+        return h, frac[h]
 
     def run(self) -> dict:
         pr, dy, exitm, w0, p, bp = self.pr, self.dy, self.exitm, self.w0, self.p, self.bp
@@ -172,6 +211,7 @@ class _Arm:
         self.costs = 0.0
         buy_notional = 0.0
         skipped = 0
+        withheld = 0.0
         n_events = 0
         cash = 0.0
         wn = w0 / w0.sum()
@@ -182,6 +222,7 @@ class _Arm:
         self.lot_val = amt0 * (1.0 - bp)
         self.lot_mon = np.full(N, -1, np.int64)
         self.costs += bp * p.start_capital
+        prev_buy = amt0.copy()
         buy_notional += p.start_capital
         ret = np.full(T, np.nan)
         v0_sum = 0.0
@@ -210,13 +251,18 @@ class _Arm:
                 loss = self.lot_basis - self.lot_val
                 q = (loss >= p.harvest_pct * self.lot_basis) & (loss >= p.harvest_min_usd)
                 if q.any():
-                    recent = last_buy[self.lot_name] >= t - 1
-                    skipped += int((q & recent).sum())
-                    h = q & ~recent
+                    if p.wash_rule == "literal":
+                        recent = last_buy[self.lot_name] >= t - 1
+                        skipped += int((q & recent).sum())
+                        withheld += float(self.lot_val[q & recent].sum())
+                        h, frac = q & ~recent, None
+                    else:
+                        h, frac = self._proportional(q, loss, prev_buy)
+                        withheld += self._withheld
                     if h.any():
                         n_events += int(h.sum())
                         names_h = np.unique(self.lot_name[h])
-                        pr_, ls, ll = self._sell(h, t, year, led)
+                        pr_, ls, ll = self._sell(h, t, year, led, frac)
                         pool += pr_
                         harv_st[yi[year]] += ls
                         harv_lt[yi[year]] += ll
@@ -248,6 +294,7 @@ class _Arm:
             else:
                 cash = X
             idx = np.nonzero(buy > 0.0)[0]
+            prev_buy = buy.copy()
             if idx.size:
                 self.lot_name = np.concatenate([self.lot_name, idx])
                 self.lot_basis = np.concatenate([self.lot_basis, buy[idx]])
@@ -289,7 +336,7 @@ class _Arm:
             "turnover": self.sold_notional / avg_v / (T / 12.0) if avg_v > 0 else 0.0,
             "n_names": int(np.unique(self.lot_name).size), "n_lots": int(self.lot_name.size),
             "costs": self.costs, "sold_notional": self.sold_notional, "buy_notional": buy_notional,
-            "skipped_recent": skipped, "harvest_lots": n_events,
+            "skipped_recent": skipped, "harvest_lots": n_events, "withheld_value": withheld,
             "carry_st_end": led.carry_st, "carry_lt_end": led.carry_lt,
             "realised_st": led.realised_st, "realised_lt": led.realised_lt, "dividends": led.dividends,
             "contrib_total": contrib_total, "taxes_prior": taxes_prior, "start_capital": p.start_capital,
@@ -451,8 +498,9 @@ def _dist(x) -> dict:
 
 
 def decision_label(median_benefit: float, share_pos: float, te: float, liq_median: float,
-                   min_benefit: float = 0.5, min_share: float = 0.75, max_te: float = 2.0) -> str:
-    """Fixed rule: median hold-indefinitely benefit >= 0.5 %/yr AND share of positive windows >= 0.75 AND harvest TE <= 2.0 %/yr."""
+                   min_benefit: float = 0.5, min_share: float = 0.75, max_te: float = 1.0) -> str:
+    """Fixed rule: median hold-indefinitely benefit >= 0.5 %/yr AND share positive >= 0.75 AND median tracking error of the
+    harvest arm vs the DIY no-harvest arm <= 1.0 %/yr (te = that median)."""
     ok = bool(median_benefit >= min_benefit and share_pos >= min_share and te <= max_te)
     label = "WORTH PURSUING" if ok else "NOT WORTH THE COMPLEXITY"
     if liq_median <= 0:
@@ -472,15 +520,17 @@ def summarize_windows(results: list) -> dict:
     nh_etf = np.array([annualised(r["nohv"]["wealth_hold"], r["etf"]["wealth_hold"], r["years"]) for r in rs])
     te_hv = np.array([tracking_error(r["hv"]["ret"], r["etf"]["ret"]) for r in rs])
     te_nh = np.array([tracking_error(r["nohv"]["ret"], r["etf"]["ret"]) for r in rs])
+    te_hn = np.array([tracking_error(r["hv"]["ret"], r["nohv"]["ret"]) for r in rs])
     dec = {d: _dist(prim[(sy // 10 * 10) == d]) for d in sorted(set((sy // 10 * 10).tolist()))}
     p = _dist(prim)
-    te_med = float(np.nanmedian(te_hv)) if len(te_hv) else float("nan")
+    te_med = float(np.nanmedian(te_hn)) if len(te_hn) else float("nan")
     liq_med = float(np.nanmedian(liq)) if len(liq) else float("nan")
     skipped = g("hv", "skipped_recent")
     hl = g("hv", "harvest_lots")
     return {
         "n_windows": len(rs), "primary": p, "primary_values": prim, "start_years": sy, "liq": _dist(liq), "hv_vs_etf": _dist(hv_etf),
         "hv_vs_etf_liq": _dist(hv_etf_liq), "nohv_vs_etf": _dist(nh_etf),
+        "te_hv_vs_nohv": {"median": te_med, "max": float(np.nanmax(te_hn)) if len(te_hn) else float("nan")},
         "te_hv": {"median": te_med, "max": float(np.nanmax(te_hv)) if len(te_hv) else float("nan")},
         "te_nohv": {"median": float(np.nanmedian(te_nh)) if len(te_nh) else float("nan"),
                     "max": float(np.nanmax(te_nh)) if len(te_nh) else float("nan")},
@@ -493,6 +543,7 @@ def summarize_windows(results: list) -> dict:
         "n_lots_end": {a: float(np.nanmedian(g(a, "n_lots"))) for a in ("etf", "nohv", "hv")} if rs else {},
         "wealth_median": {a: {"hold": float(np.nanmedian(g(a, "wealth_hold"))), "liq": float(np.nanmedian(g(a, "wealth_liq")))}
                           for a in ("etf", "nohv", "hv")} if rs else {},
+        "withheld_median": float(np.nanmedian(g("hv", "withheld_value"))) if rs else float("nan"),
         "skipped_recent_median": float(np.nanmedian(skipped)) if rs else float("nan"),
         "harvest_lots_median": float(np.nanmedian(hl)) if rs else float("nan"),
         "decision": decision_label(p["median"], p["share_pos"], te_med, liq_med),
@@ -508,11 +559,12 @@ def format_summary(s: dict, title: str = "") -> list:
           f"  harvest vs ETF benchmark, hold, %/yr                            : {f(s['hv_vs_etf'])}",
           f"  harvest vs ETF benchmark, liquidate, %/yr                       : {f(s['hv_vs_etf_liq'])}",
           f"  no-harvest vs ETF benchmark, hold, %/yr                         : {f(s['nohv_vs_etf'])}",
-          f"  tracking error vs ETF, %/yr: harvest median {s['te_hv']['median']:.2f} (max {s['te_hv']['max']:.2f}); "
+          f"  DECISION tracking error, harvest vs DIY no-harvest, %/yr: median {s['te_hv_vs_nohv']['median']:.2f} (max {s['te_hv_vs_nohv']['max']:.2f}); limit 1.0",
+          f"  universe cost, informational: tracking error vs ETF %/yr: harvest median {s['te_hv']['median']:.2f} (max {s['te_hv']['max']:.2f}); "
           f"no-harvest median {s['te_nohv']['median']:.2f} (max {s['te_nohv']['max']:.2f})",
           f"  median harvested loss per year (USD): ST {s['harvest_st_per_year']:,.0f}  LT {s['harvest_lt_per_year']:,.0f}; "
           f"end carryforward {s['carry_end_median']:,.0f}; harvest lots sold {s['harvest_lots_median']:.0f}; "
-          f"lots blocked by the recent-purchase rule {s['skipped_recent_median']:.0f}",
+          f"harvest value withheld by wash rule USD {s['withheld_median']:,.0f} (literal-rule lots blocked {s['skipped_recent_median']:.0f})",
           f"  turnover (sold/avg value/yr): no-harvest {s['turnover'].get('nohv', float('nan')):.3f}, harvest {s['turnover'].get('hv', float('nan')):.3f}; "
           f"end names {s['n_names_end']}; end lots {s['n_lots_end']}",
           f"  median terminal after-tax wealth (hold / liquidate), USD: "

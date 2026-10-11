@@ -146,12 +146,12 @@ def test_recent_purchase_rule_and_wash_sale_block():
     pr = np.zeros((T, 3))
     pr[0, 1] = 0.10
     pr[1, 0] = pr[1, 1] = -0.25                       # A and B both fall 25% in month 1 (A fell no earlier)
-    pk = P0.with_(contrib=500.0)
+    pk = P0.with_(contrib=500.0, wash_rule="literal")
     r = sim(pr[:2], params=pk)                        # two months: only the month-1 decision
     hv = r["hv"]
     # month 0 contribution (500) goes to the underweight A and C (B rose), 250 each; so A has a purchase in month 0
     assert hv["harvest_lots"] == 1                    # only B's initial lot (no purchase in month 0)
-    assert hv["skipped_recent"] == 2                  # A's initial lot and A's month-0 lot qualify but were bought-in-previous-month
+    assert hv["skipped_recent"] == 2 and hv["withheld_value"] > 0                  # A's initial lot and A's month-0 lot qualify but were bought-in-previous-month
     assert hv["harv_st"][0] == pytest.approx(35000 / 3 - 35000 / 3 * 1.1 * 0.75)
     r = sim(pr, params=pk)
     hv = r["hv"]
@@ -270,17 +270,18 @@ def fake(sy, w_hv, w_nh, w_etf, liq_hv=None, liq_nh=None, ret_gap=0.0):
     rr = np.tile([0.01, -0.01], 60)
     arm = lambda wh, wl, r: {"wealth_hold": wh, "wealth_liq": wl, "ret": r, "harv_st": np.zeros(10), "harv_lt": np.zeros(10),
                              "carry_st_end": 0.0, "carry_lt_end": 0.0, "turnover": 0.1, "n_names": 100, "n_lots": 500,
-                             "skipped_recent": 3, "harvest_lots": 20}
+                             "skipped_recent": 3, "harvest_lots": 20, "withheld_value": 100.0}
     return {"start_year": sy, "years": 10, "etf": arm(w_etf, w_etf, rr), "nohv": arm(w_nh, liq_nh or w_nh, rr + ret_gap),
             "hv": arm(w_hv, liq_hv or w_hv, rr + ret_gap * 2 * np.tile([1, -1], 60))}
 
 
 def test_decision_rule_boundaries():
-    ok = dict(median_benefit=0.5, share_pos=0.75, te=2.0, liq_median=0.1)
+    ok = dict(median_benefit=0.5, share_pos=0.75, te=1.0, liq_median=0.1)
+    ok["te"] = 1.0
     assert decision_label(**ok) == "WORTH PURSUING"
     assert decision_label(**{**ok, "median_benefit": 0.4999}).startswith("NOT WORTH THE COMPLEXITY")
     assert decision_label(**{**ok, "share_pos": 0.7499}).startswith("NOT WORTH THE COMPLEXITY")
-    assert decision_label(**{**ok, "te": 2.0001}).startswith("NOT WORTH THE COMPLEXITY")
+    assert decision_label(**{**ok, "te": 1.0001}).startswith("NOT WORTH THE COMPLEXITY")
     assert decision_label(**{**ok, "liq_median": 0.0}) == "WORTH PURSUING (deferral only: liquidate-at-end median benefit <= 0)"
     assert "deferral only" in decision_label(**{**ok, "median_benefit": 0.0, "liq_median": -1.0})
     assert "deferral only" not in decision_label(**{**ok, "liq_median": 1e-9})
@@ -362,3 +363,45 @@ def test_end_to_end_jobs_1_vs_3_identical():
     for r in a:
         assert r["nohv"]["n_names"] <= 10
     assert any(r["nohv"]["realised_st"] + r["nohv"]["realised_lt"] != 0 for r in a)       # the delisted names were sold
+
+
+def test_proportional_wash_rule_hand_example():
+    from qap.taxsim import _Arm
+    p = P0.with_(n_names=1)
+    arm = _Arm(np.zeros((1, 1)), np.zeros((1, 1)), np.zeros((1, 1), bool), np.ones(1), SM, p, True, 0.0)
+    # one name, position 1000: loss lots worth 400 (basis 600) and 200 (basis 250), a 400 lot at basis 400; 250 bought last month
+    arm.lot_name = np.zeros(3, np.int64)
+    arm.lot_val = np.array([400.0, 200.0, 400.0])
+    arm.lot_basis = np.array([600.0, 250.0, 400.0])
+    arm.lot_mon = np.array([-1, -1, 5], np.int64)
+    arm.sold_notional = arm.costs = 0.0
+    loss = arm.lot_basis - arm.lot_val
+    q = (loss >= 0.10 * arm.lot_basis) & (loss >= 50.0)
+    assert q.tolist() == [True, True, False]                       # qualifying value 600; may sell 600 - 250 = 350
+    h, frac = arm._proportional(q, loss, np.array([250.0]))
+    assert arm._withheld == pytest.approx(250.0)
+    assert h.tolist() == [True, False, False] and frac == pytest.approx([0.875])     # largest loss % (33%) first, partial
+    led = TaxLedger(p)
+    proceeds, st, lt = arm._sell(h, 3, 2000, led, frac)
+    assert proceeds == pytest.approx(350.0) and st == pytest.approx(175.0) and lt == 0.0
+    assert arm.lot_val.tolist() == pytest.approx([50.0, 200.0, 400.0]) and arm.lot_basis.tolist() == pytest.approx([75.0, 250.0, 400.0])
+    assert arm.lot_mon.tolist() == [-1, -1, 5]                   # remainder keeps its holding period
+    assert led.realised_lt + led.realised_st == pytest.approx(-175.0)
+    # nothing bought last month: everything qualifying is sold, and with 700 bought nothing is
+    arm.lot_val, arm.lot_basis = np.array([400.0, 200.0, 400.0]), np.array([600.0, 250.0, 400.0])
+    assert arm._proportional(q, loss, np.array([0.0]))[1].tolist() == [1.0, 1.0]
+    assert not arm._proportional(q, loss, np.array([700.0]))[0].any()
+
+
+def test_literal_vs_proportional_ablation():
+    pr, dy, em, mkt = rand_world(seed=7)
+    out = {}
+    for rule in ("proportional", "literal"):
+        p = TaxParams(n_names=10, wash_rule=rule)
+        out[rule] = simulate_window(pr, dy, np.arange(1, 13, dtype=float), mkt, np.zeros(48), p, start_mi=SM, exit_mask=em)["hv"]
+        a = out[rule]
+        assert a["mv"] + a["taxes_prior"] == pytest.approx(
+            p.start_capital + a["contrib_total"] + a["dividends"] + a["realised_st"] + a["realised_lt"] + a["unrealised"], abs=1e-6)
+    assert out["proportional"]["harvest_lots"] >= out["literal"]["harvest_lots"]
+    assert out["proportional"]["skipped_recent"] == 0 and out["literal"]["skipped_recent"] > 0
+    assert out["proportional"]["wealth_hold"] != out["literal"]["wealth_hold"]

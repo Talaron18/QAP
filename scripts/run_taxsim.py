@@ -28,6 +28,7 @@ def main() -> None:
     ap.add_argument("--cost-bp", type=float, default=5.0)
     ap.add_argument("--harvest-pct", type=float, default=10.0)
     ap.add_argument("--n-names", type=int, default=150)
+    ap.add_argument("--wash-rule", choices=["proportional", "literal"], default="proportional")
     ap.add_argument("--sensitivities", action="store_true")
     args = ap.parse_args()
     report = []
@@ -73,7 +74,7 @@ def _run(args, log) -> None:
     log(f"panel: {len(panel):,} rows; wide arrays {inp['pr'].shape[0]} months x {inp['pr'].shape[1]:,} ever-equity permnos "
         f"(mi {inp['months'][0]}..{inp['months'][-1]})")
     base = TaxParams(contrib=args.contrib, outside_lt_gains=args.outside_gains, cost_bp=args.cost_bp, harvest_pct=args.harvest_pct / 100.0,
-                     n_names=args.n_names)
+                     n_names=args.n_names, wash_rule=args.wash_rule)
     log("\n== ASSUMPTIONS (pre-registration v7; constants, to be confirmed with a tax adviser) ==")
     log(f"  tax rates: ST {base.st_rate:.3f}  LT {base.lt_rate:.3f}  dividends {base.div_rate:.3f} (federal + 3.8% NIIT + 5% state folded in)")
     log(f"  net loss cap vs ordinary income USD {base.loss_cap:,.0f}/yr at ST rate; remainder carried forward indefinitely (ST/LT character kept)")
@@ -81,7 +82,8 @@ def _run(args, log) -> None:
     log(f"  start USD {base.start_capital:,.0f}; contributions USD {base.contrib:,.0f}/month at month end; cost {base.cost_bp:g} bp per side (DIY arms)")
     log(f"  universe: {base.n_names} largest company-ME common stocks at window start (one permno per permco), VW at purchase")
     log(f"  harvest: lot loss >= {base.harvest_pct * 100:g}% of basis and >= USD {base.harvest_min_usd:g}; pro-rata reinvestment; sold name blocked "
-        f"from purchases that and the next month; names with a purchase in the previous month not harvested")
+        f"from purchases that and the next month; wash rule '{base.wash_rule}': (proportional) a name's loss lots may be sold up to their "
+        f"value minus dollars of that name bought last month, largest loss % first, partial lots allowed; (literal) names bought last month skipped")
     log("  windows: 10 years starting January of each year (overlapping); long-term = held MORE than 12 months")
     log("  tax cash runs through the account: each year's tax is settled at the December close against the next month's investable cash "
         "(refunds add, tax owed reduces; a negative balance, e.g. with zero contributions, is carried at zero interest); the final year's tax "
@@ -103,12 +105,14 @@ def _run(args, log) -> None:
                     ("outside gains 0", dict(outside_lt_gains=0.0)), ("outside gains 10000", dict(outside_lt_gains=10000.0)),
                     ("cost 0 bp", dict(cost_bp=0.0)), ("cost 15 bp", dict(cost_bp=15.0)),
                     ("threshold 5%", dict(harvest_pct=0.05)), ("threshold 15%", dict(harvest_pct=0.15)),
-                    ("100 names", dict(n_names=100)), ("250 names", dict(n_names=250))]
+                    ("100 names", dict(n_names=100)), ("250 names", dict(n_names=250)),
+                    ("wash rule literal" if base.wash_rule == "proportional" else "wash rule proportional",
+                     dict(wash_rule="literal" if base.wash_rule == "proportional" else "proportional"))]
         for name, kw in variants:
             ss = summarize_windows(run_windows(inp, args.start_year, args.end_year, base.with_(**kw), args.jobs, say=log))
             p, q = ss["primary"], ss["liq"]
             log(f"  {name:20s} hold: median {p['median']:+.3f} IQR [{p['q25']:+.3f}, {p['q75']:+.3f}] p10 {p['p10']:+.3f} share>0 {p['share_pos']:.2f} | "
-                f"liquidate median {q['median']:+.3f} | TE harvest {ss['te_hv']['median']:.2f} | {ss['decision']}")
+                f"liquidate median {q['median']:+.3f} | TE hv-vs-nohv {ss['te_hv_vs_nohv']['median']:.2f} | withheld ${ss['withheld_median']:,.0f} | {ss['decision']}")
     log(f"\nDECISION (primary assumptions): {s['decision']}")
     log(f"elapsed {time.time() - t0:.0f}s")
 
