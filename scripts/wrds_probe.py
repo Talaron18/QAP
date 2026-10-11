@@ -1,6 +1,7 @@
 """Probe the tables that matter for the next research round: columns, exact row count, date range, 3 example rows.
 
     WRDS_USERNAME=you python scripts/wrds_probe.py
+    python scripts/wrds_probe.py contrib_global_factor.global_factor --full   # one table, every column name
 Writes data/wrds_probe.txt (git-ignored; paste it back). Every query has a 90 s statement timeout and its own
 try/except, so one slow or forbidden table cannot stop the run. Example rows are only the first 3 rows of each table.
 """
@@ -40,7 +41,8 @@ def q(db, sql):
         return f"ERROR {type(e).__name__}: {str(e)[:160]}"
 
 
-def main() -> None:
+def main(only=None, full=False) -> None:
+    """only: optional list of 'library.table' to probe instead of TARGETS; full: print every column name untruncated."""
     db = connect()
     q(db, "set statement_timeout = 90000")
     out = []
@@ -53,7 +55,13 @@ def main() -> None:
     if "cboe" in libs:
         names = sorted(db.list_tables(library="cboe"))
         log(f"# cboe: {len(names)} tables: " + ", ".join(names))
-    for lib, tables in TARGETS.items():
+    targets = TARGETS
+    if only:
+        targets = {}
+        for o in only:
+            lib, t = o.split(".", 1)
+            targets.setdefault(lib, []).append(t)
+    for lib, tables in targets.items():
         for t in tables:
             full = f"{lib}.{t}"
             log(f"\n## {full}")
@@ -63,7 +71,8 @@ def main() -> None:
                 log(f"  describe failed: {type(e).__name__}: {str(e)[:120]}")
                 continue
             cols = list(d["name"])
-            log(f"  {len(cols)} columns: " + ", ".join(f"{r.name}:{str(r.type).split('(')[0]}" for r in d.itertuples())[:3500])
+            txt = ", ".join(f"{r.name}:{str(r.type).split('(')[0]}" for r in d.itertuples())
+            log(f"  {len(cols)} columns: " + (txt if full else txt[:3500]))
             cnt = q(db, f"select count(*) as n from {full}")
             log("  rows: " + (f"{int(cnt['n'].iloc[0]):,}" if not isinstance(cnt, str) else cnt))
             dc = [c for c in cols if c.lower() in DATE_NAMES] or [r.name for r in d.itertuples() if "date" in str(r.type).lower()]
@@ -81,4 +90,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    main(args or None, full="--full" in sys.argv)

@@ -168,3 +168,8 @@ Compustat runs to 2026-09; Compustat security price tables or another feed would
   ~490-name, 3%-cap portfolio is not implementable without fractional shares; expected edge ~0.06-0.1%/mo is about USD 20-35
   a month against about USD 1,600/yr of tracking noise. Forward simulation is possible with Compustat daily/monthly
   prices (comp.secd: prccd, cshoc, ajexdi, trfd; comp.secm: prccm, trt1m) which run past CRSP's 2025-12 end.
+
+- Data access verdict (inventory + probe): Cboe option/borrow data and wrdsapps.bondret are NOT queryable (permission denied);
+  no I/B/E/S, 13F, insiders, OptionMetrics, TAQ, RavenPack. Accessible new data: JKP global_factor (to 2025-12), KPSS patent
+  values, patent firm-year panel, Research Quotient, intangible value (to 2018), blockholders, XBRL complexity, 10-K risk text.
+  See docs/research_directions.md. No new research pre-registered yet.

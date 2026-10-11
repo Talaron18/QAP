@@ -81,3 +81,20 @@ RavenPack (trial), FactSet, Zacks, ISS, MSCI, BoardEx, Audit Analytics, Compusta
 a pre-registered theme composite and as a construction cross-check; (3) patents/innovation with KPSS values;
 (4) intangible-adjusted value; (5) short interest as a veto; then the rest. Option signals are the only family here the
 report flags as a genuinely different information source, and the only one the cost model cannot yet judge (borrow).
+
+
+## Probe results (data/wrds_probe.txt) - corrections to the previous section
+- **Cboe is NOT accessible.** The 90 `cboe` tables are visible (column names show) but every query fails with
+  "permission denied for schema cboe_eod". Same for `wrdsapps.bondret` (schema `wrdsapps_bondret`). So there is no option
+  or borrow-rate data in this account; the Cboe-based direction is closed. The earlier guess that it might be unlocked
+  was wrong.
+- **Accessible and queried successfully:** `contrib_global_factor.global_factor` (16.0M rows, 444 columns, 1925-12-31 to
+  2025-12-31, includes `ret_exc_lead1m`, `me`, `size_grp`, `permno`/`gvkey`), `ctff_chars` (1.37M rows to 2023-11, has a
+  `ctff_test` flag, purpose unverified), `int_xsec` (intangible-adjusted value, 1975-2018-05), `kpss_patents` (patent values
+  `xi_real`, 2.95M patents, filing dates to 2019), `patent_firm_link.firm_year_panel` (gvkey-year patent stock, citations,
+  originality/generality, exploration/exploitation, 1976-2025), `rq_data` (Research Quotient, 1972-2024), `blocksv`
+  (blockholders 1993-2025), `arc` (XBRL reporting complexity 2004-2025), `as_firm_risks` (10-K risk-factor topic scores
+  2005-2025), `corp_culture`, `firmyear_level` (federal litigation 2006-2021), `better_beta`, `char_returns`, `macrofin`
+  (q-factors and `cay` to 2019), `wrdssec_midas.security` (2012-2025), `otc_endofday`.
+- **Honest outlook:** what remains are academic characteristic datasets, most of them widely mined or short-sample.
+  Odds of a robust tradable edge are low; the value is in rigorous, pre-registered tests and independent replication.
