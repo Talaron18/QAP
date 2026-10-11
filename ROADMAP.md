@@ -410,3 +410,12 @@ pre-registered trial there, with borrow fees taken from the broker's live shorta
   General-collateral fee by company-ME tier (<$500M / $0.5-2B / $2-10B / >=$10B): 3.0 / 1.5 / 0.6 / 0.3 %/yr; hard-to-borrow weight share by tier and fee: optimistic
   5/2/0/0% at 10%/yr, base 12/5/1/0% at 15%, pessimistic 25/10/3/1% at 25%; plus an assumed 1.0%/yr rebate shortfall. These numbers are common-sense guesses (no data),
   fixed here before seeing the real basket. Outcome on a real basket is a sensitivity table, never a validation.
+
+## Result: assumed-fee sensitivity on the real jkp_slow10 bottom-quintile basket (2025-12; user run; fees ASSUMED, not measured)
+266 names; weight by company-ME tier <$0.5B / $0.5-2B / $2-10B / >=$10B = 0% / 0% / 18% / 82% (value weighting concentrates the short basket in large, easy-to-borrow names).
+Weighted assumed fee: optimistic 0.36%, base 0.38%, pessimistic 0.69% per year (+1.0% assumed rebate shortfall => hurdle 1.4-1.7%/yr), against break-evens 6.5% (dev) and 4.6%
+(validation): clears in all three scenarios. Tolerated hard-to-borrow share at 15%/yr: 35% of weight (dev) / 22% (validation). Reading: borrow cost is NOT the binding constraint for a
+value-weighted slow10 short basket on these assumptions; the binding constraints are statistical (validation net long-short t 1.10, gross edge decaying), the decay itself, implementability
+at USD 35k across 266 names, and the dependence on JKP data that ends 2025-12 on WRDS (no forward updates without rebuilding the 153 characteristics).
+Not yet done: the sealed 2020-2025 window is unopened for JKP composites. A one-shot long-short test there would have low power (monthly sd ~3.9%, 71 months => SE ~0.46%/mo; if the
+true net edge equals the pooled 0.52%/mo the expected t is ~1.1 and P(t >= 2) is ~20%), so it can refute, not confirm.
