@@ -436,3 +436,6 @@ User chose to spend the sealed 2020-2025 window once for this. It has never been
 - **Power, stated honestly:** monthly sd of net L-S ~3.9% => SE ~0.46%/mo over 72 months. If the true edge equals the pooled dev+validation estimate (0.52%/mo) the expected t is ~1.1 and
   P(t >= 2) is ~20%; the test can refute a large failure, it cannot confirm a modest edge. Counted as trial 66 (a new use of a Study A signal).
 - **One shot:** the script writes a marker file and refuses to run again; the result is recorded in this file whatever it is.
+- **v6 implementation notes (recorded before the run):** the information-only gross rank IC was not implemented (not a decision input); FF alpha/loadings regress the raw net long-short on the FF
+  factors with plain OLS standard errors; everything shown from the sealed window is computed in memory BEFORE the marker file is written, so a crash cannot burn the one shot unseen. A
+  rehearsal gate must first reproduce the diagnostic (b) numbers (tolerance 0.01 %/mo) on 1990-2019 or the real run aborts without reading 2020+.
