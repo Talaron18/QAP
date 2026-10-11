@@ -159,3 +159,12 @@ Compustat runs to 2026-09; Compustat security price tables or another feed would
   validation +0.066 (t 0.68); HML loading -0.22 to -0.33 (t -5 to -10) i.e. a strong growth tilt; industry active weights
   dev: -7% finance (SIC 60), +10% chemicals/pharma (SIC 28). 46 unique trials logged. Next: open 2020+ ONCE for (c)
   (`--open-holdout`); then the deployment questions (capital, account type/taxes, price source for paper trading).
+
+- HOLDOUT OPENED once for the final tilt spec (c): 2020+ net active +0.056%/mo (t 0.36, TE 4.65%, IR 0.15), gross +0.058%.
+  Decay across splits: dev +0.216 -> validation +0.096 -> holdout +0.056 %/mo. Full-sample t 2.78 comes mostly from before
+  2015; pooled 2015-2025 is roughly +0.07%/mo (t about 0.7, rough pooling of the two splits). VERDICT: the long-only gpa
+  tilt is NOT validated out of sample; treat as a documented baseline, not as deployable alpha. 2020+ is now spent for
+  gpa-based models. User context: USD 35,000 taxable account, simulation-first (taxes ignored for now). At that size a
+  ~490-name, 3%-cap portfolio is not implementable without fractional shares; expected edge ~0.06-0.1%/mo is about USD 20-35
+  a month against about USD 1,600/yr of tracking noise. Forward simulation is possible with Compustat daily/monthly
+  prices (comp.secd: prccd, cshoc, ajexdi, trfd; comp.secm: prccm, trt1m) which run past CRSP's 2025-12 end.
