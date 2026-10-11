@@ -354,3 +354,11 @@ underlying *returns*, never signal returns, so the sealed 2020+ window is not op
   is also what a margin short costs relative to its rebate. rf from `ff_monthly`. (2) Decision rule: the route is NOT VIABLE only if the rule holds
   for EVERY listed signal (gpa, Quality, jkp_slow10, jkp_all13); the 'any' reading would call it dead if one signal fails. Per-signal lines printed.
   (3) The parsed ETF list is printed in full; first-run mis-parses, if any, are fixed and recorded as data-cleaning deviations.
+
+- **v5 first real run: INVALID, verdict retracted.** `crsp.stocknames_v2` has no fund-name column (only ticker, issuernm = trust/issuer name,
+  securitytype/subtype), so the name parser found 0 ETFs. The report then printed "NOT VIABLE" purely because an empty inventory gives 0% coverage;
+  that verdict carries NO information and is withdrawn. Fixes recorded before the second run: (i) the inventory is now return-based:
+  non-common-equity securities with >= 12 monthly returns since 2019 whose monthly returns correlate >= 0.90 with one US common stock and
+  whose slope is within 25% of an allowed leverage (-3, -2, -1.5, -1, 1.5, 2, 3); the name parser is kept only as a cross-check; (ii) the decision
+  rule returns INVALID (never NOT VIABLE) when fewer than 10 ETFs are matched. Limits to remember: ETFs with < 12 months of history are missed and
+  underlyings that are not in our common-equity universe (ADRs) cannot match.
