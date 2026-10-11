@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from qap.etfcheck import (ETF_EXCLUDE_WORDS, build_etf_table, coverage, decision, etf_tokens, etf_words, excluded_etfs,
+from qap.etfcheck import (ETF_COLS, ETF_EXCLUDE_WORDS, detect_by_returns, masked_corr_beta, build_etf_table, coverage, decision, etf_tokens, etf_words, excluded_etfs,
                           find_underlying, first_last_months, format_report, ols_cluster, parse_etf_name, pick_columns,
                           prep_names, shortfall_panel, shortfall_summary)
 
@@ -251,24 +251,24 @@ def _cov_for_report(vw25):
 def test_decision_and_report_lines():
     t, p, agg = _sf_world()
     summ = shortfall_summary(shortfall_panel(t, p, agg))               # a_per_unit = -0.0005 -> drag 0.05 %/mo
-    d = decision(summ, _cov_for_report(0.5))
+    d = decision(summ, _cov_for_report(0.5), 12)
     assert d["drag_pct_mo"] == pytest.approx(0.05) and d["signals"]["gpa"]["carry_hit"] is False      # 0.05 < 0.5 * 0.221
     assert d["signals"]["slow10"]["vw_cov"] != d["signals"]["slow10"]["vw_cov"]                        # NaN: not in cov dict
     assert d["verdict"] == "PILOT CONSIDERED"
     full2 = {k: _cov_for_report(0.2)["gpa"] for k in ("gpa", "Quality", "jkp_slow10", "jkp_all13")}
-    assert decision(summ, full2)["verdict"] == "NOT VIABLE"                                              # coverage < 30% for every signal
-    assert decision(summ, _cov_for_report(0.2))["verdict"] == "PILOT CONSIDERED"                         # only one signal evaluable and failing
+    assert decision(summ, full2, 12)["verdict"] == "NOT VIABLE"                                              # coverage < 30% for every signal
+    assert decision(summ, _cov_for_report(0.2), 12)["verdict"] == "PILOT CONSIDERED"                         # only one signal evaluable and failing
     summ["regression"]["short"]["a_per_unit"] = -0.0012                                                  # drag 0.12 >= 0.5 * 0.221
-    assert decision(summ, _cov_for_report(0.5))["signals"]["gpa"]["carry_hit"] is True
-    tab = build_etf_table(_names(), _panel())
+    assert decision(summ, _cov_for_report(0.5), 12)["signals"]["gpa"]["carry_hit"] is True
+    tab = pd.concat([build_etf_table(_names(), _panel())] * 3, ignore_index=True)       # 15 matched rows
     lines = format_report(tab, excluded_etfs(_names()), _cov_for_report(0.5), summ)
     txt = "\n".join(lines)
-    assert "PARSED SINGLE-STOCK" in txt and "UNMATCHED (1)" in txt and "excluded by 'S&P'" in txt and "2022-01" in txt
+    assert "PARSED SINGLE-STOCK" in txt and "UNMATCHED (3)" in txt and "excluded by 'S&P'" in txt and "2022-01" in txt
     assert "VERDICT: PILOT CONSIDERED" in lines[-1] and "DECISION RULE" in txt and "INCOMPLETE" in lines[-1]      # slow10 etc. absent
     full = {k: _cov_for_report(0.5)["gpa"] for k in ("gpa", "Quality", "jkp_slow10", "jkp_all13")}
-    d2 = decision(summ, full)
+    d2 = decision(summ, full, 12)
     assert d2["unevaluable"] == [] and "INCOMPLETE" not in format_report(tab, excluded_etfs(_names()), full, summ)[-1]
-    assert decision(summ, {})["unevaluable"][0] == "coverage 2025: slow10" and "INCOMPLETE" in "\n".join(format_report(tab, excluded_etfs(_names()), {}, summ))
+    assert decision(summ, {}, 12)["unevaluable"][0] == "coverage 2025: slow10" and "INCOMPLETE" in "\n".join(format_report(tab, excluded_etfs(_names()), {}, summ))
     assert "n/a (year absent)" in "\n".join(format_report(tab, excluded_etfs(_names()), {}, summ))      # no 2025 data: no crash
 
 
@@ -313,3 +313,89 @@ def test_shortfall_is_in_excess_of_rf():
     ex = shortfall_panel(t, p, agg, rf)
     # (r_etf - rf) - L (r_u - rf) = raw - (1 - L) * rf
     np.testing.assert_allclose(ex["shortfall"].to_numpy(), (raw["shortfall"] - (1.0 - raw["L"]) * 0.004).to_numpy(), atol=1e-12)
+
+
+# ---------- return-based detection ----------
+def _det_world(nullable=False):
+    """30 stocks (eq) x 24 months from 2020; ETFs: 8001 L=-2, 8002 L=+2, 8003 L=-1 (small noise), 8004 covered-call-like (beta .6),
+    8005 non-eq share class (L=+1), 8006 only 6 months. Share class 8005 has the same permco as its stock (also excluded by permco)."""
+    rng = np.random.default_rng(3)
+    T, N = 24, 30
+    mi = 2020 * 12 + np.arange(T)
+    R = rng.normal(0, 0.08, (T, N))
+    rows = [(100 + j, 100 + j, mi[t], R[t, j], True) for j in range(N) for t in range(T)]
+    def etf(pid, u, L, noise, n=T, pco=None):
+        r = L * R[:, u] + rng.normal(0, noise, T)
+        return [(pid, pid if pco is None else pco, mi[t], r[t], False) for t in range(T - n, T)]
+    rows += etf(8001, 3, -2, 0.003) + etf(8002, 7, 2, 0.003) + etf(8003, 11, -1, 0.003) + etf(8004, 5, 0.6, 0.02)
+    rows += etf(8005, 9, 1.0, 0.001, pco=999) + etf(8006, 13, 2, 0.003, n=6)
+    d = pd.DataFrame(rows, columns=["permno", "permco", "mi", "mthret_adj", "eq"])
+    if nullable:
+        d = d.astype({"permno": "Int64", "permco": "Int64", "mi": "Int64", "mthret_adj": "Float64", "eq": "boolean"})
+    return d
+
+
+@pytest.mark.parametrize("nullable", [False, True])
+def test_detect_by_returns(nullable):
+    names = pd.DataFrame({"permno": pd.array([8001, 8002, 8003, 103, 8001], dtype="Int64"),
+                          "ticker": pd.array(["OLD", "UP", "INV", "STK3", "NEWT"], dtype="string"),
+                          "issuernm": pd.array(["X", "Y TRUST", "Z", "STOCK 3", "TRUST A"], dtype="string"),
+                          "namedt": pd.to_datetime(["2021-01-01", "2021-01-01", "2021-01-01", "2000-01-01", "2022-01-01"]),
+                          "nameenddt": pd.to_datetime([None] * 5)})
+    t = detect_by_returns(_det_world(nullable), names).set_index("etf_permno")
+    assert list(t.index) == [8001, 8002, 8003]                   # covered call (8004), L=+1 share class (8005), 6 months (8006) rejected
+    assert t["L"].tolist() == [-2, 2, -1] and t["underlying_permno"].tolist() == [103, 107, 111]
+    assert set(t["method"]) == {"returns"} and (t["n_months"] == 24).all() and (t["rho"].abs() > 0.99).all()
+    assert t.loc[8001, "etf_ticker"] == "NEWT" and t.loc[8001, "name"] == "TRUST A" and t.loc[8001, "underlying_ticker"] == "STK3"
+    assert t.loc[8002, "underlying_ticker"] == "" and t.loc[8001, "first_mi"] == 2020 * 12 and t.loc[8001, "last_mi"] == 2020 * 12 + 23
+    assert t.loc[8001, "beta"] == pytest.approx(-2, abs=0.1) and set(ETF_COLS) <= set(t.reset_index().columns)
+    assert detect_by_returns(_det_world(), None).shape[0] == 3         # no names frame: blank labels
+    assert detect_by_returns(_det_world(), start_mi=2021 * 12 + 6).shape[0] == 0       # only 6 months left in the window: min_months 12
+
+
+def test_detect_params_and_empty():
+    w = _det_world()
+    assert set(detect_by_returns(w, tol=0.01, rho_min=0.999)["etf_permno"]) <= {8001, 8002, 8003}
+    assert detect_by_returns(w[w["eq"]], None).empty                    # no candidates
+    assert list(detect_by_returns(w[w["eq"]], None).columns)[-3:] == ["rho", "beta", "n_months"] 
+
+
+def test_masked_corr_matches_pandas_pairwise():
+    rng = np.random.default_rng(5)
+    C, X = rng.normal(size=(30, 4)), rng.normal(size=(30, 6))
+    C[rng.random(C.shape) < .2] = np.nan
+    X[rng.random(X.shape) < .2] = np.nan
+    n, rho, beta = masked_corr_beta(C, X)
+    for a in range(4):
+        for b in range(6):
+            d = pd.DataFrame({"c": C[:, a], "x": X[:, b]}).dropna()
+            assert n[a, b] == len(d) and rho[a, b] == pytest.approx(d["c"].corr(d["x"]))
+            assert beta[a, b] == pytest.approx(d.cov().iloc[0, 1] / d["x"].var())
+
+
+def test_names_without_name_columns_gives_empty_inventory():
+    n = pd.DataFrame({"permno": [1], "ticker": ["A"], "namedt": [pd.Timestamp("2000-01-01")], "nameenddt": [pd.NaT]})   # no name column
+    t = build_etf_table(n, _panel())
+    assert t.empty and list(t.columns) == ETF_COLS and excluded_etfs(n).empty
+    only_issuer = _names()[["permno", "ticker", "issuernm", "namedt", "nameenddt"]]
+    assert build_etf_table(only_issuer, _panel()).empty                    # issuer names carry no 'daily' / multiple
+
+
+@pytest.mark.parametrize("n,invalid", [(0, True), (9, True), (10, False), (25, False)])
+def test_invalid_guard(n, invalid):
+    t, p, agg = _sf_world()
+    summ = shortfall_summary(shortfall_panel(t, p, agg))
+    full = {k: _cov_for_report(0.2)["gpa"] for k in ("gpa", "Quality", "jkp_slow10", "jkp_all13")}      # would be NOT VIABLE if valid
+    d = decision(summ, full, n)
+    assert d["invalid"] is invalid
+    tab = pd.DataFrame({c: pd.Series(dtype="float64") for c in ETF_COLS})
+    tab = tab.reindex(range(n)).assign(etf_ticker="T", name="n", method="returns", underlying_permno=1.0, underlying_ticker="U", L=-2.0,
+                                       first_mi=float(M0), last_mi=float(M0 + 5), variants=1)
+    lines = format_report(tab, excluded_etfs(_names()), full, summ)
+    txt = "\n".join(lines)
+    if invalid:
+        msg = f"INVALID: only {n} matched ETFs found (< 10); coverage and shortfall are not informative"
+        assert d["verdict"] == msg and lines[0] == msg and f"VERDICT: {msg}" in lines[-1] and "NOT VIABLE" not in txt.replace("NOT VIABLE only", "")
+        assert "inventory invalid" in txt
+    else:
+        assert d["verdict"] == "NOT VIABLE" and "INVALID" not in txt

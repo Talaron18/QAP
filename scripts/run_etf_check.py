@@ -1,5 +1,9 @@
 """Single-stock leveraged/inverse ETF check (pre-registration v5). INFORMATION ONLY.
 
+The inventory is RETURN-BASED (crsp.stocknames_v2 has no fund names): a never-eq permno whose monthly returns since 2019 track one
+eq stock with |rho| >= 0.90 and slope near an allowed leverage is a leveraged / inverse single-stock product. The name parser is run
+only as a cross-check. With fewer than 10 matched ETFs the verdict is INVALID, never NOT VIABLE.
+
     python scripts/wrds_extract.py crsp_names      # once (select * from crsp.stocknames_v2)
     python scripts/run_etf_check.py
 Needs data/raw: crsp_names, crsp_monthly (+ the Study A inputs), crsp_daily_agg, jkp_us. Writes data/etf_check_report.txt.
@@ -9,7 +13,8 @@ import pathlib
 
 import pandas as pd
 
-from qap.etfcheck import build_etf_table, coverage, excluded_etfs, format_report, shortfall_panel, shortfall_summary
+from qap.etfcheck import (build_etf_table, coverage, detect_by_returns, excluded_etfs, format_report, mi_str, shortfall_panel,
+                          shortfall_summary)
 from qap.evaluate import build_research_signals
 from qap.fundamentals import prepare_annual
 from qap.jkp import build_theme_signals
@@ -42,7 +47,23 @@ def _run(log) -> None:
     agg = pd.read_parquet(AGG_PQ)
     panel, links, funda, _, _ = load_context()      # panel holds ALL CRSP monthly rows incl. ETFs (eq False): returns come from here
     log(f"crsp_names: {len(names):,} rows; columns: {list(names.columns)}")
-    etf = build_etf_table(names, panel)
+    tc = [c for c in ("securitytype", "securitysubtype") if c in names.columns]
+    if tc:
+        log("names: securitytype x securitysubtype (top 15 of rows)")
+        for k, v in names.groupby(tc, dropna=False).size().sort_values(ascending=False).head(15).items():
+            log(f"  {k}: {v:,}")
+    etf = detect_by_returns(panel, names)
+    parsed = build_etf_table(names, panel)
+    found, byname = set(etf["etf_permno"]), set(parsed["etf_permno"])
+    log(f"return-detected ETFs: {len(etf)} ({int(etf['underlying_permno'].notna().sum())} matched); name-parsed: {len(parsed)}; "
+        f"name-parsed also return-detected: {len(found & byname)}")
+    extra = parsed[~parsed["etf_permno"].isin(found)]
+    for r in extra.itertuples():
+        log(f"  name-parsed only: {r.etf_ticker} {r.name} L={r.L:+.1f} underlying {r.underlying_ticker} ({r.method})")
+    log("eyeball for false positives: ticker, issuernm, L, underlying, rho, beta, months, first-last")
+    for r in etf.itertuples():
+        log(f"  {r.etf_ticker or '-':8s} {r.name[:40]:40s} L={r.L:+.1f} {r.underlying_ticker or r.underlying_permno:>8} rho {r.rho:+.3f} "
+            f"beta {r.beta:+.2f} n {int(r.n_months)} {mi_str(r.first_mi)}..{mi_str(r.last_mi)}")
     excl = excluded_etfs(names)
     gpa = build_research_signals(panel, prepare_annual(funda), links)[["permno", "mi", "gpa"]].astype({"permno": "int64", "mi": "int64"})
     themes, _ = build_theme_signals(eligible_universe(panel), JKP_DIR)

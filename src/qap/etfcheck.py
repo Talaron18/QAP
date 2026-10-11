@@ -29,6 +29,8 @@ TICKER_COLS = ("ticker", "tradingsymbol", "tsymbol")
 NAME_COLS = ("securitynm", "issuernm", "comnam", "securityname", "issuername", "issuer_name", "name")
 FIRST_YEAR = 2022            # coverage years start here (products launched 2022+)
 LAST_FULL_YEAR = 2025        # decision rule: bottom-quintile VW coverage in this year
+MIN_ETFS = 10                # fewer matched ETFs than this: the check is INVALID (no viability label)
+ALLOWED_L = (-3.0, -2.0, -1.5, -1.0, 1.5, 2.0, 3.0)
 COVERAGE_MIN = 0.30          # decision rule thresholds (pre-registration v5 section 4)
 CARRY_SHARE = 0.50
 GAINS = {"slow10": (0.641, 0.412), "all13": (0.480, 0.263), "Quality": (0.181, 0.309), "gpa": (0.081, 0.221)}  # (dev, val) %/mo Q1-U
@@ -143,6 +145,9 @@ def _eq_by_month(panel: pd.DataFrame) -> dict:
     return {int(m): g[["permno", "me_co"]] for m, g in k.groupby("mi")}
 
 
+ETF_COLS = ["etf_permno", "etf_ticker", "name", "L", "underlying_permno", "underlying_ticker", "method", "first_mi", "last_mi", "variants"]
+
+
 def etf_tokens(text: str) -> list:
     """All-upper-case tokens (punctuation stripped, >= 2 chars, not a multiple like 2X, not a STOPWORD), in order."""
     out = []
@@ -192,12 +197,15 @@ def build_etf_table(names: pd.DataFrame, panel: pd.DataFrame, monthly_first_last
     permno from the row active at the first month, so check the list). Unmatched ETFs are kept with underlying NaN.
     `monthly_first_last` = first_last_months(panel).
     """
-    nm = prep_names(names)
+    cols = ETF_COLS
+    try:
+        nm = prep_names(names)
+    except ValueError:      # no usable name columns (stocknames_v2 has no fund names): empty inventory, not an error
+        return pd.DataFrame({c: pd.Series(dtype="float64" if c not in ("etf_ticker", "name", "underlying_ticker", "method") else object) for c in cols})
     cand = _parse_rows(nm)
     cand = cand[cand["candidate"]]
     fl = first_last_months(panel) if monthly_first_last is None else monthly_first_last
     eq = _eq_by_month(panel)
-    cols = ["etf_permno", "etf_ticker", "name", "L", "underlying_permno", "underlying_ticker", "method", "first_mi", "last_mi", "variants"]
     rows = []
     for pid, g in cand.groupby("permno"):
         f, l = (float(fl.at[pid, "first_mi"]), float(fl.at[pid, "last_mi"])) if pid in fl.index else (np.nan, np.nan)
@@ -213,9 +221,108 @@ def build_etf_table(names: pd.DataFrame, panel: pd.DataFrame, monthly_first_last
     return t.sort_values(["first_mi", "etf_permno"], na_position="last").reset_index(drop=True)
 
 
+def _latest_names(names) -> dict:
+    """{permno: (ticker, name)} from the latest-dated name row; name = first available name column (issuernm ...) else ''."""
+    if names is None or len(names) == 0 or "permno" not in {c.lower() for c in names.columns}:
+        return {}
+    low = {c.lower(): c for c in names.columns}
+    tc = next((low[c] for c in TICKER_COLS if c in low), None)
+    nc = next((low[c] for c in ("issuernm", *NAME_COLS) if c in low), None)
+    d = pd.DataFrame({"permno": pd.to_numeric(names[low["permno"]].astype("float64"), errors="coerce")})
+    d["ticker"] = names[tc].astype("string").fillna("").to_numpy(dtype=object) if tc else ""
+    d["name"] = names[nc].astype("string").fillna("").to_numpy(dtype=object) if nc else ""
+    for k, c in (("end", "nameenddt"), ("beg", "namedt")):
+        d[k] = pd.to_datetime(names[low[c]], errors="coerce").fillna(_FAR_FUTURE if k == "end" else _FAR_PAST).to_numpy() if c in low else _FAR_PAST
+    d = d[d["permno"].notna()].sort_values(["permno", "end", "beg"]).groupby("permno").tail(1)
+    return {int(p): (str(t), str(n)) for p, t, n in zip(d["permno"], d["ticker"], d["name"])}
+
+
+def masked_corr_beta(C: np.ndarray, X: np.ndarray, min_n: int = 2) -> tuple:
+    """Pairwise-complete (n, rho, beta) of every column of C (T x a) on every column of X (T x b), NaN = missing; no pair loops.
+
+    rho = corr(c, x); beta = cov(c, x) / var(x) (slope of c on x); NaN where n < min_n or a variance is 0.
+    """
+    Mc, Mx = np.isfinite(C).astype("float64"), np.isfinite(X).astype("float64")
+    c0, x0 = np.where(Mc > 0, C, 0.0), np.where(Mx > 0, X, 0.0)
+    n = Mc.T @ Mx
+    Sx, Sy, Sxy = Mc.T @ x0, c0.T @ Mx, c0.T @ x0
+    Sxx, Syy = Mc.T @ (x0 * x0), (c0 * c0).T @ Mx
+    with np.errstate(divide="ignore", invalid="ignore"):
+        cov = Sxy - Sx * Sy / n
+        vx, vy = Sxx - Sx * Sx / n, Syy - Sy * Sy / n
+        rho, beta = cov / np.sqrt(vx * vy), cov / vx
+    bad = (n < min_n) | ~(vx > 1e-18) | ~(vy > 1e-18)
+    return n, np.where(bad, np.nan, rho), np.where(bad, np.nan, beta)
+
+
+def detect_by_returns(panel: pd.DataFrame, names: pd.DataFrame = None, start_mi: int = 2019 * 12, min_months: int = 12,
+                      rho_min: float = 0.90, tol: float = 0.25, allowed=ALLOWED_L, chunk: int = 500) -> pd.DataFrame:
+    """Leveraged single-stock products found from returns alone (no fund-name column needed).
+
+    Candidates: permnos never flagged eq with >= min_months returns at/after start_mi. Targets: permnos flagged eq in some month.
+    For each candidate, the target with the largest |rho| (pairwise-complete months >= start_mi, n >= min_months; same permco
+    excluded; ties -> lower permno) is accepted if |rho| >= rho_min and the slope beta of the candidate on the stock is within
+    tol (relative) of the nearest allowed leverage L. Same schema as build_etf_table (method 'returns') plus rho, beta, n_months.
+    """
+    cols = ETF_COLS + ["rho", "beta", "n_months"]
+    p = panel[["permno", "mi", "mthret_adj", "eq"] + (["permco"] if "permco" in panel.columns else [])].copy()
+    p["permno"], p["mi"] = p["permno"].astype("int64"), p["mi"].astype("int64")
+    p["r"] = p["mthret_adj"].to_numpy(dtype="float64", na_value=np.nan)
+    p["eqb"] = p["eq"].to_numpy(dtype=bool, na_value=False)
+    p = p[np.isfinite(p["r"])]
+    first_last = p.groupby("permno")["mi"].agg(["min", "max"])
+    tgt_ids = np.sort(p.loc[p["eqb"], "permno"].unique())
+    q = p[p["mi"] >= start_mi]
+    cnt = q.groupby("permno").size()
+    cand_ids = np.sort(np.array([i for i in cnt.index[cnt >= min_months] if i not in set(tgt_ids)], dtype="int64"))
+    empty = pd.DataFrame({c: pd.Series(dtype=object if c in ("etf_ticker", "name", "underlying_ticker", "method") else "float64") for c in cols})
+    if len(cand_ids) == 0 or len(tgt_ids) == 0:
+        return empty
+    months = np.sort(q["mi"].unique())
+    pc = (p.drop_duplicates("permno").set_index("permno")["permco"] if "permco" in p.columns else None)
+
+    def wide(ids):
+        w = np.full((len(months), len(ids)), np.nan)
+        s = q[q["permno"].isin(ids)]
+        w[np.searchsorted(months, s["mi"].to_numpy()), np.searchsorted(ids, s["permno"].to_numpy())] = s["r"].to_numpy()
+        return w
+
+    X = wide(tgt_ids)
+    tco = None if pc is None else pc.reindex(tgt_ids).to_numpy(dtype="float64", na_value=np.nan)
+    allowed = np.asarray(allowed, dtype="float64")
+    nmap = _latest_names(names)
+    rows = []
+    for i in range(0, len(cand_ids), chunk):
+        ids = cand_ids[i:i + chunk]
+        n, rho, beta = masked_corr_beta(wide(ids), X)
+        rho = np.where(n >= min_months, rho, np.nan)
+        if tco is not None:
+            cco = pc.reindex(ids).to_numpy(dtype="float64", na_value=np.nan)
+            rho = np.where(cco[:, None] == tco[None, :], np.nan, rho)
+        score = np.where(np.isfinite(rho), np.abs(rho), -1.0)
+        j = np.argmax(score, axis=1)                      # first max = lowest target permno
+        for a, pid in enumerate(ids):
+            r, b = rho[a, j[a]], beta[a, j[a]]
+            if not np.isfinite(r) or abs(r) < rho_min:
+                continue
+            L = float(allowed[np.argmin(np.abs(allowed - b))])
+            if abs(b - L) > tol * abs(L):
+                continue
+            u = int(tgt_ids[j[a]])
+            tk, nme = nmap.get(int(pid), ("", ""))
+            rows.append((int(pid), tk, nme, L, float(u), nmap.get(u, ("", ""))[0], "returns", float(first_last.at[pid, "min"]),
+                         float(first_last.at[pid, "max"]), 1, float(r), float(b), float(n[a, j[a]])))
+    if not rows:
+        return empty
+    return pd.DataFrame(rows, columns=cols).sort_values(["first_mi", "etf_permno"]).reset_index(drop=True)
+
+
 def excluded_etfs(names: pd.DataFrame) -> pd.DataFrame:
     """Leveraged-looking permnos dropped by the word list: permno, ticker, name, L, excluded (the matched word)."""
-    d = _parse_rows(prep_names(names))
+    try:
+        d = _parse_rows(prep_names(names))
+    except ValueError:
+        return pd.DataFrame(columns=["permno", "ticker", "name", "L", "excluded"])
     ok = set(d.loc[d["candidate"], "permno"])
     d = d[~d["permno"].isin(ok)].sort_values("start").groupby("permno").tail(1)
     return d[["permno", "ticker", "text", "L", "excluded"]].rename(columns={"text": "name"}).sort_values("permno").reset_index(drop=True)
@@ -384,7 +491,11 @@ def _pct(x, d=1) -> str:
     return "n/a" if x is None or not np.isfinite(x) else f"{100 * x:.{d}f}%"
 
 
-def decision(summary: dict, cov: dict, last_year: int = LAST_FULL_YEAR) -> dict:
+def invalid_message(n: int) -> str:
+    return f"INVALID: only {n} matched ETFs found (< {MIN_ETFS}); coverage and shortfall are not informative"
+
+
+def decision(summary: dict, cov: dict, n_matched: int, last_year: int = LAST_FULL_YEAR) -> dict:
     """Pre-registration section 4, mechanically: per signal, carry drag >= 50% of the validation short-leg gain, or VW coverage < 30%."""
     a = summary["regression"]["short"]["a_per_unit"]
     drag = -a * 100.0 if np.isfinite(a) else float("nan")      # %/mo lost per unit of short exposure (intercept is negative = cost)
@@ -396,7 +507,10 @@ def decision(summary: dict, cov: dict, last_year: int = LAST_FULL_YEAR) -> dict:
         carry_hit = bool(np.isfinite(drag) and drag >= CARRY_SHARE * val)
         cov_hit = bool(np.isfinite(vw) and vw < COVERAGE_MIN)
         out["signals"][k] = {"dev": dev, "val": val, "carry_hit": carry_hit, "vw_cov": vw, "cov_hit": cov_hit, "not_viable": carry_hit or cov_hit}
-    out["verdict"] = "NOT VIABLE" if all(s["not_viable"] for s in out["signals"].values()) else "PILOT CONSIDERED"
+    out["invalid"] = bool(n_matched < MIN_ETFS)
+    out["n_matched"] = int(n_matched)
+    out["verdict"] = (invalid_message(n_matched) if out["invalid"] else
+                      "NOT VIABLE" if all(s["not_viable"] for s in out["signals"].values()) else "PILOT CONSIDERED")
     out["unevaluable"] = (["carry"] if not np.isfinite(drag) else []) + [f"coverage {last_year}: {k}" for k, s in out["signals"].items() if not np.isfinite(s["vw_cov"])]
     return out
 
@@ -431,15 +545,19 @@ def format_report(etf_table: pd.DataFrame, excluded: pd.DataFrame, cov: dict, su
     for k, r in summary["regression"].items():
         L.append(f"    {k:6s} n {r['n']:4d} clusters {r['n_clusters']:3d}: a {_f(r['a'] * 100)} (se {_f(r['se_a'] * 100)}, t {_f(r['t_a'], 2)}) "
                  f"b {_f(r['b'])} (se {_f(r['se_b'])}, t {_f(r['t_b'], 2)}) | a/mean|L| {_f(r['a_per_unit'] * 100)} %/mo (mean|L| {_f(r['mean_abs_L'], 2)})")
-    d = decision(summary, cov, last_year)
-    L += ["", "== DECISION RULE (pre-registration v5 section 4; labels only) ==",
+    nm_ = int(etf_table["underlying_permno"].notna().sum())
+    d = decision(summary, cov, nm_, last_year)
+    if d["invalid"]:
+        L.insert(0, invalid_message(nm_))
+    L += ["", "== DECISION RULE (pre-registration v5 section 4; labels only) =="] + ([invalid_message(nm_)] if d["invalid"] else []) + [
           f"  intercept per unit exposure, L<0 ETFs: {_f(d['intercept_pct_mo'])} %/mo (carry drag = {_f(d['drag_pct_mo'])} %/mo)",
           f"  short-leg gross gains from diagnostic (b), %/mo Q1-U (dev, val); carry rule: drag >= {CARRY_SHARE:.0%} of val; "
           f"coverage rule: {last_year} VW bottom-quintile coverage < {COVERAGE_MIN:.0%}"]
     for k, s in d["signals"].items():
         L.append(f"  {k:7s} gain dev {s['dev']:.3f} val {s['val']:.3f} | carry >= 50% of val: {'YES' if s['carry_hit'] else 'no'} | "
                  f"{last_year} VW coverage {_pct(s['vw_cov'])} < 30%: {'YES' if s['cov_hit'] else ('no' if np.isfinite(s['vw_cov']) else 'n/a (year absent)')}"
-                 f" -> {'NOT VIABLE' if s['not_viable'] else 'pilot considered'}")
-    L.append(f"VERDICT: {d['verdict']}  (NOT VIABLE only if the rule holds for EVERY listed signal; per-signal lines above)"
+                 f" -> {'inventory invalid' if d['invalid'] else 'NOT VIABLE' if s['not_viable'] else 'pilot considered'}")
+    L.append(f"VERDICT: {d['verdict']}  "
+             + ("" if d["invalid"] else "  (NOT VIABLE only if the rule holds for EVERY listed signal; per-signal lines above)")
              + (f"  [INCOMPLETE, clauses not evaluable: {'; '.join(d['unevaluable'])}]" if d["unevaluable"] else ""))
     return L
