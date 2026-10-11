@@ -50,3 +50,34 @@ DMEF, Federal Judicial Center, NielsenIQ/IRI (samples or consumer panels without
 Pre-register (candidate list, formulas, rule, exclusions) in its own commit BEFORE results; judge new signals
 relative to the incumbent (gpa); test on 1990-2014, validate on 2015-2019; 2020+ stays sealed and is only "clean" for
 genuinely new ingredients; log every spec as a trial.
+
+
+## Update after the full library inventory (236 libraries; `data/wrds_inventory.txt`)
+The inventory overturns two assumptions. Libraries come in pairs (`x` = views with unknown row counts, `x_all` = counts), so
+"0 rows" means unknown, not empty.
+
+**Confirmed absent (samples only):** Thomson 13F and insider filings, I/B/E/S, OptionMetrics (2014 trial only), TAQ,
+RavenPack (trial), FactSet, Zacks, ISS, MSCI, BoardEx, Audit Analytics, Compustat Snapshot, Capital IQ, SDC.
+
+**Newly found, likely full access (VERIFY with `scripts/wrds_probe.py`):**
+- **`cboe` (90 tables):** names (`eqmaster`, `eqprice`, `eqhvol`, `ivlisted_1998`..`ivlisted_2020+`, `ivcmpr`, `ivcmdr`,
+  `ivexpr`, `ivborrowrate`, `deltanumber`) look like an equity-option database with implied volatilities, historical
+  volatility and STOCK BORROW RATES. If confirmed, this is the biggest unlock: option-implied signals (IV spread, skew,
+  term structure, IV-RV) and, crucially, borrow costs to judge them net, which the research report says decides whether
+  they are tradable at all.
+- **`contrib_global_factor`:** `global_factor` (16M rows) is almost certainly the Jensen-Kelly-Pedersen Global Factor Data
+  (153 characteristics, stock-level), plus `ctff_*` (103M daily return rows). Gives (a) an independent cross-check of our
+  own signal construction and (b) the 13-theme composite the report recommends, without rebuilding every characteristic.
+- **`contrib_kpss` + `contrib_patent_firm_link`:** KPSS patent values and a patent-firm link (2.95M patents).
+- **`contrib_intangible_value`:** intangible-adjusted value characteristics and factors (`int_xsec`, `int_factors`).
+- **`contrib_general`:** `better_beta`, `liva`, `arc`, `classified_boards`, `marginal_tax`, `as_firm_risks`, `blocksv`,
+  `common_own_firm` (1.1B rows of common ownership), `factors`.
+- **`macrofin`:** Hou-Xue-Zhang q-factors (daily to annual), consumption-wealth `cay`, Jurado-Ludvigson-Ng uncertainty.
+- **Also:** `rq_all.rq_data` (Research Quotient, 52,779 rows), `trace_enhanced` (455M bond trades), `wrdsapps.bondret`,
+  `contrib_bond_firm_link`, `otc_endofday` (77M OTC rows), `wrdssec_midas.security` (21M, SEC market-structure metrics),
+  `fjc_litigation`, `block_all` (small), `frb`, `djones`, `comp_na_daily_all.secd` (161M daily prices).
+
+**Revised ranking (pending the probe):** (1) Cboe option-implied signals net of borrow rates; (2) JKP characteristics for
+a pre-registered theme composite and as a construction cross-check; (3) patents/innovation with KPSS values;
+(4) intangible-adjusted value; (5) short interest as a veto; then the rest. Option signals are the only family here the
+report flags as a genuinely different information source, and the only one the cost model cannot yet judge (borrow).
