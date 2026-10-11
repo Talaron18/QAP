@@ -24,6 +24,7 @@ python scripts/run_costs.py      # cost model sanity checks, then costed backtes
 python scripts/wrds_extract.py totalq     # Peters-Taylor intangible capital (small)
 python scripts/run_candidates.py # pre-registered candidates vs gpa; writes data/candidates_report.txt (2020+ sealed)
 python scripts/run_tilt.py       # pre-registered long-only gpa tilt (3 specs); writes data/tilt_report.txt (2020+ sealed)
+python scripts/wrds_inventory.py # every library this account can see, with table/row counts (data/wrds_inventory.txt)
 ```
 
 ## Python version
