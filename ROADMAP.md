@@ -439,3 +439,6 @@ User chose to spend the sealed 2020-2025 window once for this. It has never been
 - **v6 implementation notes (recorded before the run):** the information-only gross rank IC was not implemented (not a decision input); FF alpha/loadings regress the raw net long-short on the FF
   factors with plain OLS standard errors; everything shown from the sealed window is computed in memory BEFORE the marker file is written, so a crash cannot burn the one shot unseen. A
   rehearsal gate must first reproduce the diagnostic (b) numbers (tolerance 0.01 %/mo) on 1990-2019 or the real run aborts without reading 2020+.
+- **v6 rehearsal (user run): gate PASSED** - gross long-short 0.899 (dev) / 0.450 (val) and net before borrow 0.545 / 0.386 %/mo reproduce diagnostic (b) exactly. With the base-scenario borrow
+  (assumed fees + 1.0%/yr rebate shortfall) the pre-2020 net long-short is 0.393 (dev) and 0.258 (val) %/mo, i.e. borrow costs ~0.13-0.15 %/mo (1.5-1.8%/yr); validation after borrow is only
+  just above the pre-registered 0.20 %/mo support threshold and its t is ~0.7. 2020+ not read. Next: the one-shot run.
