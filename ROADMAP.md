@@ -492,3 +492,11 @@ at least 75% of windows are positive, and the harvest arm's tracking error vs th
 labelled "deferral only". Otherwise "not worth the complexity". Either way this is an informational result about an implementation choice, not alpha.
 **Known biases:** monthly steps miss intramonth harvesting (biases the benefit DOWN); constant current-law tax rates across eras; wash sales across the user's other accounts are ignored; CRSP merger/delisting
 tax treatment is assumed taxable; fractional shares assumed; sectors/industry matching in substitution is not modelled (pro-rata) which adds tracking error.
+
+- **v7 amendments made BEFORE any real-data run (found in review of the implementation on a synthetic world; no real result seen):**
+  (1) The 'name with any purchase last month is not harvested' rule was far too coarse: under the actual wash-sale rule only the portion matched by replacement shares is disallowed, and
+  contributions go to the most underweight names, i.e. the losers, so the literal rule blocked ~2.6 qualifying lots for every one harvested. New rule (the single spec): a name's loss lots may be
+  sold up to (their current value minus dollars of that name bought in the previous month); the matched portion is not sold. The literal rule is kept as an information-only ablation.
+  (2) The tracking-error criterion compared the harvest arm with the total-market ETF, which mixes the harvest effect with the cost of holding only 150 names. It now applies to harvest vs DIY-no-harvest
+  (median <= 1.0 %/yr, the deviation harvesting itself causes); DIY-vs-ETF tracking error is reported separately as the universe cost. Other criteria unchanged (median benefit >= +0.5 %/yr of wealth, >= 75% of
+  windows positive).
