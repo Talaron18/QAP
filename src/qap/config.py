@@ -61,3 +61,8 @@ JKP_EXTRA_COLS = ["ret_exc_lead1m", "me", "size_grp"]  # not theme members: used
 RQ_TABLE = "rq_all.rq_data"
 KPSS_TABLE = "contrib_kpss.kpss_patents"
 PATENT_LEVEL_TABLE = "contrib_patent_firm_link.patent_level"
+
+# Forward paper trading: Compustat monthly security file (runs past CRSP's annual-update end)
+COMP_SECM = "comp.secm"
+COMP_SECM_REQUIRED = ["gvkey", "iid", "datadate", "prccm", "cshom", "trt1m", "exchg", "tpci"]
+COMP_SECM_OPTIONAL = ["fic", "curcdm"]

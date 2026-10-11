@@ -24,6 +24,13 @@ python scripts/run_costs.py      # cost model sanity checks, then costed backtes
 python scripts/wrds_extract.py totalq     # Peters-Taylor intangible capital (small)
 python scripts/run_candidates.py # pre-registered candidates vs gpa; writes data/candidates_report.txt (2020+ sealed)
 python scripts/run_tilt.py       # pre-registered long-only gpa tilt (3 specs); writes data/tilt_report.txt (2020+ sealed)
+python scripts/wrds_extract.py jkp_us rq_data kpss_patents patent_grants   # Study A/B inputs
+python scripts/run_jkp_themes.py # Study A (JKP themes vs gpa); writes data/study_a_report.txt
+python scripts/run_innovation.py # Study B (innovation family vs gpa); writes data/study_b_report.txt
+python scripts/run_diagnostic.py [--jobs N]   # information-only conversion diagnostic; data/diagnostic_report.txt
+python scripts/wrds_extract.py compustat_annual comp_secm   # forward paper trading inputs (refresh before each formation)
+python scripts/paper_form.py     # CRSP-overlap check, then frozen ledger files under data/paper/forms/ (commit them)
+python scripts/paper_settle.py   # settle the ledger against realised comp.secm returns; data/paper_report.txt
 python scripts/wrds_inventory.py # every library this account can see, with table/row counts (data/wrds_inventory.txt)
 ```
 

@@ -160,6 +160,16 @@ def patent_grants_sql() -> str:
             "group by gvkey, cast(grant_year as integer) order by gvkey, grant_year")
 
 
+def comp_secm_sql(columns: Sequence[str], start: str = "2022-01-01") -> str:
+    """US common-stock (tpci '0') monthly security rows from Compustat from `start`; fic/curcdm filters only if the columns exist."""
+    where = f"datadate >= DATE '{start}' and tpci = '0'"
+    if "fic" in columns:
+        where += " and fic = 'USA'"
+    if "curcdm" in columns:
+        where += " and curcdm = 'USD'"
+    return _select(list(columns), config.COMP_SECM, where, "gvkey, iid, datadate")
+
+
 QUERIES = {
     "crsp_monthly": crsp_monthly_sql,
     "crsp_delistings": crsp_delistings_sql,

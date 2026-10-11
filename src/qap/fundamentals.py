@@ -45,7 +45,12 @@ def attach_pit(keys: pd.DataFrame, annual: pd.DataFrame, links: pd.DataFrame, ma
     keys needs permno, mi, mthcaldt. Records older than `max_stale_days` past availability are ignored.
     Returns keys (that have a link) plus gvkey, datadate, be, gp, at, at_lag.
     """
-    k = attach_gvkey(keys, links, "mthcaldt")
+    return attach_pit_gvkey(attach_gvkey(keys, links, "mthcaldt"), annual, max_stale_days, cols)
+
+
+def attach_pit_gvkey(k: pd.DataFrame, annual: pd.DataFrame, max_stale_days: int = 548, cols=None) -> pd.DataFrame:
+    """As attach_pit for rows that already carry a zero-padded gvkey (Compustat-keyed data, no CCM link)."""
+    k = k.copy()
     k["mthcaldt"] = pd.to_datetime(k["mthcaldt"])
     k = k.sort_values("mthcaldt")
     a = annual[["gvkey", "avail", "datadate", *(cols or PIT_COLS)]].sort_values("avail")

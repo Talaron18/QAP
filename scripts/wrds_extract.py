@@ -4,7 +4,7 @@ Run where your WRDS credentials live:
     WRDS_USERNAME=you python scripts/wrds_extract.py [dataset ...]
 Datasets: crsp_monthly crsp_delistings ccm_links compustat_annual compustat_quarterly ff_monthly (default: all)
 plus crsp_daily_agg (per-year server-side liquidity aggregation; resumable; run it explicitly),
-rq_data kpss_patents patent_grants (Study B) and jkp_us (Study A: one parquet per year, resumable).
+rq_data kpss_patents patent_grants (Study B), comp_secm (paper trading) and jkp_us (Study A: one parquet per year, resumable).
 """
 import pathlib
 import sys
@@ -62,10 +62,32 @@ def extract_jkp_us(db, out: pathlib.Path, first_year: int = 1963, last_year: int
         print(f"[jkp_us] {y}: {len(df):,} rows", flush=True)
 
 
+def extract_comp_secm(db, out: pathlib.Path) -> None:
+    """Compustat monthly security file for paper trading. Required columns are validated, never guessed."""
+    from qap import config
+    from qap.extract import comp_secm_sql
+    lib, table = config.COMP_SECM.split(".")
+    have = set(db.describe_table(library=lib, table=table)["name"])
+    absent = [c for c in config.COMP_SECM_REQUIRED if c not in have]
+    if absent:
+        raise SystemExit(f"[comp_secm] required columns absent from {config.COMP_SECM}: {absent}. Available: {sorted(have)}")
+    cols = config.COMP_SECM_REQUIRED + [c for c in config.COMP_SECM_OPTIONAL if c in have]
+    sql = comp_secm_sql(cols)
+    print(f"[comp_secm] {sql}", flush=True)
+    df = db.raw_sql(sql, date_cols=None)
+    df.to_parquet(out / "comp_secm.parquet", index=False)
+    print(f"[comp_secm] {len(df):,} rows, last datadate {df['datadate'].max()} -> {out / 'comp_secm.parquet'}", flush=True)
+
+
 def main(names) -> None:
     db = connect()
     out = pathlib.Path("data/raw")
     out.mkdir(parents=True, exist_ok=True)
+    if "comp_secm" in names:
+        extract_comp_secm(db, out)
+        names = [n for n in names if n != "comp_secm"]
+        if not names:
+            return
     if "jkp_us" in names:
         extract_jkp_us(db, out)
         names = [n for n in names if n != "jkp_us"]
