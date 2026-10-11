@@ -66,3 +66,6 @@ PATENT_LEVEL_TABLE = "contrib_patent_firm_link.patent_level"
 COMP_SECM = "comp.secm"
 COMP_SECM_REQUIRED = ["gvkey", "iid", "datadate", "prccm", "cshom", "trt1m", "exchg", "tpci"]
 COMP_SECM_OPTIONAL = ["fic", "curcdm"]
+
+# Single-stock ETF check (pre-registration v5): CRSP name history, pulled with select * (column names confirmed from the output)
+CRSP_NAMES = "crsp.stocknames_v2"

@@ -160,6 +160,11 @@ def patent_grants_sql() -> str:
             "group by gvkey, cast(grant_year as integer) order by gvkey, grant_year")
 
 
+def crsp_names_sql() -> str:
+    """CRSP name history (ticker and security/issuer names by date range); select * because column names vary by CIZ release."""
+    return f"select * from {config.CRSP_NAMES}"
+
+
 def comp_secm_sql(columns: Sequence[str], start: str = "2022-01-01") -> str:
     """US common-stock (tpci '0') monthly security rows from Compustat from `start`; fic/curcdm filters only if the columns exist."""
     where = f"datadate >= DATE '{start}' and tpci = '0'"
@@ -171,6 +176,7 @@ def comp_secm_sql(columns: Sequence[str], start: str = "2022-01-01") -> str:
 
 
 QUERIES = {
+    "crsp_names": crsp_names_sql,
     "crsp_monthly": crsp_monthly_sql,
     "crsp_delistings": crsp_delistings_sql,
     "ccm_links": ccm_links_sql,
