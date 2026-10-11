@@ -79,7 +79,8 @@ def total_q_checks(annual: pd.DataFrame, totalq: pd.DataFrame, match_rate: float
 def net_issuance(panel: pd.DataFrame) -> pd.DataFrame:
     """-ln(adj shares_t / adj shares_{t-12}) with adj shares = shrout * mthcumfacshr; needs both months present."""
     s = panel[["permno", "mi"]].copy()
-    s["lsh"] = np.log((panel["shrout"] * panel["mthcumfacshr"]).where(panel["shrout"] * panel["mthcumfacshr"] > 0))
+    sh = panel["shrout"] * panel["mthcumfacshr"]
+    s["lsh"] = np.log(sh.where(sh > 0))   # zero/missing share counts become NaN before the log (no divide-by-zero)
     prev = s.rename(columns={"lsh": "lsh_l"}).assign(mi=lambda d: d["mi"] + 12)
     j = s.merge(prev, on=["permno", "mi"], how="left")
     j["neg_issuance"] = -(j["lsh"] - j["lsh_l"])

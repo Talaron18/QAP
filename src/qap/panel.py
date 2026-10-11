@@ -76,7 +76,7 @@ def build_monthly_panel(monthly: pd.DataFrame, delists: pd.DataFrame, me_scale: 
     p = p.merge(me_co, on=["permco", "mi"], how="left")
     p["eq"] = common_equity_mask(p).values
     keep = ["permno", "permco", "mthcaldt", "mi", "mthret", "mthret_adj", "delist_adj_method", "mthdelflg",
-            "mthcap", "me", "me_co", "eq", "primaryexch", "shrout", "mthcumfacshr"]
+            "mthcap", "me", "me_co", "eq", "primaryexch", "shrout", "mthcumfacshr", "siccd"]
     return p[[c for c in keep if c in p.columns]]
 
 
