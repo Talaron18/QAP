@@ -312,3 +312,14 @@ comp.secm 384,559 rows 2022-01..2026-10 (the last month had 1 row: partial, now 
 raw units; median ratio 0.99976 of a power of ten). CRSP-overlap check over 2024-01..2025-11 (23 months): tilt weight overlap mean 0.884
 (min 0.872), benchmark overlap 0.944, gpa rank corr 1.000, active-return correlation 0.974, mean difference +0.089 %/mo: both
 pre-registered tolerances PASS. Ten frozen formations written (2025-12..2026-09, ~470-493 names each).
+
+## Note: single-stock leveraged/inverse ETFs as a way to reach the short leg (user raised 2026-10-11; assessment, no test run yet)
+Examples: Tradr 2X Long SNDK (SNXX, 1.49% expense ratio, launched 2026-01) and Tradr 2X Short LITE (LITZ, launched 2026-04). Each wraps ONE
+issuer-chosen stock with daily reset, so they are access tools, not signals. Why they do not rescue the short leg on current evidence:
+(1) the product universe is a few hundred popular, volatile stocks chosen by issuers, while the signal's bottom quintile is broad and
+largely unlisted-for; (2) history is ~3-4 years (products launched 2022+), all inside the sealed 2020+ window, so no historical validation
+is possible; (3) cost: a secondary-source estimate puts rebalancing drag at ~0.49%/mo for -2x single-stock funds plus 1-1.5%/yr fees,
+which is the same order as the short-leg alpha measured in diagnostic (b) (slow10 Q1-U -0.64 dev / -0.41 val; all13 -0.48 / -0.26 %/mo).
+Cheap, decisive check if wanted (information only, v5 to be pre-registered first): from CRSP, list single-stock ETFs with launch dates and
+underlyings, measure (i) monthly share of each signal's bottom quintile with a product available, (ii) realised shortfall of each ETF vs
+-L x underlying monthly return (fees, financing and decay measured, not assumed).
