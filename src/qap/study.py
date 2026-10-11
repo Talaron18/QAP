@@ -61,16 +61,24 @@ def eligible_universe(panel: pd.DataFrame) -> pd.DataFrame:
     return exclude_microcaps(k).reset_index(drop=True)
 
 
+def _series_worker(n):
+    from qap.parallel import context
+    c = context()
+    return net_lu_series(c["sig"], c["panel"], c["inp"], c["aum_t"], n, c["mult"], c["y"])
+
+
 def run_promotion_report(log, sig: pd.DataFrame, panel: pd.DataFrame, inp: pd.DataFrame, aum_t, gpa_series: pd.Series,
-                         names, study: str, prereg: str, aum: float = 1e7, mult: float = 1.5, y: float = 1.0) -> tuple:
+                         names, study: str, prereg: str, aum: float = 1e7, mult: float = 1.5, y: float = 1.0, jobs: int = 1) -> tuple:
     """Standalone (information only) lines, then the pre-registered PASS/FAIL promotion rule for each signal in `names`."""
     from qap.evaluate import evaluate_signal
     from qap.trials import log_trial
     series = {"gpa": gpa_series}
     log(f"\n== RESULTS (Study {study}): net long-minus-universe, ${aum:,.0f} (2019 market-size), {mult}x costs, Y={y}; holdout sealed ==")
     log("standalone, information only: net L-U % per month (t) on dev / validation | gross rank IC (t) on dev / validation")
+    from qap.parallel import pmap, set_context
+    set_context(sig=sig, panel=panel, inp=inp, aum_t=aum_t, mult=mult, y=y)
+    series.update(zip(names, pmap(_series_worker, names, jobs, say=log)))      # independent per signal; logging stays in this process
     for n in names:
-        series[n] = net_lu_series(sig, panel, inp, aum_t, n, mult, y)
         ev = evaluate_signal(sig, panel, n)["by_period"]
         m = split_means(series[n])
         log(f"  {n:22s} dev {m['dev'][0]} ({m['dev'][1]})  val {m['val'][0]} ({m['val'][1]})  | IC dev {ev['dev1990_2014'].get('ic')} "

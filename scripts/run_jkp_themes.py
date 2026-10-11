@@ -18,6 +18,7 @@ from qap.study import (eligible_universe, holdout_alpha, load_context, net_lu_se
 from qap.trials import trial_count
 
 PREREG = "e10516f"
+JOBS = 1
 NAMES = list(THEMES) + ["jkp_all13", "jkp_slow10"]
 JKP_DIR = "data/raw/jkp_us"
 
@@ -71,7 +72,7 @@ def _run(log, open_holdout) -> None:
         raise AssertionError("Study A data checks failed: " + "; ".join(k for k, ok in checks.items() if not ok))
 
     gpa_series = net_lu_series(sig_g, panel, inp, aum_t, "gpa")
-    promo, promoted = run_promotion_report(log, signals, panel, inp, aum_t, gpa_series, NAMES, "A", PREREG)
+    promo, promoted = run_promotion_report(log, signals, panel, inp, aum_t, gpa_series, NAMES, "A", PREREG, jobs=JOBS)
     pathlib.Path("data/study_a_promoted.json").write_text(json.dumps(promoted))
 
     if open_holdout:
@@ -85,4 +86,7 @@ def _run(log, open_holdout) -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--open-holdout", action="store_true", help="2020+ look, once, for promoted themes only")
-    main(ap.parse_args().open_holdout)
+    ap.add_argument("--jobs", type=int, default=1, help="worker processes for the per-signal backtests (fork; memory = one panel copy-on-write)")
+    a = ap.parse_args()
+    JOBS = a.jobs
+    main(a.open_holdout)

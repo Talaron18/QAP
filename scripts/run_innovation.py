@@ -18,6 +18,7 @@ from qap.study import (eligible_universe, holdout_alpha, load_context, net_lu_se
 from qap.trials import trial_count
 
 PREREG = "e10516f"
+JOBS = 1
 NAMES = ["rq", "kpss_xi_me", "pat_flow_rd", "pat_quality3"]
 RAW = pathlib.Path("data/raw")
 
@@ -65,7 +66,7 @@ def _run(log, open_holdout) -> None:
         raise AssertionError("Study B: a signal source produced no values")
 
     gpa_series = net_lu_series(sig_g, panel, inp, aum_t, "gpa")
-    promo, promoted = run_promotion_report(log, signals, panel, inp, aum_t, gpa_series, NAMES, "B", PREREG)
+    promo, promoted = run_promotion_report(log, signals, panel, inp, aum_t, gpa_series, NAMES, "B", PREREG, jobs=JOBS)
     pathlib.Path("data/study_b_promoted.json").write_text(json.dumps(promoted))
     if open_holdout:
         log("\n== HOLDOUT OPENED (once) for promoted signals only ==")
@@ -78,4 +79,7 @@ def _run(log, open_holdout) -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--open-holdout", action="store_true")
-    main(ap.parse_args().open_holdout)
+    ap.add_argument("--jobs", type=int, default=1, help="worker processes for the per-signal backtests (fork; memory = one panel copy-on-write)")
+    a = ap.parse_args()
+    JOBS = a.jobs
+    main(a.open_holdout)
