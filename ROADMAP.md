@@ -442,3 +442,18 @@ User chose to spend the sealed 2020-2025 window once for this. It has never been
 - **v6 rehearsal (user run): gate PASSED** - gross long-short 0.899 (dev) / 0.450 (val) and net before borrow 0.545 / 0.386 %/mo reproduce diagnostic (b) exactly. With the base-scenario borrow
   (assumed fees + 1.0%/yr rebate shortfall) the pre-2020 net long-short is 0.393 (dev) and 0.258 (val) %/mo, i.e. borrow costs ~0.13-0.15 %/mo (1.5-1.8%/yr); validation after borrow is only
   just above the pre-registered 0.20 %/mo support threshold and its t is ~0.7. 2020+ not read. Next: the one-shot run.
+
+## RESULT v6 (one shot used, user run 2026-10-11): long-short jkp_slow10 on the sealed window 2020-01..2025-12 - INCONCLUSIVE
+Gate passed (reproduced diagnostic (b) exactly). 72 realised months.
+- **Primary (base borrow): net L-S mean 0.500 %/mo, t 0.89 (NW6 0.84), sd 4.75 %/mo.** gross L-S 0.705, L cost 0.017, S cost 0.066, borrow 0.121 %/mo. Optimistic borrow 0.504 (t 0.90),
+  pessimistic 0.470 (t 0.84). Rule: mean >= 0.20 but t < 1.0 => **INCONCLUSIVE** (not refuted, not supported). Nothing is licensed by this result; per the pre-registration there is no second look.
+- **Heterogeneity:** compounded net L-S by year: 2020 -13.2%, 2021 +20.4%, 2022 +35.4%, 2023 -9.5%, 2024 -1.7%, 2025 +4.8%. First half 1.091 %/mo, second half -0.090 %/mo. Cumulative +32.0%,
+  max drawdown -30.4%. The whole result comes from 2021-2022 (the junk/growth unwind); 2023-2025 is flat to negative.
+- **Factor information (not decision inputs):** CAPM alpha 0.945 %/mo (t 1.84), market beta -0.42 (t -4.2); FF4 alpha 0.390 (t 1.15) with SMB -0.83 (t -6.8), UMD +0.42 (t 4.4), HML 0.01. So a large part of the
+  return is explained by size and momentum exposures plus a net short-market tilt.
+- **Legs (info):** long leg L-U net of cost +0.051 %/mo (nothing); short leg U-S net of cost and borrow +0.449 %/mo: the edge is entirely on the short side, as in diagnostic (b). One-way
+  turnover about 20% (L) and 30% (S) per month (the script printed 0.2/0.3: a display bug, fraction not x100; fixed after the run, no effect on results).
+- **Pooled view (not a test):** dev 0.393, validation 0.258, holdout 0.500 %/mo after base borrow; weighted mean about 0.39 %/mo (4.7%/yr) over 432 months, pooled t about 2 before any correction
+  for choosing slow10 among 15 Study A signals and then diagnostic (b); 66 cumulative trials.
+- Reading: weak, regime-dependent evidence of a short-side premium that did not persist after 2022, carried by size/momentum tilts, with 30% drawdowns and a data feed (JKP) that ends 2025-12.
+  Not a basis for deploying USD 35k.

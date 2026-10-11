@@ -83,7 +83,7 @@ def _run(log, rehearsal: bool) -> None:
         if k in base:
             log(f"FF information ({k}): " + ", ".join(f"{a} {b:.3f}" for a, b in base[k].items()))
     log(f"legs (info): long L-U net of cost {w['long_LU'].mean() * 100:.3f}, short U-S net of cost and borrow {w['short_UmS'].mean() * 100:.3f} %/mo; "
-        f"turnover one-way L {w['turnover_L'].mean():.1f}%, S {w['turnover_S'].mean():.1f}%")
+        f"turnover one-way L {w['turnover_L'].mean() * 100:.1f}%, S {w['turnover_S'].mean() * 100:.1f}%")
     log(f"\nDECISION (base net mean {base['mean_pct']:.3f} %/mo, t {base['t']:.2f}): {label}")
     log(POWER_NOTE)
     log("No result of this test promotes the strategy to deployment; a failure retires long-short slow10.")
