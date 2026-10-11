@@ -121,3 +121,32 @@ failed the split-adjustment check, which turned out to be too crude (it counted 
 threshold). It is replaced by a spike test at exact split ratios on common equity, with the alternatives printed. A failed
 DATA check now drops only the candidate that depends on that data (`neg_issuance` for the split check, `bm_int` for the
 Total Q checks) and says so; the promotion rule, thresholds and other candidates are unchanged.
+
+- Candidate test result (pre-registration v1, commit e81cb8a + amendment): NOTHING PROMOTED. quality3 standalone net L-U dev
+  +0.165%/mo (t 2.12), validation +0.163%, but 0.73 correlated with gpa and alpha t 1.09; op_ff alpha t 0.84; fscore 0.86;
+  neg_acc 0.23; neg_issuance -0.21; bm_int 0.99. Split-adjustment convention shrout*mthcumfacshr confirmed (spike ratio 1.3 vs
+  3.9 and 13.1). bm_int vs bm_timely on common rows: +0.06% vs -0.07% (both insignificant). 43 unique trials logged.
+  IC vs VW-book gap (fscore/op_ff/neg_issuance/quality3: dev IC t 3.5-6.3, weak VW L-U) is information only; not pursued.
+
+## Pre-registration v2: gpa-only long-only tilt (course change, stated plainly)
+
+I told the user the next step would be a long-only tilt "with an optimizer". I am NOT building a factor risk model and a
+mean-variance optimizer now: the top-quintile long-minus-universe book already IS the long-only tilt (net active return
+about +0.18%/mo, t about 1.9), so a new construction can only change tracking error, turnover and implementability, and a
+risk model plus optimizer add many knobs (risk aversion, TE target, model choices), each a trial, with no evidence they
+help for one weak signal. Committed before any tilt result exists.
+
+**Spec (final spec = (c); fixed a priori):** universe, signal (gpa), value weights, costs ($10M in 2019 market-size dollars,
+Y=1, 1.5x stress, benchmark costless) as before. Signal rank = within-month percentile among eligible names.
+(a) baseline: hold names with rank pct > 0.80, value-weighted (this is the measured top-quintile book);
+(b) + turnover buffer: enter at pct > 0.80, an existing holding stays while pct > 0.70;
+(c) + position cap: as (b), no weight above 3% (excess redistributed pro rata; water-filling). FINAL SPEC = (c).
+(a) and (b) are ablations for information, NOT for selection. Benchmark = value-weighted eligible universe.
+**Reported by split (pre-1990, dev 1990-2014, validation 2015-2019):** net active return (mean %/mo, t), tracking error and
+information ratio (annualised), active share, one-way monthly turnover, holdings count, max weight, top-10 weight.
+**Information only (nothing neutralised):** regression of net active return on mktrf/smb/hml/umd; industry (SIC2)
+concentration vs benchmark. 2020+ opens ONCE, for (c). It is not fully clean: gpa's gross 2020+ long-short was printed in
+the first signals run.
+**Not decided here:** whether to deploy (edge about 0.1-0.2%/mo net, t below 2; taxes on short-term gains from monthly
+turnover are not modelled). Paper trading needs a different price source: CRSP here ends 2025-12 (annual update) while
+Compustat runs to 2026-09; Compustat security price tables or another feed would be needed.
