@@ -87,7 +87,7 @@ python scripts/paper_settle.py                    # verifies hashes, settles rea
 - The ETF inventory is return-matched (names table has no fund names): ETFs with < 12 months of history and ADR underlyings are missed; the ETF carry estimate
   was contaminated and is not used - the coverage result alone decides the question.
 - All backtests are value-weighted quintiles of ex-microcap names; equal-weighted, microcap and international results are not covered.
-- Several reported numbers are pooled across selected signals; treat any t near 2 as weak given 66 trials.
+- Several reported numbers are pooled across selected signals; treat any t near 2 as weak given 72 trials.
 
 ## How to resume
 
