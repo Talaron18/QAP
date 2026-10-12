@@ -31,7 +31,7 @@ New work must add a row BEFORE running and must state the data check, the power 
 | Option-market information: index level | `cboe.cboe` / `cboe_all.cboe` | YES: daily VIX (OHLC, 1990+), VXO (1986+), VXN (2001+), VXD (1997+), to 2026-09-30 | verified by `scripts/wrds_access_map.py` 2026-10-12; enables the index-level variance-risk-premium test |
 | Option-market information: stock level | `optionm_all`, `optionm_europe`, `cboe_eod` | NO (permission denied; only samples) | needs a paid external feed, see docs/option_data_sources.md |
 | Short volume / FINRA short interest | `wrds_short_volume`, `wrds_finra_short_interest` | NO (permission denied) | Compustat `sec_shortint` was the usable source (v12) |
-| Volatility forecasting (Study F) | CRSP daily returns, FF daily | YES | DONE: v13 gjr_t licensed in dev/validation, holdout sealed (see ROADMAP) |
+| Volatility forecasting (Study F) | CRSP daily returns, FF daily | YES | DONE: v13 gjr_t licensed in dev/validation and confirmed in the holdout, which is now SPENT (see ROADMAP) |
 | Liquidity / spread / turnover / volatility | CRSP daily, JKP | YES | already inside JKP themes (Size, Low Risk); `wrdssec_midas` (2012-2025) is the only microstructure source; cost-dominated per the research report |
 | International replication | JKP non-US rows | YES | done as v10 |
 | Filing dates (PIT upgrade) | `comp.filings` | NO (permission denied for schema comp_filings) | `rdq` from `fundq` is the only timeliness source |
