@@ -1,13 +1,13 @@
 # Option / implied-volatility data: what we can reach (survey of 2026-10-12)
 
 Context: OptionMetrics (Ivy DB) is NOT in our WRDS subscription (2014 trial only) and the `cboe` option tables answered "permission denied for schema cboe_eod". The researcher agent could not reach several primary sites (DNS errors), so **every price below is unverified** and must be confirmed with the vendor before buying.
-Local access is being re-checked with `scripts/wrds_access_map.py` (notably `cboe.cboe` and a possible `cboe_all` VIX table, never queried).
+Local access was re-checked with `scripts/wrds_access_map.py` (excerpt in docs/wrds_access_map_options.txt): `cboe.cboe` answers; every stock-level option table is denied.
 
 | Source | Content | Cost | Answers | Status |
 |---|---|---|---|---|
 | FRED VIXCLS / VXVCLS / VXNCLS | daily VIX (30d), VIX3M, VXN from ~1990 | free, cite CBOE | index variance risk premium vs our forecasts (30-day horizon) | usable now (download CSV) |
 | Cboe historical page | VIX, VIX9D, VIX3M, VVIX (2007+), OVX, GVZ, single-stock VIX for ~5 names | free | term structure, vol-of-vol, sanity checks | usable now |
-| WRDS `cboe` / `cboe_all` | possibly VIX history (`cboe.cboe`); option tables denied | in subscription | index VRP | to be tested by the access map |
+| WRDS `cboe.cboe` / `cboe_all.cboe` | VERIFIED 2026-10-12: daily VIX (open/high/low/close, from 1990), VXO (1986+), VXN (2001+), VXD (1997+), 10,808 rows to 2026-09-30; every option table (`cboe_eod`, `optionm_all`, `optionm_europe`) is permission denied | in subscription | index VRP: usable now | usable now, no download or purchase needed |
 | ORATS historical file | EOD chains with IV/Greeks from 2007, 5,000+ symbols | one-time ~USD 399 or subscription (sources conflict) | stock-level IV vs forecast (100 names, 10+ years) | unverified; ask coverage, per-strike vs summary, licence |
 | Alpha Vantage HISTORICAL_OPTIONS | per-date chains with IV and Greeks, "15+ years" | premium plan (price unverified) | same | verify start date |
 | Cboe DataShop Option EOD Summary (+ Calcs) | EOD chains from ~2012; IV needs the calcs add-on | ~USD 350 per symbol-year with calcs (mirror, unverified); academic discount 50% with a USD 500 minimum | same | expensive for 100 names |

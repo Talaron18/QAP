@@ -1,0 +1,110 @@
+# Excerpt of data/wrds_access_map.txt (run 2026-10-12): the option / volatility / index / borrow-like relations that answer a real query, and what is denied. 1,099 schemas, 119,329 relations visible; cboe.cboe and cboe_all.cboe are the only usable option-market tables (index history); OptionMetrics (optionm_all, optionm_europe) and Cboe EOD (cboe_eod) are DENIED; wrds_finra_short_interest, wrds_short_volume, tr_ibes, tr_13f, tr_insiders, taqm_*, ravenpack_*, zacks_all, markit_* are DENIED.
+## OPTION / VOLATILITY / INDEX / BORROW-LIKE relations that ANSWER a real query (columns, rows, date range)
+
+cboe.cboe: 17 columns: date, vixo, vixh, vixl, vix, vxoo, vxoh, vxol, vxo, vxno, vxnh, vxnl, vxn, vxdo, vxdh, vxdl, vxd
+  rows: 10,808
+  date range: 1986-01-02 .. 2026-09-30
+  eg: {'date': '1986-01-02', 'vixo': 'None', 'vixh': 'None', 'vixl': 'None', 'vix': 'None', 'vxoo': '17.93', 'vxoh': '18.71', 'vxol': '17.4', 'vxo': '18.07', 'vxno': 'None', 'vxnh': 'None', 'vxnl': 'None'}
+  eg: {'date': '1986-01-03', 'vixo': 'None', 'vixh': 'None', 'vixl': 'None', 'vix': 'None', 'vxoo': '19.04', 'vxoh': '19.1', 'vxol': '17.72', 'vxo': '17.96', 'vxno': 'None', 'vxnh': 'None', 'vxnl': 'None'}
+
+cboe_all.cboe: 17 columns: date, vixo, vixh, vixl, vix, vxoo, vxoh, vxol, vxo, vxno, vxnh, vxnl, vxn, vxdo, vxdh, vxdl, vxd
+  rows: 10,808
+  date range: 1986-01-02 .. 2026-09-30
+  eg: {'date': '1986-01-02', 'vixo': 'None', 'vixh': 'None', 'vixl': 'None', 'vix': 'None', 'vxoo': '17.93', 'vxoh': '18.71', 'vxol': '17.4', 'vxo': '18.07', 'vxno': 'None', 'vxnh': 'None', 'vxnl': 'None'}
+  eg: {'date': '1986-01-03', 'vixo': 'None', 'vixh': 'None', 'vixl': 'None', 'vix': 'None', 'vxoo': '19.04', 'vxoh': '19.1', 'vxol': '17.72', 'vxo': '17.96', 'vxno': 'None', 'vxnh': 'None', 'vxnl': 'None'}
+
+cboe_sample.eqhvol: 5 columns: eqid, date_, voltype, vol, _rowid
+  rows: 5,200
+  eg: {'eqid': '661.0', 'date_': '2023-12-01', 'voltype': '1', 'vol': '0.164821468925135', '_rowid': '806224901.0'}
+  eg: {'eqid': '661.0', 'date_': '2023-12-01', 'voltype': '2', 'vol': '0.189047392819004', '_rowid': '806239112.0'}
+
+cboe_sample.eqmaster: 11 columns: eqid, cusip, issuer, issue, ticker, siccode, isstype, suppisstype, startdate, enddate, _rowid
+  rows: 10
+  eg: {'eqid': '661.0', 'cusip': '023135106', 'issuer': 'AMAZON COM INC', 'issue': 'COM', 'ticker': 'AMZN', 'siccode': '5961', 'isstype': '1', 'suppisstype': 'None', 'startdate': '2020-03-19', 'enddate': '2078-12-31', '_rowid': '1155701.0'}
+  eg: {'eqid': '1133.0', 'cusip': '037833100', 'issuer': 'APPLE INC', 'issue': 'COM', 'ticker': 'AAPL', 'siccode': '3663', 'isstype': '1', 'suppisstype': 'None', 'startdate': '2021-04-07', 'enddate': '2078-12-31', '_rowid': '1425069.0'}
+
+cboesamp.eqhvol: 5 columns: eqid, date_, voltype, vol, _rowid
+  rows: 5,200
+  eg: {'eqid': '661.0', 'date_': '2023-12-01', 'voltype': '1', 'vol': '0.164821468925135', '_rowid': '806224901.0'}
+  eg: {'eqid': '661.0', 'date_': '2023-12-01', 'voltype': '2', 'vol': '0.189047392819004', '_rowid': '806239112.0'}
+
+cboesamp.eqmaster: 11 columns: eqid, cusip, issuer, issue, ticker, siccode, isstype, suppisstype, startdate, enddate, _rowid
+  rows: 10
+  eg: {'eqid': '661.0', 'cusip': '023135106', 'issuer': 'AMAZON COM INC', 'issue': 'COM', 'ticker': 'AMZN', 'siccode': '5961', 'isstype': '1', 'suppisstype': 'None', 'startdate': '2020-03-19', 'enddate': '2078-12-31', '_rowid': '1155701.0'}
+  eg: {'eqid': '1133.0', 'cusip': '037833100', 'issuer': 'APPLE INC', 'issue': 'COM', 'ticker': 'AAPL', 'siccode': '3663', 'isstype': '1', 'suppisstype': 'None', 'startdate': '2021-04-07', 'enddate': '2078-12-31', '_rowid': '1425069.0'}
+
+insdsamp.fdic_derivatives: 27 columns: filing_id, issuer_id, issuer_trading_symbol, filing_date, order, type, index, security_title, conversion_or_exercise_price, trans_date, deemed_execution_date, trans_form_type, trans_code, trans_acquired_disposed_code, trans_price_per_share, trans_shares, trans_total_value, trans_timeliness, exercise_date, expiration_date, underlying_security_title, underlying
+  rows: 15
+  eg: {'filing_id': '33854.0', 'issuer_id': '90211.0', 'issuer_trading_symbol': 'HIFS', 'filing_date': '2023-07-26', 'order': '1.0', 'type': 'derivTrans', 'index': 'derivTrans1', 'security_title': 'Common Stock Non-Incenti', 'conversion_or_exercise_price': '71.0', 'trans_date': 'None', 'deemed_execution_date': 'None', 'trans_form_type': '4'}
+  eg: {'filing_id': '33856.0', 'issuer_id': '58481.0', 'issuer_trading_symbol': 'FRBA', 'filing_date': '2023-07-28', 'order': '1.0', 'type': 'derivTrans', 'index': 'derivTrans1', 'security_title': 'Stock Option', 'conversion_or_exercise_price': '12.0', 'trans_date': '2023-07-26', 'deemed_execution_date': '2023-07-26', 'trans_form_type': '4'}
+
+optionmsamp_europe.distribution: 12 columns: securityid, sequencenumber, amount, adjustmentfactor, linksecurityid, distributiontype, frequency, currency, declaredate, exdate, paymentdate, recorddate
+  rows: 1
+  exdate range: 2012-05-11 .. 2012-05-11
+  eg: {'securityid': '500096.0', 'sequencenumber': '1.0', 'amount': '1.0', 'adjustmentfactor': '1.0', 'linksecurityid': 'None', 'distributiontype': '1', 'frequency': '1', 'currency': '814', 'declaredate': '2012-03-20', 'exdate': '2012-05-11', 'paymentdate': '2012-05-11', 'recorddate': '2012-05-14'}
+
+optionmsamp_europe.historical_volatility: 5 columns: securityid, days, currency, volatility, date
+  rows: 143
+  date range: 2013-03-01 .. 2013-03-15
+  eg: {'securityid': '500096.0', 'days': '10.0', 'currency': '814.0', 'volatility': '0.1515315523', 'date': '2013-03-01'}
+  eg: {'securityid': '500096.0', 'days': '14.0', 'currency': '814.0', 'volatility': '0.184030427', 'date': '2013-03-01'}
+
+optionmsamp_us.distrd: 15 columns: secid, record_date, seq_num, ex_date, amount, adj_factor, declare_date, payment_date, link_secid, distr_type, frequency, currency, approx_flag, cancel_flag, liquid_flag
+  rows: 23
+  eg: {'secid': '101594.0', 'record_date': '2014-05-12', 'seq_num': '1.0', 'ex_date': '2014-05-08', 'amount': '3.29', 'adj_factor': '1.0', 'declare_date': '2014-04-23', 'payment_date': '2014-05-15', 'link_secid': '0.0', 'distr_type': '1', 'frequency': '3', 'currency': 'USD'}
+  eg: {'secid': '101594.0', 'record_date': '2014-06-02', 'seq_num': '1.0', 'ex_date': '2014-06-09', 'amount': '0.0', 'adj_factor': '7.0', 'declare_date': '2014-04-23', 'payment_date': '2014-06-06', 'link_secid': '0.0', 'distr_type': '2', 'frequency': '3', 'currency': 'USD'}
+
+optionmsamp_us.exchgd: 7 columns: secid, effect_date, seq_num, status, exchange, add_del, exch_flag
+  rows: 1
+  eg: {'secid': '101594.0', 'effect_date': '1996-01-01', 'seq_num': '1.0', 'status': '$', 'exchange': 'F', 'add_del': '*', 'exch_flag': '4'}
+
+wrds_insiders_samp.fdic_derivatives: 27 columns: filing_id, issuer_id, issuer_trading_symbol, filing_date, order, type, index, security_title, conversion_or_exercise_price, trans_date, deemed_execution_date, trans_form_type, trans_code, trans_acquired_disposed_code, trans_price_per_share, trans_shares, trans_total_value, trans_timeliness, exercise_date, expiration_date, underlying_security_title, 
+  rows: 15
+  eg: {'filing_id': '33854.0', 'issuer_id': '90211.0', 'issuer_trading_symbol': 'HIFS', 'filing_date': '2023-07-26', 'order': '1.0', 'type': 'derivTrans', 'index': 'derivTrans1', 'security_title': 'Common Stock Non-Incenti', 'conversion_or_exercise_price': '71.0', 'trans_date': 'None', 'deemed_execution_date': 'None', 'trans_form_type': '4'}
+  eg: {'filing_id': '33856.0', 'issuer_id': '58481.0', 'issuer_trading_symbol': 'FRBA', 'filing_date': '2023-07-28', 'order': '1.0', 'type': 'derivTrans', 'index': 'derivTrans1', 'security_title': 'Stock Option', 'conversion_or_exercise_price': '12.0', 'trans_date': '2023-07-26', 'deemed_execution_date': '2023-07-26', 'trans_form_type': '4'}
+
+## option-like relations that were DENIED or ERRORED (so we know what is behind the wall)
+  bank: 1 relations, e.g. wrds_call_derived -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema bank_premium [SQL: sele
+  boardex: 2 relations, e.g. na_options_compensation -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema boardex_na [SQL: select
+  boardex_trial_old: 2 relations, e.g. jr_options_compensation -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema boardex_trial_old LINE 
+  calcbench_derivatives_hedging: 2 relations, e.g. derivatives_hedging_bo -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema calcbench_derivatives_h
+  calcbench_derivatives_hedging_old: 2 relations, e.g. derivatives_hedging_bo -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema calcbench_derivatives_h
+  cboe: 1 relations, e.g. deltanumber -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema cboe_eod [SQL: select *
+  cboe_all_old: 1 relations, e.g. cboe -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema cboe_all_old LINE 1: se
+  cboe_eod: 2 relations, e.g. deltanumber -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema cboe_eod LINE 1: select
+  cboe_eod_old: 2 relations, e.g. deltanumber -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema cboe_eod_old LINE 1: se
+  columnar_internal: 1 relations, e.g. options -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema columnar_internal LINE 
+  comp_na_daily_all_new: 1 relations, e.g. r_hcalendr -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema comp_na_daily_all_new L
+  comp_snapshot: 3 relations, e.g. xfc_pacverfeedpoptopacsrchost -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema comp_snapshot LINE 1: s
+  compsnap: 3 relations, e.g. xfc_pacverfeedpoptopacsrchost -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema comp_snapshot [SQL: sel
+  crsp_a_indexes_old: 1 relations, e.g. metaexchangecalendar_ind -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema crsp_a_indexes_old LINE
+  crsp_q_indexes: 2 relations, e.g. metacalendarperiod_ind -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema crsp_q_indexes LINE 1: 
+  crsp_q_stock62: 2 relations, e.g. metacalendarperiod62 -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema crsp_q_stock62 LINE 1: 
+  crspq: 2 relations, e.g. metacalendarperiod62 -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema crsp_q_stock62 [SQL: se
+  dealscan: 1 relations, e.g. borrowerbase -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema tr_dealscan [SQL: selec
+  form_metadata: 60 relations, e.g. bank_all_call_notionalprincipalamountofoffbalancesheetderivativ -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema form_metadata LINE 1: s
+  form_metadata_20230206: 229 relations, e.g. bank_all_call_notionalprincipalamountofoffbalancesheetderivativ -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema form_metadata_20230206 
+  iss_incentive_lab_old: 1 relations, e.g. oeoption -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema iss_incentive_lab_old L
+  optionm: 2 relations, e.g. borrate1996 -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema optionm_all [SQL: selec
+  optionm_all: 2 relations, e.g. borrate1996 -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema optionm_all LINE 1: sel
+  optionm_all_old: 65 relations, e.g. distrprojd2023 -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema optionm_all_old LINE 1:
+  optionm_europe: 8 relations, e.g. option_price_2022 -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema optionm_europe LINE 1: 
+  pacap: 2 relations, e.g. kscalend -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema pacap_korea [SQL: selec
+  pacap_korea: 1 relations, e.g. kscalend -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema pacap_korea LINE 1: sel
+  pacap_malaysia: 1 relations, e.g. mycalend -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema pacap_malaysia LINE 1: 
+  pacap_singapore: 1 relations, e.g. sncalend -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema pacap_singapore LINE 1:
+  pitchbk: 6 relations, e.g. ot_na_dealdebtlenderrelation -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema pitchbk_other_na [SQL: 
+  pitchbk_companies_deals: 1 relations, e.g. dealdebtlenderrelation -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema pitchbk_companies_deals
+  pitchbk_vc_row: 1 relations, e.g. vc_glb_dealdebtlenderrelation -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema pitchbk_vc_row LINE 1: 
+  secsamp: 2 relations, e.g. derivatives -> ProgrammingError: (psycopg2.errors.UndefinedTable) relation "secsamp_all.derivatives" does not exist [SQL: sel
+  secsamp_all_old: 2 relations, e.g. derivatives -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema secsamp_all_old LINE 1:
+  shortvol: 1 relations, e.g. wrds_shortvolume -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrds_short_volume [SQL:
+  tr_dealscan: 1 relations, e.g. borrowerbase -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema tr_dealscan LINE 1: sel
+  wrds_insiders: 1 relations, e.g. fdic_derivatives -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrds_insiders LINE 1: s
+  wrds_insiders_old: 1 relations, e.g. fdic_derivatives -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrds_insiders_old LINE 
+  wrds_mutualfund: 1 relations, e.g. derivative_counterparty -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrds_mutualfund LINE 1:
+  wrds_mutualfund_old: 1 relations, e.g. security_lending -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrds_mutualfund_old LIN
+  wrdsapps_link_crsp_optionm: 1 relations, e.g. opcrsphist -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrdsapps_link_crsp_opti
+  wrdsapps_link_crsp_optionm_old: 1 relations, e.g. opcrsphist -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrdsapps_link_crsp_opti
+  wrdsinsd: 1 relations, e.g. fdic_derivatives -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrds_insiders [SQL: sel
+  wrdssec_insiders: 1 relations, e.g. derivatives -> ProgrammingError: (psycopg2.errors.InsufficientPrivilege) permission denied for schema wrdssec_insiders LINE 1
