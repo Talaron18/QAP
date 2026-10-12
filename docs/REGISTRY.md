@@ -1,6 +1,6 @@
 # Alpha research registry (do not re-test closed rows)
 
-One line per tested family: what was tested, the verdict, what sample was spent, where the evidence lives. Counts are unique logged trials (72 so far, plus two forward-only ML models).
+One line per tested family: what was tested, the verdict, what sample was spent, where the evidence lives. Counts are unique logged trials (76 so far, plus two forward-only ML models).
 New work must add a row BEFORE running and must state the data check, the power estimate and the decision it could change.
 
 | Family | Tested (pre-registration) | Verdict | Sample spent | Evidence |
@@ -16,6 +16,7 @@ New work must add a row BEFORE running and must state the data check, the power 
 | Tax-loss harvesting on a DIY index | v7 | Not worth it (+0.17 %/yr hold, ~0 liquidated) | full history, mechanical | ROADMAP v7 |
 | ML cross-sectional model | v8 | PENDING forward (walk-forward: net +0.01 vs composite +0.24 vs gpa +0.14; prior: no evidence) | forward only | `paper_ledger/ml_manifest.jsonl` |
 | Alternative data (arc, risk text, blockholders, boards, culture, litigation) | v9 / Study C | Nothing promoted | dev, validation | ROADMAP v9 |
+| Earnings-announcement expectation change (EAR, SUE, RSUE, EAR+SUE) | v11 / Study D | Nothing promoted; gross drift real pre-2015 (IC t 5-6), gone after; short-horizon (months 0-1), net ~0 | dev, validation | ROADMAP v11 |
 | gpa paper-trading ledger | v4(a) | RUNNING (implementation check) | forward | `paper_ledger/manifest.jsonl` |
 | International replication of the JKP findings | v10 | IN PROGRESS (descriptive) | non-US, 2020+ unseen | ROADMAP v10 |
 

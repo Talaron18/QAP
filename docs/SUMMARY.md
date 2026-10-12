@@ -5,7 +5,7 @@ spec live in [ROADMAP.md](../ROADMAP.md); the original brief is [research_report
 
 ## Bottom line
 
-After 72 logged trials on 1963-2025 US equity data (CRSP + Compustat + JKP characteristics, WRDS), **no strategy has been validated
+After 76 logged trials on 1963-2025 US equity data (CRSP + Compustat + JKP characteristics, WRDS), **no strategy has been validated
 out of sample net of costs.** The one signal that survives costs, gross profitability (gpa), has a small, decaying edge
 (+0.18 %/mo, t 1.9 on 1990-2014; +0.10, t 0.6 on 2015-19; the long-only tilt version was +0.06 %/mo, t 0.4 on the 2020+ holdout).
 What *is* valuable and reusable: a leakage-safe research pipeline, a cost model, a trial registry, pre-registered studies with sealed
@@ -38,6 +38,7 @@ with a small quality/profitability tilt, with the ledger running as an implement
 | Single-stock leveraged/inverse ETFs for the short leg (v5) | **Not viable**: 2025 coverage of the bottom quintile 0.1-5.6% (only ~16 inverse products live, all mega-caps) |
 | Direct margin short, break-even borrow cost | `jkp_slow10` break-even 4.6-6.5 %/yr; assumed fees for the real basket ~0.4-0.7 %/yr (82% of weight in >= $10B names) - borrow is not the binding constraint |
 | Alternative-data probes (v9): arc complexity, 10-K risk text, blockholders, classified boards, culture, litigation | Nothing promoted: all dev t < 1.3 vs gpa; blocks significantly wrong-signed in validation (t -2.7); cbi_neg consistent but weak (t 1.1-1.5); 6 trials |
+| Earnings-announcement expectation change (v11): EAR, SUE, RSUE, EAR+SUE | Nothing promoted; gross IC t 5-6 pre-2015 but ~0 after; effect lives in months 0-1; net ~0; 4 trials |
 | Forward-only ML check (v8; frozen, running) | Walk-forward (information only): boosted trees IC 0.032 but net L-U +0.01 %/mo vs simple composite +0.24 vs gpa +0.14; forward decision not before ~late 2029, prior 'no evidence' |
 | Tax-aware direct indexing / loss harvesting, 150-name DIY index, 53 ten-year windows (v7) | median benefit **+0.17 %/yr** (hold-indefinitely), ~0.03 %/yr if liquidated; TE 1.1 %/yr; **not worth the complexity**; DIY index vs total market adds ~4 %/yr tracking error |
 | **One-shot sealed window, long-short `jkp_slow10` (v6)** | net 0.50 %/mo, **t 0.89 -> INCONCLUSIVE**. All of it in 2021-22 (2022: +35%); 2023-25 flat/negative; max drawdown -30%; short leg only; FF4 alpha 0.39 (t 1.15) with large size and momentum loadings |
@@ -50,7 +51,7 @@ long-only investor cannot use (short leg, small and illiquid names, high turnove
 - 2020+ for gpa-based models (signals run, tilt, candidates): spent.
 - 2020+ for JKP composites (`jkp_slow10` long-short): spent by v6. There is no second look.
 - 2015-2019 validation: seen many times; anything designed from it needs forward data.
-- 72 unique trials logged (plus the two forward-only ML models); any new search should be judged against that count (deflated Sharpe) and, ideally, forward in time only.
+- 76 unique trials logged (plus the two forward-only ML models); any new search should be judged against that count (deflated Sharpe) and, ideally, forward in time only.
 
 ## Live: the paper-trading ledger (keep running)
 
@@ -87,7 +88,7 @@ python scripts/paper_settle.py                    # verifies hashes, settles rea
 - The ETF inventory is return-matched (names table has no fund names): ETFs with < 12 months of history and ADR underlyings are missed; the ETF carry estimate
   was contaminated and is not used - the coverage result alone decides the question.
 - All backtests are value-weighted quintiles of ex-microcap names; equal-weighted, microcap and international results are not covered.
-- Several reported numbers are pooled across selected signals; treat any t near 2 as weak given 72 trials.
+- Several reported numbers are pooled across selected signals; treat any t near 2 as weak given 76 trials.
 
 ## How to resume
 
