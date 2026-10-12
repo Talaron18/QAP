@@ -590,3 +590,22 @@ arc10k -0.009 (-0.04) / +0.354 (1.29); rf_len -0.120 (-0.92) / -0.015 (-0.15); b
 Promotion (alpha over gpa, dev t >= 2.0 and validation alpha > 0): every dev alpha t is below 1.3 in absolute value (best: litig 1.06, cbi_neg 1.16) => **PROMOTED: NONE**. 72 cumulative unique trials.
 Reading: no signal has development evidence; the two with positive validation alpha (arc10k, culture) had ~zero or negative development alpha, i.e. sign instability not signal; blocks is significantly negative in validation (the
 opposite of the registered direction); cbi_neg is the only one with a consistent positive sign in both windows but t 1.1-1.5 on a 1991-2024 governance indicator that is widely known. The 2020+ window was not opened.
+
+## Pre-registration v10 (SCOPED, not built): international replication of the JKP findings (written before any code or extraction; descriptive, NOT a tradability test)
+Purpose: calibrate priors. The US results (decay after 2014, short-leg concentration, the 2021-22 episode) rest on one market; `global_factor` holds the same 153 characteristics for other countries, which is the only independent
+cross-market sample available without waiting. It does not create an investable idea for a USD 35k account and no trial is promoted or deployed from it. Global factors are correlated, so this is cross-market, not independent-in-time, evidence.
+- **Data:** `contrib_global_factor.global_factor`, same screens as the US extraction (obs_main = 1, common = 1, exch_main = 1, primary_sec = 1, size_grp in mega/large/small; note size_grp uses NYSE breakpoints in USD), `excntry <> 'USA'`, 1990-2025,
+  returns `ret_exc_lead1m` (USD excess, per the documentation). Regions fixed from the documentation's MSCI table: **Developed Europe** (AUT BEL CHE DEU DNK ESP FIN FRA GBR IRL ITA NLD NOR PRT SWE), **Japan** (JPN), **Other developed**
+  (AUS CAN HKG ISR NZL SGP). Emerging/frontier markets are excluded (information-only IC at most). A country-month needs >= 100 eligible stocks to enter. Extraction is one parquet per year (resumable), as for `jkp_us`.
+- **Signals (no new ones):** the 15 Study A signals exactly (13 theme scores + `jkp_all13` + `jkp_slow10`) plus `gp_at` as the gpa analogue; theme scores use percentile ranks within COUNTRY-month; portfolios pool stocks across countries within the region,
+  value-weighted by USD market equity; the US is run through the identical code path (from `jkp_us`, JKP returns) as the reference.
+- **Reported per region and period (dev 1990-2014, validation 2015-2019, 2020-2025; the international 2020+ window has never been looked at):** mean monthly rank IC with NW6 t; gross VW Q5-Q1, Q5-U, Q1-U; one-way turnover of the top quintile;
+  information-only net long-minus-universe using half-spread = `bidaskhl_21d`/2 and a 1.5x stress. No promotion rule applies.
+- **Three labelled questions (fixed now; composites `jkp_all13` and `jkp_slow10` only):**
+  H1 *Is the decay global?* ratio = mean IC in (validation + 2020-2025) / mean IC in dev. GLOBAL DECAY if ratio <= 0.5 for both composites in >= 2 of 3 regions; PERSISTS OUTSIDE THE US if ratio >= 0.75 in >= 2 of 3; otherwise MIXED.
+  H2 *Is the edge in the short leg?* share of Q5-Q1 coming from Q1-U in validation + 2020-2025, per region, compared with the US (0.84 / 0.91): SHORT-LEG if >= 0.6 in >= 2 of 3 regions.
+  H3 *Was 2021-2022 global?* slow10 gross Q5-Q1 averaged over 2021-2022 versus its mean over all other months since 2015: GLOBAL EPISODE if the 2021-22 mean exceeds 3x the other-months mean in >= 2 of 3 regions, else US-SPECIFIC.
+- **What each answer changes:** GLOBAL DECAY + SHORT-LEG supports the post-publication-decay / crowded-short-leg reading and closes the signal search for good. PERSISTS OUTSIDE THE US would mean the US decay may be sample-specific; the only follow-up allowed is a NEW
+  pre-registration of a long-only ex-US factor-tilt via broad ETFs, judged forward. Nothing here touches the US sealed windows.
+- **Limits:** Compustat-sourced returns outside the US are lower quality than CRSP; USD returns include currency noise; short selling and costs abroad differ (the spread proxy is crude); thin countries; common global shocks.
+- **Cost of doing it:** one extraction (about 4-5M screened rows x ~160 columns, per-year files) and one script run of minutes on 36 cores; no new data sources.
