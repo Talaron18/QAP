@@ -756,6 +756,31 @@ def last_daily_date(directory):
     return pd.to_datetime(pd.read_parquet(files[-1], columns=["dlycaldt"])["dlycaldt"]).max().to_datetime64().astype("datetime64[D]")
 
 
+# ---------------------------------------------------------------------------------------------- one-shot holdout marker (v13)
+HOLDOUT_MARKER = "data/holdout_v13.done"
+
+
+class HoldoutRefused(SystemExit):
+    """A refusal to open a holdout (raised as SystemExit with a clear message). The runners do NOT overwrite their report file on it."""
+
+
+def assert_holdout_unopened(marker: str | None = None, study: str = "v13 (Study F)") -> None:
+    """Refuse a second opening: SystemExit carrying the marker contents when the marker file already exists."""
+    import pathlib
+    m = pathlib.Path(HOLDOUT_MARKER if marker is None else marker)
+    if m.exists():
+        raise HoldoutRefused(f"The {study} holdout was ALREADY OPENED ({m} exists: {m.read_text().strip()!r}). One shot only; record the result in "
+                             "ROADMAP.md. Not opening again.")
+
+
+def mark_holdout_opened(text: str, marker: str | None = None) -> None:
+    """Write the one-shot marker. Call it AFTER the holdout statistics are computed and BEFORE they are printed."""
+    import pathlib
+    m = pathlib.Path(HOLDOUT_MARKER if marker is None else marker)
+    m.parent.mkdir(parents=True, exist_ok=True)
+    m.write_text(text.strip() + "\n")
+
+
 # ----------------------------------------------------------------------------------------------------- tickers
 def ticker_summary(rows: dict, cal, years: int = 3, levs: float = 2.0) -> dict:
     """Information-only block for ONE ticker from its `run_asset` rows: mean QLIKE by model (h = 21), mean ratio forecast / realised 21-day

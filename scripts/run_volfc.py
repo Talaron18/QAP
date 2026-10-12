@@ -6,10 +6,11 @@
 
 Writes data/study_f_report.txt (and, with --save-losses, the git-ignored data/study_f_losses.parquet). No trial is logged: this script never
 touches the trials registry. Without --open-holdout no forecast dated 2020 or later is computed for the primary or market series; with it
-the holdout is opened once, and only if all four comparisons pass the dev / validation rule are its numbers shown.
+the holdout is opened once (one-shot marker data/holdout_v13.done, written after its statistics are computed; a second opening is refused), and only if all four comparisons pass the dev / validation rule are its numbers shown.
 """
 import argparse
 import pathlib
+import time
 
 import numpy as np
 import pandas as pd
@@ -38,9 +39,17 @@ def main(open_holdout: bool, jobs: int = 1, assets: int = V.TOP_N, save_losses: 
 
     try:
         _run(log, open_holdout, jobs, assets, save_losses)
-    finally:
-        pathlib.Path("data").mkdir(exist_ok=True)
-        pathlib.Path("data/study_f_report.txt").write_text("\n".join(report) + "\n")
+    except V.HoldoutRefused:
+        raise                                       # a refusal must not overwrite the report of the opening that already happened
+    except BaseException:
+        _write_report(report)
+        raise
+    _write_report(report)
+
+
+def _write_report(report) -> None:
+    pathlib.Path("data").mkdir(exist_ok=True)
+    pathlib.Path("data/study_f_report.txt").write_text("\n".join(report) + "\n")
 
 
 # ----------------------------------------------------------------------------------------------------------- helpers
@@ -254,11 +263,14 @@ def _run(log, open_holdout, jobs, assets=V.TOP_N, save_losses=False) -> None:
     hold_state = None
     hold_means = None
     if open_holdout and pre_verdict["dev_val"]:
+        V.assert_holdout_unopened()                 # one shot: a second opening is refused (SystemExit with the marker contents)
         mh_all = V.valid_masks(df_all)
         hold_all = df_all[df_all["date"] >= np.datetime64(SEAL)]
         dh = {h: V.date_losses(df_all, mh_all[h], h, "qlike") for h in V.HORIZONS}
         hold_means = {(a, b, h): V.compare(dh[h], cal, a, b, h, V.HOLD)[0] for a, b in V.COMPARISONS for h in V.HORIZONS}
         hold_state = V.licence_verdict(comps, hold_means, True)
+        # one-shot marker (v14 gate): written AFTER the holdout statistics are computed and BEFORE they are printed
+        V.mark_holdout_opened(f"v13 holdout opened {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}: {hold_state['status']}")
     verdict = hold_state or pre_verdict
     log("\n== LICENCE VERDICT (M3 gjr_t as the position-sizing volatility model; ALL FOUR: dev diff <= -0.01 AND dev t <= -2.0 AND validation diff < 0) ==")
     log(f"  {verdict['status']}")

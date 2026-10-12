@@ -4,7 +4,7 @@ Run where your WRDS credentials live:
     WRDS_USERNAME=you python scripts/wrds_extract.py [dataset ...]
 Datasets: crsp_monthly crsp_delistings ccm_links compustat_annual compustat_quarterly ff_monthly (default: all)
 plus crsp_daily_agg (per-year server-side liquidity aggregation; resumable; run it explicitly),
-rq_data kpss_patents patent_grants (Study B), arc_data risk_text blockholders class_boards corp_culture fed_litigation (Study C, v9 alt-data), short_interest (Study E, v12; comp.sec_shortint), comp_secm (paper trading), comp_secm_hist (1985- history for the ML check), crsp_names (ETF check) jkp_us (Study A: one parquet per year, resumable) and jkp_intl (v10: developed ex-US, one parquet per year, resumable).
+rq_data kpss_patents patent_grants (Study B), arc_data risk_text blockholders class_boards corp_culture fed_litigation (Study C, v9 alt-data), short_interest (Study E, v12; comp.sec_shortint), comp_secm (paper trading), comp_secm_hist (1985- history for the ML check), crsp_names (ETF check), cboe_vix (Study G, v14; cboe.cboe daily VIX), sp500_daily (OPTIONAL v14 robustness; crsp.dsp500, skipped with a message if the table is missing), jkp_us (Study A: one parquet per year, resumable) and jkp_intl (v10: developed ex-US, one parquet per year, resumable).
 """
 import pathlib
 import sys
@@ -113,6 +113,9 @@ def extract_comp_secm(db, out: pathlib.Path, start: str = "2022-01-01", name: st
     print(f"[{name}] {len(df):,} rows, last datadate {df['datadate'].max()} -> {out / (name + '.parquet')}", flush=True)
 
 
+OPTIONAL = ('sp500_daily',)            # information-only inputs: a failed extraction is skipped, never fatal
+
+
 def main(names) -> None:
     db = connect()
     out = pathlib.Path("data/raw")
@@ -143,7 +146,13 @@ def main(names) -> None:
     for name in names or QUERIES:
         sql = QUERIES[name]()
         print(f"[{name}] {sql}", flush=True)
-        df = db.raw_sql(sql, date_cols=None)
+        try:
+            df = db.raw_sql(sql, date_cols=None)
+        except Exception as e:
+            if name not in OPTIONAL:
+                raise
+            print(f"[{name}] optional dataset skipped: {type(e).__name__}: {str(e)[:200]}", flush=True)
+            continue
         df.to_parquet(out / f"{name}.parquet", index=False)
         print(f"[{name}] {len(df):,} rows -> {out / (name + '.parquet')}", flush=True)
 

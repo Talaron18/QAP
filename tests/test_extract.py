@@ -105,3 +105,28 @@ def test_jkp_intl_sql_screens_run_in_duckdb():
     out = con.execute(jkp_intl_sql(["gp_at"], 2001, ["JPN", "GBR"])).df()
     assert sorted(out["id"].tolist()) == [300000001, 300000002]
     assert list(out.columns) == ["id", "excntry", "eom", "size_grp", "ret_exc_lead1m", "me", "gp_at"]
+
+
+def test_cboe_vix_and_sp500_queries_and_registration():
+    from qap.extract import cboe_vix_sql, sp500_daily_sql
+    assert config.CBOE_VIX == "cboe.cboe" and QUERIES["cboe_vix"] is cboe_vix_sql and QUERIES["sp500_daily"] is sp500_daily_sql
+    sql = cboe_vix_sql()
+    assert sql == "select date, vix, vxo, vxn, vxd from cboe.cboe order by date"
+    assert sp500_daily_sql() == "select caldt, sprtrn from crsp.dsp500 order by caldt"
+    assert "cboe_vix" in open("scripts/wrds_extract.py").read().split('"""')[1]
+
+
+def test_cboe_vix_and_sp500_sql_run_in_duckdb():
+    duckdb = pytest.importorskip("duckdb")
+    from qap.extract import cboe_vix_sql, sp500_daily_sql
+    con = duckdb.connect()
+    con.execute("create schema cboe")
+    con.execute("create table cboe.cboe(date date, vix double, vxo double, vxn double, vxd double, other double)")
+    con.execute("insert into cboe.cboe values ('2000-01-05', 25.0, 26.0, 40.0, 24.0, 1), ('2000-01-04', 24.0, 25.0, 39.0, 23.0, 1)")
+    out = con.execute(cboe_vix_sql()).df()
+    assert list(out.columns) == ["date", "vix", "vxo", "vxn", "vxd"] and out["vix"].tolist() == [24.0, 25.0]
+    con.execute("create schema crsp")
+    con.execute("create table crsp.dsp500(caldt date, sprtrn double, spindx double)")
+    con.execute("insert into crsp.dsp500 values ('2000-01-05', 0.01, 1400), ('2000-01-04', -0.02, 1390)")
+    out = con.execute(sp500_daily_sql()).df()
+    assert list(out.columns) == ["caldt", "sprtrn"] and out["sprtrn"].tolist() == [-0.02, 0.01]

@@ -21,6 +21,8 @@ SHORT_INTEREST = "comp.sec_shortint"
 TOTAL_Q = "totalq.total_q"
 FF_FACTORS_MONTHLY = "ff.factors_monthly"
 FF_FACTORS_DAILY = "ff.factors_daily"
+CBOE_VIX = "cboe.cboe"                 # v14: daily VIX (vix, plus vxo, vxn, vxd for checks)
+CRSP_SP500_DAILY = "crsp.dsp500"        # v14 optional robustness input only (caldt, sprtrn)
 
 CRSP_MONTHLY_COLS = [
     "permno", "permco", "mthcaldt", "mthret", "mthretx", "mthprc", "mthcap", "mthvol",

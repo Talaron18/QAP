@@ -619,3 +619,103 @@ def test_script_requires_its_inputs_with_a_hint(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(SystemExit, match="extract_earnings.py"):
         mod._run(lambda *_: None, False, 1)
+
+
+# ------------------------------------------------------------------------------------- v13 one-shot holdout marker (v14 gate)
+def test_holdout_marker_helpers_are_one_shot(tmp_path):
+    m = str(tmp_path / "data" / "holdout_v13.done")
+    V.assert_holdout_unopened(m)                                       # absent: fine
+    V.mark_holdout_opened("v13 holdout opened: test", m)
+    assert pathlib.Path(m).read_text() == "v13 holdout opened: test\n"
+    with pytest.raises(SystemExit, match="ALREADY OPENED.*v13 holdout opened: test"):
+        V.assert_holdout_unopened(m)
+    assert V.HOLDOUT_MARKER == "data/holdout_v13.done" and issubclass(V.HoldoutRefused, SystemExit)
+
+
+def _fake_licence(monkeypatch, passing=True):
+    real = V.licence_verdict
+    sign = -0.05 if passing else 0.05
+
+    def fake(comps, holdout=None, open_holdout=False):
+        return real({k: {"dev": (sign, sign * 100), "val": (sign, sign * 100)} for k in comps}, holdout, open_holdout)
+    monkeypatch.setattr(V, "licence_verdict", fake)
+
+
+def test_smoke_v13_marker_is_written_only_when_the_holdout_is_opened_before_printing_and_a_second_opening_is_refused(tmp_path, monkeypatch, small_world):
+    mod = _load_script()
+    root = tmp_path / "w"
+    root.mkdir()
+    _write_world(root)
+    monkeypatch.chdir(root)
+    marker = root / "data" / "holdout_v13.done"
+    _fake_licence(monkeypatch)
+    sealed = []
+    mod._run(sealed.append, False, 1, 5, False)                                   # no flag: behaves as before, no marker
+    assert not marker.exists()
+    state = []
+
+    def log(x):
+        if "HOLDOUT OPENED (once)" in str(x):
+            state.append(marker.exists())                                         # the marker exists BEFORE the holdout numbers are printed
+        opened.append(x)
+    opened = []
+    mod._run(log, True, 1, 5, False)
+    assert state == [True] and marker.exists() and marker.read_text().startswith("v13 holdout opened")
+    # the sealed part of the report is unchanged by the marker logic
+    k = next(i for i, x in enumerate(sealed) if "== LICENCE VERDICT" in x)
+    assert [x for x in sealed[:k] if "holdout rows" not in x] == [x for x in opened[:k] if "holdout rows" not in x]
+    with pytest.raises(SystemExit, match="ALREADY OPENED"):
+        mod._run(lambda *_: None, True, 1, 5, False)
+    rep = root / "data" / "study_f_report.txt"
+    rep.write_text("KEEP\n")
+    with pytest.raises(SystemExit, match="ALREADY OPENED"):
+        mod.main(True, 1, 5, False)
+    assert rep.read_text() == "KEEP\n"                                            # a refusal never overwrites the report
+    again = []
+    mod._run(again.append, False, 1, 5, False)                                    # without the flag a rerun is still fine after the opening
+    assert again == sealed
+
+
+def test_smoke_v13_marker_is_not_written_when_the_dev_validation_rule_fails(tmp_path, monkeypatch, small_world):
+    mod = _load_script()
+    root = tmp_path / "f"
+    root.mkdir()
+    _write_world(root)
+    monkeypatch.chdir(root)
+    _fake_licence(monkeypatch, passing=False)
+    lines = []
+    mod._run(lines.append, True, 1, 5, False)
+    assert "the holdout is NOT opened" in "\n".join(lines) and not (root / "data" / "holdout_v13.done").exists()
+    (root / "data").mkdir(exist_ok=True)
+    (root / "data" / "holdout_v13.done").write_text("earlier\n")
+    mod._run(lambda *_: None, True, 1, 5, False)                                  # marker exists but nothing passes: no opening, no refusal
+
+
+def _load_head_script(tmp_path):
+    """The run_volfc.py of the last commit (before the marker edit), loaded as a separate module."""
+    import subprocess
+    src = subprocess.run(["git", "show", "HEAD:scripts/run_volfc.py"], capture_output=True, text=True, check=True,
+                         cwd=pathlib.Path(__file__).parent.parent).stdout
+    f = tmp_path / "run_volfc_head.py"
+    f.write_text(src)
+    spec = importlib.util.spec_from_file_location("run_volfc_head", f)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_report_is_identical_to_the_previous_commit_s_script_with_and_without_the_flag(tmp_path, monkeypatch, small_world):
+    head, new = _load_head_script(tmp_path), _load_script()
+    for flag in (False, True):
+        out = {}
+        for tag, mod in (("head", head), ("new", new)):
+            root = tmp_path / f"{tag}{int(flag)}"
+            root.mkdir()
+            _write_world(root)
+            monkeypatch.chdir(root)
+            _fake_licence(monkeypatch)
+            out[tag] = []
+            mod._run(out[tag].append, flag, 1, 5, False)
+        assert out["head"] == out["new"] and len(out["new"]) > 50
+        assert (tmp_path / f"new{int(flag)}" / "data" / "holdout_v13.done").exists() is flag
+        assert not (tmp_path / f"head{int(flag)}" / "data" / "holdout_v13.done").exists()

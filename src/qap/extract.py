@@ -225,6 +225,17 @@ def short_interest_sql(start: str = "2006-01-01") -> str:
     return _select(config.SHORT_INTEREST_COLS, config.SHORT_INTEREST, f"datadate >= '{start}'", "gvkey, iid, datadate")
 
 
+def cboe_vix_sql() -> str:
+    """Daily VIX and sibling indices (v14, Study G): vix is the annualised percentage-point close; vxo, vxn, vxd are extracted for checks only."""
+    return _select(["date", "vix", "vxo", "vxn", "vxd"], config.CBOE_VIX, order="date")
+
+
+def sp500_daily_sql() -> str:
+    """OPTIONAL (v14, information-only robustness): S&P 500 daily index return (sprtrn). Not validated against a live WRDS account; the runner skips
+    cleanly when its parquet is absent."""
+    return _select(["caldt", "sprtrn"], config.CRSP_SP500_DAILY, order="caldt")
+
+
 QUERIES = {
     "crsp_names": crsp_names_sql,
     "crsp_monthly": crsp_monthly_sql,
@@ -244,4 +255,6 @@ QUERIES = {
     "corp_culture": corp_culture_sql,
     "fed_litigation": fed_litigation_sql,
     "short_interest": short_interest_sql,
+    "cboe_vix": cboe_vix_sql,
+    "sp500_daily": sp500_daily_sql,
 }
