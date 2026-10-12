@@ -550,3 +550,29 @@ User chose to run this alongside cheap alternative-data probes. All historical w
   suspects: `trt1m` missing before 1998, or no `exchg`=11 rows so the NYSE 20th-percentile cut is undefined). The pre-registered training start of 1990-01 is therefore replaced by a DATA-DRIVEN start: the first month
   from 1990-01 whose 12-month span holds >= 1,000 usable rows (forward return and >= 15 of 20 features); the first walk-forward year is the first with >= 1,000 usable rows over >= 36 formation months. Explicit
   infeasible windows exit with a clear message. The chosen train_start is recorded in each manifest line. Everything else in v8 is unchanged.
+
+## Result: v8 walk-forward information run (user run; NOT evidence) and the coverage cause
+Coverage block: `cshom` (shares) is missing for 100% of comp.secm rows before 1998 and ~71% in 1998, so market equity (prccm x cshom) is undefined and the universe is empty until 1998-04; trt1m and prccm are fine back to 1985.
+Chosen windows (data-driven): train_start 1998-04, first scored January model 2002 (24 models 2002..2025; 287 scored formation months through 2025-11). Leakage sanity passed (ML IC 0.0324 vs composite 0.0275, ratio 1.18, below 0.10).
+Full-sample 2002-2025 (VW top quintile minus VW eligible universe, 10 bp per one-way turnover): ML IC +0.032 (t 5.5), gross +0.063, net +0.009 %/mo (t 0.1), one-way turnover 0.54;
+equal-weight composite of the same 20 features IC +0.027, gross +0.268, net +0.242 (t 2.7), turnover 0.26; gpa IC +0.016, net +0.136 (t 1.5), turnover 0.03. ML minus composite: -0.233 %/mo (t -2.5);
+by blocks the ML never beats the composite on a VW net basis (2012-2016 +0.02, all other blocks negative; 2022-2025: ML -0.40 vs composite +0.02 vs gpa +0.38).
+Reading: the boosted model has a slightly higher rank IC than the simple composite but its VW top-quintile return is far lower and its turnover double: the information it adds sits in small, hard-to-trade names the
+VW book does not hold. This is an in-sample-contaminated comparison (features, signs and model class were chosen knowing this period; composite signs are standard literature signs) and changes nothing in the v8 forward
+protocol (no tuning after seeing it); prior for the forward test is 'NO EVIDENCE'. The composite's net +0.24 %/mo (t 2.7, turnover 0.26) is itself a hindsight-contaminated number, not a finding.
+
+## Pre-registration v9: alternative-data probes (cheap; written before any code or run)
+Datasets (all verified accessible; columns from the user's probe, docs/wrds_probe_altdata.txt): contrib_general.arc (XBRL reporting complexity, by cik and filing), contrib_general.as_firm_risks (10-K Item 1A text measures, by cik),
+contrib_general.blocksv (13D/G blockholder positions, by company cik-year), contrib_general.classified_boards (cbi, by gvkey), contrib_corporate_culture.corp_culture (call-transcript culture scores, by gvkey-year),
+contrib_corp_fed_litigation.firmyear_level (federal cases, by gvkey-year, 2006-2021). Judged exactly like Studies A and B: net long-minus-universe vs the incumbent gpa (same cost model, $10M 2019 market-size, 1.5x),
+promotion = dev alpha t >= 2.0 and validation alpha > 0, 2020+ sealed and opened once only for promoted signals. SIX signals only (6 trials), direction fixed a priori:
+1. `arc10k` = -(arc of the latest 10-K filed on or before month-end; complexity mispricing, higher complexity -> lower returns); stale > 15 months -> missing; PIT = date_filed.
+2. `rf_len` = -log(1 + item_1a_word_count) of the latest 10-K (more disclosed risk text -> lower returns); PIT = filing_date; stale > 15 months -> missing.
+3. `blocks` = + total blockholder `position` (sum over blockholders of company cik-year; more monitoring -> higher returns); PIT = June 30 of year+1; stale > 18 months; firms with no row = 0 only in years the dataset is populated.
+4. `cbi_neg` = -cbi (classified board indicator, entrenchment -> lower returns); PIT = datadate + 6 months; stale > 18 months.
+5. `culture` = + mean of the five z-scored culture scores (s_integrity, s_teamwork, s_innovation, s_respect, s_quality), z-scored within year; PIT = June 30 of year+1; stale > 18 months.
+6. `litig` = -log(1 + case_f) (cases as defendant); PIT = June 30 of year+1; stale > 18 months; dataset ends 2021, so the signal is missing afterwards.
+Linking: cik -> gvkey via the `cik` column of Compustat annual (a cik mapping to more than one gvkey is dropped), then gvkey -> permno through the date-bounded CCM links as before. Universe: the usual eligible universe
+(common equity, ex-microcaps). Signals exist only in the years the datasets cover (arc/risk text mostly 2006+, litigation 2007-2021, culture 2002+, blocks 1994+, classified boards 1991-2024), so dev/validation windows are SHORT
+for several of them; the promotion rule still applies unchanged and low power is accepted (a signal with fewer than 60 dev months cannot promote). Checks printed first: row counts per dataset, cik->gvkey hit rate, coverage by decade.
+Counted as 6 trials. Honest prior: all are academic datasets with small, mined samples; the most likely outcome is that nothing promotes.

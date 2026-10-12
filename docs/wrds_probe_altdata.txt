@@ -1,0 +1,57 @@
+# cboe: 90 tables: cboe, deltanumber, eqfactor, eqhvol, eqhvolmap, eqmaster, eqprice, eqsplitdiv, eqsplitdivsupp, eqsplitdivtype, ivborrowrate, ivcmdr, ivcmpr, ivdivmap, ivexdr, ivexpr, ivlisted, ivlisted_1998, ivlisted_1999, ivlisted_2000, ivlisted_2001, ivlisted_2002, ivlisted_2003, ivlisted_2004, ivlisted_2005, ivlisted_2006, ivlisted_2007, ivlisted_2008, ivlisted_2009, ivlisted_2010, ivlisted_2011, ivlisted_2012, ivlisted_2013, ivlisted_2014, ivlisted_2015, ivlisted_2016, ivlisted_2017, ivlisted_2018, ivlisted_2019, ivlisted_2020, ivlisted_2021, ivlisted_2022, ivlisted_2023, ivlisted_2024, ivlisted_2025, ivlisted_2026, ivrate, ivratemap, optcontract, optdeliv, optfactor, optprice, optprice_1998, optprice_1999, optprice_2000, optprice_2001, optprice_2002, optprice_2003, optprice_2004, optprice_2005, optprice_2006, optprice_2007, optprice_2008, optprice_2009, optprice_2010, optprice_2011, optprice_2012, optprice_2013, optprice_2014, optprice_2015, optprice_2016, optprice_2017, optprice_2018, optprice_2019, optprice_2020, optprice_2021, optprice_2022, optprice_2023, optprice_2024, optprice_2025, optprice_2026, ovsaudit, ovscalendar, ovscodemap, vw_eqmaster_current, vw_optcontract_current, vwadjeqprice, vwadjeqpricecurdate, vweqbestclose, wrds_eq_opt_merged
+
+## contrib_general.arc
+  32 columns: adsh:VARCHAR, cik:DOUBLE PRECISION, fiscal_period_end:DATE, arc:DOUBLE PRECISION, arc_all_nums:DOUBLE PRECISION, arc_all_monetary:DOUBLE PRECISION, arc_unique_monetary_tags:DOUBLE PRECISION, arc_face:DOUBLE PRECISION, arc_notes:DOUBLE PRECISION, arc_is:DOUBLE PRECISION, arc_bs:DOUBLE PRECISION, arc_cf:DOUBLE PRECISION, arc_eq:DOUBLE PRECISION, arc_un:DOUBLE PRECISION, arc_all_textblock_tags:DOUBLE PRECISION, arc_all_facts:DOUBLE PRECISION, arc_extensions:DOUBLE PRECISION, arc_all_nums_extensions:DOUBLE PRECISION, arc_all_monetary_extensions:DOUBLE PRECISION, arc_unique_monetary_extensions:DOUBLE PRECISION, arc_face_extensions:DOUBLE PRECISION, arc_notes_extensions:DOUBLE PRECISION, arc_pct_extended:DOUBLE PRECISION, arc_all_nums_pct_extended:DOUBLE PRECISION, arc_all_monetary_pct_extended:DOUBLE PRECISION, arc_unique_monetary_pct_extended:DOUBLE PRECISION, sic:DOUBLE PRECISION, filer_status:VARCHAR, form:VARCHAR, date_filed:DATE, date_accepted:TIMESTAMP, nciks:DOUBLE PRECISION
+  rows: 390,956
+  fiscal_period_end range: 2004-12-31 .. 2025-03-31
+  eg: {'adsh': '0001104659-10-049632', 'cik': '1750.0', 'fiscal_period_end': '2010-08-31', 'arc': '99.0', 'arc_all_nums': '232.0', 'arc_all_monetary': '209.0', 'arc_unique_monetary_tags': '93.0', 'arc_face': '99.0', 'arc_notes': '0.0', 'arc_is': '17.0', 'arc_bs': '39.0', 'arc_cf': '35.0', 'arc_eq': '8.0', 'arc_un': '0.0'}
+  eg: {'adsh': '0001104659-10-063683', 'cik': '1750.0', 'fiscal_period_end': '2010-11-30', 'arc': '100.0', 'arc_all_nums': '274.0', 'arc_all_monetary': '243.0', 'arc_unique_monetary_tags': '94.0', 'arc_face': '100.0', 'arc_notes': '0.0', 'arc_is': '17.0', 'arc_bs': '39.0', 'arc_cf': '35.0', 'arc_eq': '9.0', 'arc_un': '0.0'}
+  eg: {'adsh': '0001104659-11-015691', 'cik': '1750.0', 'fiscal_period_end': '2011-02-28', 'arc': '106.0', 'arc_all_nums': '304.0', 'arc_all_monetary': '257.0', 'arc_unique_monetary_tags': '100.0', 'arc_face': '106.0', 'arc_notes': '0.0', 'arc_is': '20.0', 'arc_bs': '39.0', 'arc_cf': '38.0', 'arc_eq': '9.0', 'arc_un': '0.0'}
+
+## contrib_general.as_firm_risks
+  29 columns: cik:VARCHAR, fyear:DOUBLE PRECISION, filing_date:DATE, item_1a_word_count:DOUBLE PRECISION, item_1a_optional:DOUBLE PRECISION, accounting:DOUBLE PRECISION, accounting_probability:DOUBLE PRECISION, accounting_classification:DOUBLE PRECISION, finance:DOUBLE PRECISION, finance_probability:DOUBLE PRECISION, finance_classification:DOUBLE PRECISION, international:DOUBLE PRECISION, international_probability:DOUBLE PRECISION, international_classification:DOUBLE PRECISION, legal:DOUBLE PRECISION, legal_probability:DOUBLE PRECISION, legal_classification:DOUBLE PRECISION, management:DOUBLE PRECISION, management_probability:DOUBLE PRECISION, management_classification:DOUBLE PRECISION, marketing:DOUBLE PRECISION, marketing_probability:DOUBLE PRECISION, marketing_classification:DOUBLE PRECISION, operations:DOUBLE PRECISION, operations_probability:DOUBLE PRECISION, operations_classification:DOUBLE PRECISION, technology:DOUBLE PRECISION, technology_probability:DOUBLE PRECISION, technology_classification:DOUBLE PRECISION
+  rows: 131,920
+  fyear range: 2005.0 .. 2025.0
+  eg: {'cik': '0000000020', 'fyear': '2005.0', 'filing_date': '2005-03-31', 'item_1a_word_count': '0.0', 'item_1a_optional': '0.0', 'accounting': '0.0', 'accounting_probability': '0.0', 'accounting_classification': '0.0', 'finance': '0.0', 'finance_probability': '0.0', 'finance_classification': '0.0', 'international': '0.0', 'international_probability': '0.0', 'international_classification': '0.0'}
+  eg: {'cik': '0000000020', 'fyear': '2006.0', 'filing_date': '2006-03-23', 'item_1a_word_count': '1622.0', 'item_1a_optional': '0.0', 'accounting': '0.0', 'accounting_probability': '0.009591625', 'accounting_classification': '0.0', 'finance': '34.0', 'finance_probability': '0.33187574', 'finance_classification': '0.0', 'international': '13.0', 'international_probability': '0.09807608', 'international_classification': '0.0'}
+  eg: {'cik': '0000000020', 'fyear': '2007.0', 'filing_date': '2007-03-09', 'item_1a_word_count': '17689.0', 'item_1a_optional': '0.0', 'accounting': '142.0', 'accounting_probability': '0.33938134', 'accounting_classification': '0.0', 'finance': '479.0', 'finance_probability': '0.49306965', 'finance_classification': '0.0', 'international': '134.0', 'international_probability': '0.052066933', 'international_classification': '0.0'}
+
+## contrib_general.blocksv
+  8 columns: blockholder_cik:DOUBLE PRECISION, company_cik:DOUBLE PRECISION, blockholder_name:VARCHAR, company_name:VARCHAR, block_type:VARCHAR, year:DOUBLE PRECISION, position:DOUBLE PRECISION, files_13f:DOUBLE PRECISION
+  rows: 608,362
+  year range: 1993.0 .. 2025.0
+  eg: {'blockholder_cik': '80255.0', 'company_cik': '20.0', 'blockholder_name': 'PRICE T ROWE ASSOCIATES INC /M', 'company_name': 'K TRON INTERNATIONAL INC', 'block_type': 'other', 'year': '1995.0', 'position': '6.4', 'files_13f': '1.0'}
+  eg: {'blockholder_cik': '80255.0', 'company_cik': '20.0', 'blockholder_name': 'PRICE T ROWE ASSOCIATES INC /M', 'company_name': 'K TRON INTERNATIONAL INC', 'block_type': 'other', 'year': '1996.0', 'position': '7.9', 'files_13f': '1.0'}
+  eg: {'blockholder_cik': '9015.0', 'company_cik': '20.0', 'blockholder_name': 'BABSON DAVID L & CO INC', 'company_name': 'K TRON INTERNATIONAL INC', 'block_type': 'other', 'year': '1997.0', 'position': '10.69', 'files_13f': '1.0'}
+
+## contrib_general.classified_boards
+  6 columns: gvkey:VARCHAR, datadate:DATE, fyear:SMALLINT, cbi:SMALLINT, cbv:SMALLINT, havemf:SMALLINT
+  rows: 149,695
+  datadate range: 1991-06-30 .. 2024-09-30
+  eg: {'gvkey': '001004', 'datadate': '1992-05-31', 'fyear': '1991', 'cbi': '1', 'cbv': '1', 'havemf': '0'}
+  eg: {'gvkey': '001004', 'datadate': '1993-05-31', 'fyear': '1992', 'cbi': '1', 'cbv': '1', 'havemf': '0'}
+  eg: {'gvkey': '001004', 'datadate': '1994-05-31', 'fyear': '1993', 'cbi': '1', 'cbv': '1', 'havemf': '1'}
+
+## contrib_general.marginal_tax
+  4 columns: gvkey:VARCHAR, year:DOUBLE PRECISION, bcg_mtrnoint:DOUBLE PRECISION, bcg_mtrint:DOUBLE PRECISION
+  rows: 198,785
+  year range: 1980.0 .. 2016.0
+  eg: {'gvkey': '001001', 'year': '1985.0', 'bcg_mtrnoint': '0.4394509594833971', 'bcg_mtrint': '0.4199382061410097'}
+  eg: {'gvkey': '001003', 'year': '1984.0', 'bcg_mtrnoint': '0.382385381425614', 'bcg_mtrint': '0.3556391756547437'}
+  eg: {'gvkey': '001003', 'year': '1985.0', 'bcg_mtrnoint': '0.3725219653002672', 'bcg_mtrint': '0.258177528023011'}
+
+## contrib_corporate_culture.corp_culture
+  9 columns: gvkey:VARCHAR, source:VARCHAR, year:SMALLINT, s_integrity:DOUBLE PRECISION, s_teamwork:DOUBLE PRECISION, s_innovation:DOUBLE PRECISION, s_respect:DOUBLE PRECISION, s_quality:DOUBLE PRECISION, document_length:INTEGER
+  rows: 102,688
+  year range: 2001 .. 2025
+  eg: {'gvkey': '001004', 'source': 'StreetEvents', 'year': '2002', 's_integrity': '1.4476', 's_teamwork': '3.4095', 's_innovation': '1.1499', 's_respect': '2.8808', 's_quality': '3.9272', 'document_length': '2863'}
+  eg: {'gvkey': '001004', 'source': 'StreetEvents', 'year': '2003', 's_integrity': '0.2657', 's_teamwork': '1.3407', 's_innovation': '4.5287', 's_respect': '2.0788', 's_quality': '1.2839', 'document_length': '781'}
+  eg: {'gvkey': '001004', 'source': 'StreetEvents', 'year': '2004', 's_integrity': '1.1846', 's_teamwork': '3.7788', 's_innovation': '2.1971', 's_respect': '2.993', 's_quality': '2.4674', 'document_length': '3517'}
+
+## contrib_corp_fed_litigation.firmyear_level
+  23 columns: gvkey:VARCHAR, year:NUMERIC, ff12:DOUBLE PRECISION, case_p:NUMERIC, anti_p:NUMERIC, civil_p:NUMERIC, contract_p:NUMERIC, env_p:NUMERIC, ip_p:NUMERIC, labor_p:NUMERIC, product_p:NUMERIC, rico_p:NUMERIC, secur_p:NUMERIC, case_f:NUMERIC, anti_f:NUMERIC, civil_f:NUMERIC, contract_f:NUMERIC, env_f:NUMERIC, ip_f:NUMERIC, labor_f:NUMERIC, product_f:NUMERIC, rico_f:NUMERIC, secur_f:NUMERIC
+  rows: 50,447
+  year range: 2006.0 .. 2021.0
+  eg: {'gvkey': '001004', 'year': '2006.0', 'ff12': '9.0', 'case_p': '2.0', 'anti_p': '0.0', 'civil_p': '0.0', 'contract_p': '1.0', 'env_p': '0.0', 'ip_p': '0.0', 'labor_p': '0.0', 'product_p': '0.0', 'rico_p': '1.0', 'secur_p': '0.0', 'case_f': '2.0'}
+  eg: {'gvkey': '001004', 'year': '2007.0', 'ff12': '9.0', 'case_p': '3.0', 'anti_p': '0.0', 'civil_p': '1.0', 'contract_p': '1.0', 'env_p': '0.0', 'ip_p': '0.0', 'labor_p': '0.0', 'product_p': '0.0', 'rico_p': '1.0', 'secur_p': '0.0', 'case_f': '1.0'}
+  eg: {'gvkey': '001004', 'year': '2008.0', 'ff12': '9.0', 'case_p': '5.0', 'anti_p': '0.0', 'civil_p': '1.0', 'contract_p': '3.0', 'env_p': '0.0', 'ip_p': '0.0', 'labor_p': '0.0', 'product_p': '0.0', 'rico_p': '1.0', 'secur_p': '0.0', 'case_f': '2.0'}
