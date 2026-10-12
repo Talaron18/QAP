@@ -18,7 +18,7 @@ New work must add a row BEFORE running and must state the data check, the power 
 | Alternative data (arc, risk text, blockholders, boards, culture, litigation) | v9 / Study C | Nothing promoted | dev, validation | ROADMAP v9 |
 | Earnings-announcement expectation change (EAR, SUE, RSUE, EAR+SUE) | v11 / Study D | Nothing promoted; gross drift real pre-2015 (IC t 5-6), gone after; short-horizon (months 0-1), net ~0 | dev, validation | ROADMAP v11 |
 | gpa paper-trading ledger | v4(a) | RUNNING (implementation check) | forward | `paper_ledger/manifest.jsonl` |
-| International replication of the JKP findings | v10 | IN PROGRESS (descriptive) | non-US, 2020+ unseen | ROADMAP v10 |
+| International replication of the JKP findings | v10 | DONE (descriptive): H1 MIXED, H2 NOT SHORT-LEG, H3 US-SPECIFIC; ex-US spreads roughly halve after 2014 (not Japan), net ~0; no follow-up licensed | non-US all periods | ROADMAP v10 |
 
 ## Candidate families: data feasibility (verified against the WRDS inventory/probe)
 | Family | Needs | Accessible? | Note |
@@ -28,4 +28,4 @@ New work must add a row BEFORE running and must state the data check, the power 
 | Insider purchases, 13F changes, short interest | Thomson insiders/13F, short-interest feed | NO (confirmed absent) | `blocksv` (13D/G) tested in Study C |
 | Order flow / retail-institutional imbalance | TAQ, OptionMetrics, Cboe | NO (permission denied) | |
 | Liquidity / spread / turnover / volatility | CRSP daily, JKP | YES | already inside JKP themes (Size, Low Risk); `wrdssec_midas` (2012-2025) is the only microstructure source; cost-dominated per the research report |
-| International replication | JKP non-US rows | YES | running as v10 |
+| International replication | JKP non-US rows | YES | done as v10 |
