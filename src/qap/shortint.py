@@ -136,7 +136,7 @@ def build_shortint_signals(eligible: pd.DataFrame, links: pd.DataFrame, si: pd.D
     k["sir"], k["dtc"] = sir_dtc(k["shortint"].to_numpy(), k["shrout"], k["mthvol"])
     ek = eligible[["permno", "mi"]].drop_duplicates().assign(elig=True)
     k = k.merge(ek, on=["permno", "mi"], how="left")
-    k["elig"] = k["elig"].fillna(False).astype(bool)
+    k["elig"] = k["elig"].eq(True)
     k["vetoed"] = veto_mask(k["sir"], k["mi"], k["elig"]).to_numpy()
     k["sir_neg"] = -k["sir"]
     k["dtc_neg"] = -k["dtc"]

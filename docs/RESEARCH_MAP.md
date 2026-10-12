@@ -28,7 +28,7 @@ JKP's 153 characteristics span most published characteristic anomalies, so the u
 
 | # | Mechanism | Idea | Data | Status | Effort | Prior | Decision it could change |
 |---|---|---|---|---|---|---|---|
-| 1 | Short interest | informed shorts predict poor returns; usable as a long-side veto (no borrow needed) | Compustat `comp.sec_shortint` (twice monthly) | PRE-REGISTERED v12 (probe confirmed 2006-07..2026-09; I wrongly called it absent earlier) | low | low-moderate (effect is partly borrow-fee driven) | whether to exclude heavily shorted names from the tilt |
+| 1 | Short interest | informed shorts predict poor returns; usable as a long-side veto (no borrow needed) | Compustat `comp.sec_shortint` (twice monthly) | TESTED v12: nothing promoted; persistent small rank IC, payoff in the short leg; veto worth ~0.03 %/mo, not licensed | low | low-moderate (effect is partly borrow-fee driven) | whether to exclude heavily shorted names from the tilt |
 | 2 | Industry momentum / lead-lag | industry returns predict firm returns, distinct from firm momentum | CRSP + SIC (in hand) | UNTESTED-DATA OK | low-medium | low (decayed) | none unless it beats gpa |
 | 3 | Customer-supplier links | news at customers reaches suppliers slowly (Cohen-Frazzini) | Compustat `comp.seg_customer` (names, no customer gvkey) | BLOCKED in practice: probe shows only 2020-06..2026-07 | high (fuzzy name matching) | low-moderate | only if net of costs in large caps |
 | 4 | Mutual-fund holdings and flows | flow-induced price pressure, fund herding (Coval-Stafford) | `crsp_q_mutualfunds` (holdings, flows, TNA) | UNTESTED-DATA? | high (fund-to-stock aggregation, report-date timing) | low (decayed after 2008) | none likely |
@@ -45,6 +45,6 @@ analyst revisions and forecasts (I/B/E/S, Zacks); insider trades and 13F institu
 
 ## 4. Reading the map
 - The covered rows are not "failed ideas of equal quality": most carried a real **gross** effect before about 2015 that turned out to be cost- or decay-limited in the tradable (value-weighted, ex-microcap, long-only) book.
-- The remaining untested mechanisms are, on my honest read, low prior: the two with the highest expected information per unit effort are #1 (short interest, now pre-registered as v12) and #11 (a timing upgrade, not a new signal).
+- The remaining untested mechanisms are, on my honest read, low prior: the two with the highest expected information per unit effort are #1 (short interest, now tested: v12, nothing promoted) and #11 (a timing upgrade, not a new signal).
 - Anything on the list is a new family and must go through the usual gate: data probe first, power estimate, pre-registration, one judged run.
 - Completeness caveat: this taxonomy follows the published anomaly literature and our data inventory; it is not a proof that no other mechanism exists.
