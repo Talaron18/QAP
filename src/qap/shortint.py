@@ -140,7 +140,10 @@ def build_shortint_signals(eligible: pd.DataFrame, links: pd.DataFrame, si: pd.D
     k["vetoed"] = veto_mask(k["sir"], k["mi"], k["elig"]).to_numpy()
     k["sir_neg"] = -k["sir"]
     k["dtc_neg"] = -k["dtc"]
-    k["gpa_veto"] = k["gpa"].where(~k["vetoed"])
+    # months with no eligible name carrying a SIR (before the data start) have no veto at all: gpa_veto is MISSING there, not equal to gpa,
+    # so its series lives on the same months as sir_neg / dtc_neg and the dev window is the ~100 months the pre-registration states
+    month_has_si = (k["elig"] & k["sir"].notna()).groupby(k["mi"]).transform("any")
+    k["gpa_veto"] = k["gpa"].where(~k["vetoed"] & month_has_si)
     return k, stats
 
 

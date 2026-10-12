@@ -186,11 +186,23 @@ def test_veto_decile_is_formed_among_eligible_names_only_but_applies_to_the_whol
     assert m.tolist() == [False, True, False, False]
 
 
-def test_zero_vetoes_gpa_veto_equals_gpa_row_for_row_and_veto_is_applied_before_ranking():
+def test_months_without_any_sir_have_gpa_veto_missing_not_equal_to_gpa_and_later_months_equal_gpa_off_the_veto():
+    permnos = list(range(1, 21))
+    links = _links([(f"{p:06d}", p, "01") for p in permnos])
+    si = _si([(f"{p:06d}", "01", "2012-04-02", 100.0 * p) for p in permnos])                  # first record 2012-04-02, usable from 2012-04-16
+    base = _base(permnos, ["2012-02-29", "2012-04-30"], np.tile(np.linspace(0.1, 0.9, 20), 2))
+    panel = _panel_for(permnos, base["mi"].unique().tolist(), [1000.0, 1000.0], [100.0, 100.0])
+    sig, _ = build_shortint_signals(base[["permno", "mi"]], links, si, base, panel)
+    early, late = sig[sig["mi"] == sig["mi"].min()], sig[sig["mi"] == sig["mi"].max()]
+    assert early["sir"].isna().all() and early["gpa_veto"].isna().all()                          # no SIR in the month: no veto series, NOT gpa
+    ok = ~late["vetoed"]
+    assert late["vetoed"].sum() == 2 and (late.loc[ok, "gpa_veto"] == late.loc[ok, "gpa"]).all() and late.loc[~ok, "gpa_veto"].isna().all()
+
+
+def test_nobody_with_a_sir_leaves_gpa_veto_all_missing_and_veto_is_applied_before_ranking():
     _, links, _, base, panel = _veto_world()
     sig0, _ = build_shortint_signals(base[["permno", "mi"]], links, _si([("000099", "01", "2012-04-02", 1.0)]), base, panel)     # nobody has a SIR
-    assert not sig0["vetoed"].any() and sig0["sir_neg"].isna().all()
-    pd.testing.assert_series_equal(sig0["gpa_veto"], sig0["gpa"], check_names=False)
+    assert not sig0["vetoed"].any() and sig0["sir_neg"].isna().all() and sig0["gpa_veto"].isna().all()
     # ranked after the veto: the remaining 18 names fill the percentile scale
     _, links, si, base, panel = _veto_world(with_sir=20)
     s, _ = build_shortint_signals(base[["permno", "mi"]], links, si, base, panel)
@@ -319,6 +331,10 @@ def test_script_end_to_end_checks_first_three_trials_floor_info_block_and_jobs_i
     assert sorted(t["name"] for t in trials) == sorted(f"studyE:{n}" for n in NAMES) and {t["spec"]["prereg"] for t in trials} == {"v12"}
     assert json.loads((a / "data" / "study_e_promoted.json").read_text()) == json.loads((b / "data" / "study_e_promoted.json").read_text())
     assert (a / "data" / "study_e_promoted.json").exists()
+    # the size floor's dev window starts with the short-interest data (2006), not the 1998 start of the panel
+    import re
+    m = re.search(r"improvement over gpa: dev .*?\((?:t [-\d.nan]+), (\d+) months\)", txt)
+    assert m and 0 < int(m.group(1)) <= 9 * 12 + 1, txt
 
 
 def test_script_removes_gpa_veto_when_the_size_floor_fails_and_logs_it(tmp_path, monkeypatch, world):
