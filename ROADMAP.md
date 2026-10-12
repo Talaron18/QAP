@@ -576,3 +576,8 @@ Linking: cik -> gvkey via the `cik` column of Compustat annual (a cik mapping to
 (common equity, ex-microcaps). Signals exist only in the years the datasets cover (arc/risk text mostly 2006+, litigation 2007-2021, culture 2002+, blocks 1994+, classified boards 1991-2024), so dev/validation windows are SHORT
 for several of them; the promotion rule still applies unchanged and low power is accepted (a signal with fewer than 60 dev months cannot promote). Checks printed first: row counts per dataset, cik->gvkey hit rate, coverage by decade.
 Counted as 6 trials. Honest prior: all are academic datasets with small, mined samples; the most likely outcome is that nothing promotes.
+
+- **v9 amendment before the first real run (found in the synthetic smoke):** binary or heavily tied signals (cbi_neg, litig: every case_f == 0 row ties at the maximum) leave the top quintile EMPTY in any month where the tied group holds
+  >= 40% of ranked names (average-rank quintiles), which would fail the signal for a structural reason and still log a trial. Fix: add 1e-9 x a fixed per-permno hash key (Knuth multiplicative) to every signal so exact ties are ordered the same way
+  every month (the long/short legs then hold a fixed pseudo-random subset of the tied group; unbiased, less efficient; distinct values keep their order). Applied to all six signals for consistency. A promotion minimum of 60 dev months
+  is implemented via `promotion_stats(min_dev_months=60)` as pre-registered.

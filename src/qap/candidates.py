@@ -171,14 +171,19 @@ def _tstat(x: pd.Series) -> float:
     return float(x.mean() / (x.std(ddof=1) / np.sqrt(len(x)))) if len(x) > 2 else float("nan")
 
 
-def promotion_stats(rc: pd.Series, rg: pd.Series, alpha_t_min: float = 2.0) -> dict:
+def promotion_stats(rc: pd.Series, rg: pd.Series, alpha_t_min: float = 2.0, min_dev_months: int = 24) -> dict:
     """Pre-registered rule. rc, rg: monthly NET long-minus-universe returns of the candidate and of gpa.
 
     Promote iff the dev alpha t >= alpha_t_min (plain OLS of rc on rg) AND the validation alpha, computed
     with the DEV beta (mean(rc - b_dev * rg)), is > 0. Everything else is information only.
+    A series with fewer than `min_dev_months` overlapping dev months (default 24; v9 uses 60) or fewer than 12 validation
+    months cannot promote: it returns PROMOTE False and a `note` instead of statistics (also for empty series).
     """
     j = pd.concat([rc.rename("c"), rg.rename("g")], axis=1).dropna()
     dev, val = _window(j, *DEV), _window(j, *VAL)
+    if len(dev) >= 24 and len(dev) < min_dev_months:
+        return {"dev_months": int(len(dev)), "val_months": int(len(val)), "PROMOTE": False,
+                "note": f"fewer than {min_dev_months} overlapping dev months (pre-registered minimum); cannot promote"}
     if len(dev) < 24 or len(val) < 12:
         return {"dev_months": int(len(dev)), "val_months": int(len(val)), "PROMOTE": False,
                 "note": "too few overlapping months (empty quintile or sparse signal)"}

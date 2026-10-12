@@ -4,7 +4,7 @@ Run where your WRDS credentials live:
     WRDS_USERNAME=you python scripts/wrds_extract.py [dataset ...]
 Datasets: crsp_monthly crsp_delistings ccm_links compustat_annual compustat_quarterly ff_monthly (default: all)
 plus crsp_daily_agg (per-year server-side liquidity aggregation; resumable; run it explicitly),
-rq_data kpss_patents patent_grants (Study B), comp_secm (paper trading), comp_secm_hist (1985- history for the ML check), crsp_names (ETF check) and jkp_us (Study A: one parquet per year, resumable).
+rq_data kpss_patents patent_grants (Study B), arc_data risk_text blockholders class_boards corp_culture fed_litigation (Study C, v9 alt-data), comp_secm (paper trading), comp_secm_hist (1985- history for the ML check), crsp_names (ETF check) and jkp_us (Study A: one parquet per year, resumable).
 """
 import pathlib
 import sys

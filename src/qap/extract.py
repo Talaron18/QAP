@@ -175,6 +175,32 @@ def comp_secm_sql(columns: Sequence[str], start: str = "2022-01-01") -> str:
     return _select(list(columns), config.COMP_SECM, where, "gvkey, iid, datadate")
 
 
+def arc_sql() -> str:
+    """XBRL reporting complexity per filing; ALL forms (the 10-K filter is applied in pandas)."""
+    return _select(["cik", "fiscal_period_end", "arc", "form", "date_filed"], config.ARC_TABLE, order="cik, date_filed")
+
+
+def risk_text_sql() -> str:
+    return _select(["cik", "fyear", "filing_date", "item_1a_word_count"], config.RISK_TEXT_TABLE, order="cik, filing_date")
+
+
+def blockholders_sql() -> str:
+    return _select(["company_cik", "blockholder_cik", "year", '"position"', "block_type"], config.BLOCKS_TABLE, order="company_cik, year")
+
+
+def class_boards_sql() -> str:
+    return _select(["gvkey", "datadate", "fyear", "cbi"], config.CLASS_BOARDS_TABLE, order="gvkey, datadate")
+
+
+def corp_culture_sql() -> str:
+    return _select(["gvkey", "source", "year", "s_integrity", "s_teamwork", "s_innovation", "s_respect", "s_quality"],
+                   config.CULTURE_TABLE, order="gvkey, year, source")
+
+
+def fed_litigation_sql() -> str:
+    return _select(["gvkey", "year", "case_p", "case_f"], config.LITIGATION_TABLE, order="gvkey, year")
+
+
 QUERIES = {
     "crsp_names": crsp_names_sql,
     "crsp_monthly": crsp_monthly_sql,
@@ -187,4 +213,10 @@ QUERIES = {
     "kpss_patents": kpss_sql,
     "patent_grants": patent_grants_sql,
     "ff_monthly": ff_monthly_sql,
+    "arc_data": arc_sql,
+    "risk_text": risk_text_sql,
+    "blockholders": blockholders_sql,
+    "class_boards": class_boards_sql,
+    "corp_culture": corp_culture_sql,
+    "fed_litigation": fed_litigation_sql,
 }

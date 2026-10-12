@@ -69,3 +69,11 @@ COMP_SECM_OPTIONAL = ["fic", "curcdm"]
 
 # Single-stock ETF check (pre-registration v5): CRSP name history, pulled with select * (column names confirmed from the output)
 CRSP_NAMES = "crsp.stocknames_v2"
+
+# Alternative-data probes (pre-registration v9); small contributed tables, columns confirmed by docs/wrds_probe_altdata.txt
+ARC_TABLE = "contrib_general.arc"
+RISK_TEXT_TABLE = "contrib_general.as_firm_risks"
+BLOCKS_TABLE = "contrib_general.blocksv"
+CLASS_BOARDS_TABLE = "contrib_general.classified_boards"
+CULTURE_TABLE = "contrib_corporate_culture.corp_culture"
+LITIGATION_TABLE = "contrib_corp_fed_litigation.firmyear_level"
