@@ -49,15 +49,15 @@ def standardise(raw: pd.DataFrame, us: bool = False) -> pd.DataFrame:
     ids = pd.to_numeric(raw["permno" if us else "id"])
     if ids.isna().any():
         raise ValueError("missing security ids")
-    d = pd.DataFrame({"id": ids.to_numpy(dtype="int64"),
-                      "excntry": np.full(len(raw), "USA", dtype=object) if us else raw["excntry"].astype(str).to_numpy(dtype=object),
-                      "mi": to_mi(raw["eom"]).to_numpy(dtype="int64"),
-                      "size_grp": raw["size_grp"].astype(str).to_numpy(dtype=object),
-                      "ret": _f64(raw["ret_exc_lead1m"]), "me": _f64(raw["me"])})
+    cols = {"id": ids.to_numpy(dtype="int64"),
+            "excntry": np.full(len(raw), "USA", dtype=object) if us else raw["excntry"].astype(str).to_numpy(dtype=object),
+            "mi": to_mi(raw["eom"]).to_numpy(dtype="int64"),
+            "size_grp": raw["size_grp"].astype(str).to_numpy(dtype=object),
+            "ret": _f64(raw["ret_exc_lead1m"]), "me": _f64(raw["me"])}
     for c in MEMBER_COLS:
         if c in raw.columns:
-            d[c] = _f64(raw[c])
-    return d
+            cols[c] = _f64(raw[c])
+    return pd.DataFrame(cols)
 
 
 def score_frame(d: pd.DataFrame, min_stocks: int = MIN_STOCKS, themes: dict = THEMES) -> tuple:
@@ -76,14 +76,21 @@ def score_frame(d: pd.DataFrame, min_stocks: int = MIN_STOCKS, themes: dict = TH
     tab = pd.DataFrame({"cm": cm, "excntry": d["excntry"], "region": region, "mi": d["mi"]}).drop_duplicates("cm")
     tab = tab.merge(pd.DataFrame({"cm": cm, "rows": 1, "n": elig.astype("int64")}).groupby("cm").sum().reset_index(), on="cm")
     tab["kept"] = tab["n"] >= min_stocks
+    tab["nospread"] = False
     info = {"cm": tab,
             "size": pd.DataFrame({"region": region, "size_grp": d["size_grp"]}).value_counts().rename("rows").reset_index()}
     keep = elig & (n_elig >= min_stocks)
     d, cm, region = d[keep].reset_index(drop=True), cm[keep], region[keep].reset_index(drop=True)
     if d.empty:
-        info["slow"] = pd.DataFrame({"region": [], "rows": [], "ok": []})
-        return pd.DataFrame(columns=BASE_COLS + SIGNALS), info
-    d["cm"] = cm
+        info["slow"] = pd.DataFrame({"region": pd.Series([], dtype=object), "rows": pd.Series([], dtype="int64"),
+                                     "ok": pd.Series([], dtype="int64")})
+        empty = {c: pd.Series([], dtype="float64") for c in ("ret", "me", "hs", *SIGNALS)}
+        empty.update({c: pd.Series([], dtype="int64") for c in ("id", "mi", "cm")})
+        empty.update({"excntry": pd.Series([], dtype=object), "region": pd.Categorical([], categories=REGION_ORDER)})
+        return pd.DataFrame(empty)[BASE_COLS + SIGNALS], info
+    d = d.assign(cm=cm)
+    has = (d["bidaskhl_21d"].notna() if "bidaskhl_21d" in d else pd.Series(False, index=d.index)).groupby(d["cm"]).any()
+    tab["nospread"] = tab["cm"].map(has).eq(False)               # kept country-months with no spread data at all (cost falls back to 0)
     sc = add_composites(theme_scores(d, themes, group="cm"), d["cm"])
     if "gp_at" in d:
         sc["gp_at"] = d.groupby("cm")["gp_at"].rank(pct=True) - 0.5
@@ -385,7 +392,7 @@ def format_tables(series: dict) -> list:
     return L
 
 
-def format_checks(info: dict, missing: dict) -> list:
+def format_checks(info: dict, missing: dict, min_stocks: int = MIN_STOCKS) -> list:
     """CHECKS block: rows per region x decade, countries kept / dropped by the >= 100 rule, slow10 coverage, size_grp mix, missing columns."""
     cm = info["cm"].copy()
     cm["decade"] = (cm["mi"] // 12 // 10) * 10
@@ -407,9 +414,14 @@ def format_checks(info: dict, missing: dict) -> list:
             L.append(f"  {ctry}: NO DATA")
             continue
         k, dr = c[c["kept"]], c[~c["kept"]]
+        thin, nolead = dr[dr["rows"] < min_stocks], dr[dr["rows"] >= min_stocks]
         span = "none kept (COUNTRY DROPPED)" if k.empty else f"{_ym(k['mi'].min())}..{_ym(k['mi'].max())}"
-        drop = "" if dr.empty else f"; dropped {_ym(dr['mi'].min())}..{_ym(dr['mi'].max())}"
-        L.append(f"  {ctry} ({COUNTRY_REGION[ctry]}): kept {len(k)} / dropped {len(dr)} months; kept {span}{drop}")
+        tspan = "" if thin.empty else f" ({_ym(thin['mi'].min())}..{_ym(thin['mi'].max())})"
+        L.append(f"  {ctry} ({COUNTRY_REGION[ctry]}): kept {len(k)} months ({span}); dropped thin (< {min_stocks} listed rows) {len(thin)}{tspan}; "
+                 f"dropped with >= {min_stocks} rows but < {min_stocks} eligible (no next-month return / me) {len(nolead)}")
+    ns = cm[cm["kept"] & cm["nospread"]]
+    L.append(f"kept country-months with NO bidaskhl_21d at all (half-spread falls back to 0 = no cost; flatters net): {len(ns)} of {int(cm['kept'].sum())}"
+             + ("" if ns.empty else "; by region/decade " + ", ".join(f"{r} {int(d)}s {len(z)}" for (r, d), z in ns.groupby(["region", "decade"]))))
     L.append("share of kept rows with >= 8 of 10 slow themes available (jkp_slow10 defined):")
     for _, row in info["slow"].iterrows():
         L.append(f"  {str(row['region']):18s} {row['ok'] / max(row['rows'], 1):.1%} of {int(row['rows']):,}")
