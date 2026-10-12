@@ -5,14 +5,14 @@ spec live in [ROADMAP.md](../ROADMAP.md); the original brief is [research_report
 
 ## Bottom line
 
-After 66 logged trials on 1963-2025 US equity data (CRSP + Compustat + JKP characteristics, WRDS), **no strategy has been validated
+After 72 logged trials on 1963-2025 US equity data (CRSP + Compustat + JKP characteristics, WRDS), **no strategy has been validated
 out of sample net of costs.** The one signal that survives costs, gross profitability (gpa), has a small, decaying edge
 (+0.18 %/mo, t 1.9 on 1990-2014; +0.10, t 0.6 on 2015-19; the long-only tilt version was +0.06 %/mo, t 0.4 on the 2020+ holdout).
 What *is* valuable and reusable: a leakage-safe research pipeline, a cost model, a trial registry, pre-registered studies with sealed
 windows, and a forward paper-trading ledger. For a USD 35,000 taxable account the defensible position is a passive core, optionally
 with a small quality/profitability tilt, with the ledger running as an implementation check - not a deployed alpha strategy.
 
-## What was built (all in `src/qap/`, scripts in `scripts/`, 186 tests)
+## What was built (all in `src/qap/`, scripts in `scripts/`, 235 tests)
 
 - **Data/PIT plumbing:** CCM link filter, CIZ delisting-return handling, point-in-time annual fundamentals (4-month lag), month-grid and
   unit-calibration assertions, label builder with t+1 lag, purged/embargoed splits, rank IC, deflated Sharpe.
@@ -37,6 +37,8 @@ with a small quality/profitability tilt, with the ledger running as an implement
 | Diagnostic (b), why IC does not become return | Costs (turnover ~39%/mo for the all-13 composite), information sits in the **short** leg, decay after 2014; not a small-cap effect |
 | Single-stock leveraged/inverse ETFs for the short leg (v5) | **Not viable**: 2025 coverage of the bottom quintile 0.1-5.6% (only ~16 inverse products live, all mega-caps) |
 | Direct margin short, break-even borrow cost | `jkp_slow10` break-even 4.6-6.5 %/yr; assumed fees for the real basket ~0.4-0.7 %/yr (82% of weight in >= $10B names) - borrow is not the binding constraint |
+| Alternative-data probes (v9): arc complexity, 10-K risk text, blockholders, classified boards, culture, litigation | Nothing promoted: all dev t < 1.3 vs gpa; blocks significantly wrong-signed in validation (t -2.7); cbi_neg consistent but weak (t 1.1-1.5); 6 trials |
+| Forward-only ML check (v8; frozen, running) | Walk-forward (information only): boosted trees IC 0.032 but net L-U +0.01 %/mo vs simple composite +0.24 vs gpa +0.14; forward decision not before ~late 2029, prior 'no evidence' |
 | Tax-aware direct indexing / loss harvesting, 150-name DIY index, 53 ten-year windows (v7) | median benefit **+0.17 %/yr** (hold-indefinitely), ~0.03 %/yr if liquidated; TE 1.1 %/yr; **not worth the complexity**; DIY index vs total market adds ~4 %/yr tracking error |
 | **One-shot sealed window, long-short `jkp_slow10` (v6)** | net 0.50 %/mo, **t 0.89 -> INCONCLUSIVE**. All of it in 2021-22 (2022: +35%); 2023-25 flat/negative; max drawdown -30%; short leg only; FF4 alpha 0.39 (t 1.15) with large size and momentum loadings |
 
@@ -48,7 +50,7 @@ long-only investor cannot use (short leg, small and illiquid names, high turnove
 - 2020+ for gpa-based models (signals run, tilt, candidates): spent.
 - 2020+ for JKP composites (`jkp_slow10` long-short): spent by v6. There is no second look.
 - 2015-2019 validation: seen many times; anything designed from it needs forward data.
-- 66 unique trials logged; any new search should be judged against that count (deflated Sharpe) and, ideally, forward in time only.
+- 72 unique trials logged (plus the two forward-only ML models); any new search should be judged against that count (deflated Sharpe) and, ideally, forward in time only.
 
 ## Live: the paper-trading ledger (keep running)
 

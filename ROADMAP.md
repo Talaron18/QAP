@@ -581,3 +581,12 @@ Counted as 6 trials. Honest prior: all are academic datasets with small, mined s
   >= 40% of ranked names (average-rank quintiles), which would fail the signal for a structural reason and still log a trial. Fix: add 1e-9 x a fixed per-permno hash key (Knuth multiplicative) to every signal so exact ties are ordered the same way
   every month (the long/short legs then hold a fixed pseudo-random subset of the tied group; unbiased, less efficient; distinct values keep their order). Applied to all six signals for consistency. A promotion minimum of 60 dev months
   is implemented via `promotion_stats(min_dev_months=60)` as pre-registered.
+
+## RESULT v9 / Study C (user run): alternative-data probes - nothing promoted (holdout not opened)
+Checks: cik->gvkey linking unique for 69-72% of each dataset's ciks (rest not in Compustat; 0 ambiguous); coverage by decade: arc10k 80% (2010s), rf_len 91%, blocks 97%, cbi_neg 92%, culture 88%, litig 78% (2010s).
+The tie amendment mattered: before it cbi_neg's long leg would have been empty in 310 of 337 pre-2020 months (median tied share 45%); litig's tied share was 30%.
+Net long-minus-universe, % per month (t), dev / validation (dev months differ by signal: arc10k 66, rf_len 118, blocks 245, cbi_neg 275, culture 145, litig 88):
+arc10k -0.009 (-0.04) / +0.354 (1.29); rf_len -0.120 (-0.92) / -0.015 (-0.15); blocks +0.027 (0.22) / -0.381 (-2.67); cbi_neg +0.078 (1.10) / +0.133 (1.50); culture -0.115 (-1.05) / +0.329 (1.86); litig +0.040 (0.18) / +0.077 (0.42).
+Promotion (alpha over gpa, dev t >= 2.0 and validation alpha > 0): every dev alpha t is below 1.3 in absolute value (best: litig 1.06, cbi_neg 1.16) => **PROMOTED: NONE**. 72 cumulative unique trials.
+Reading: no signal has development evidence; the two with positive validation alpha (arc10k, culture) had ~zero or negative development alpha, i.e. sign instability not signal; blocks is significantly negative in validation (the
+opposite of the registered direction); cbi_neg is the only one with a consistent positive sign in both windows but t 1.1-1.5 on a 1991-2024 governance indicator that is widely known. The 2020+ window was not opened.
