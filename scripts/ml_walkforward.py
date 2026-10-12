@@ -1,6 +1,6 @@
 """INFORMATION-ONLY walk-forward run of the frozen v8 ML protocol over formation months 1995-01..2025-11 (ROADMAP 'Pre-registration v8').
 
-    python scripts/ml_walkforward.py [--first-year 1995] [--jobs 4]
+    python scripts/ml_walkforward.py [--first-year YYYY] [--train-start YYYY-MM] [--jobs 4]
 Needs data/raw/comp_secm_hist.parquet and data/raw/compustat_annual.parquet. Retrains every January on formation months 1990-01..previous
 November (labels through December) and scores that year's months; compares the ML score with the equal-weight composite and with gpa
 (rank IC, VW top-quintile minus VW universe, gross and net of 10 bp per one-way turnover). Writes data/ml_walkforward_report.txt.
@@ -52,7 +52,7 @@ def block_table(m: pd.DataFrame, years: int = 5) -> list:
     return lines
 
 
-def main(first_year: int, jobs: int, train_start: str) -> None:
+def main(first_year, jobs: int, train_start) -> None:
     report = []
 
     def log(x=""):
@@ -71,16 +71,27 @@ def _run(log, first_year, jobs, train_start) -> None:
     t0 = time.time()
     log(CAVEAT)
     secm, funda = pd.read_parquet(RAW / "comp_secm_hist.parquet"), pd.read_parquet(RAW / "compustat_annual.parquet")
+    log("== COVERAGE DIAGNOSTIC (printed first) ==")
+    for ln in ml.raw_coverage_lines(secm):
+        log(ln)
     b = ml.build_from_raw(secm, funda, max_mi=ml.WALKFORWARD_LAST_MI + 1)       # nothing after formation 2025-11 / return 2025-12 is ever built
-    w = ml.walkforward_inputs(b, first_year)
+    log("")
+    for ln in ml.panel_coverage_lines(b["features"], b["pseudo"]):
+        log(ln)
+    try:
+        w = ml.walkforward_inputs(b, first_year, None if train_start is None else ml.parse_ym(train_start))
+    except ml.InfeasibleWindow as e:
+        raise SystemExit(f"INFEASIBLE WINDOW: {e}")
     F, last_mi = w["features"], w["cap"]
+    log(f"\nchosen: train_start {ml.ym(w['train_start'])} ({'explicit' if train_start else 'data-driven'}), first_year {w['first_year']} "
+        f"({'explicit' if first_year else 'data-driven'}); scored January models {w['years'][0]}..{w['years'][-1]}")
     log(f"\nsecm rows {len(secm):,}; ME scale {b['scale']:g} (ratio {b['ratio']:.3f}); months {ml.ym(int(F['mi'].min()))}..{ml.ym(last_mi)}; "
         f"feature rows {len(F):,} (eligible universe); build {time.time() - t0:.0f}s")
     cov, share = ml.coverage(F, last_mi)
     log("feature coverage, latest month: " + ", ".join(f"{k} {v:.0%}" for k, v in cov.items()) + f"; >= {ml.MIN_FEATURES_COVERAGE} of 20: {share:.1%}")
     R = ml.rank_features(F)
     years = w["years"]
-    set_context(R=R, last_mi=last_mi, train_start=ml.parse_ym(train_start), jobs=jobs)
+    set_context(R=R, last_mi=last_mi, train_start=w["train_start"], jobs=jobs)
     t1 = time.time()
     parts = pmap(_fit_year, years, jobs)
     wf = pd.concat(parts, ignore_index=True)
@@ -106,8 +117,8 @@ def _run(log, first_year, jobs, train_start) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--first-year", type=int, default=1995)
+    ap.add_argument("--first-year", type=int, default=None, help="default: first year whose January model is feasible (data-driven)")
     ap.add_argument("--jobs", type=int, default=1)
-    ap.add_argument("--train-start", default="1990-01")
+    ap.add_argument("--train-start", default=None, help="YYYY-MM; default: data-driven, never before 1990-01")
     a = ap.parse_args()
     main(a.first_year, a.jobs, a.train_start)

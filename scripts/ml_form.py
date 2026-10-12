@@ -38,8 +38,15 @@ def main(first: str) -> None:
 def _run(log, first) -> None:
     require_inputs([RAW / "comp_secm_hist.parquet", RAW / "compustat_annual.parquet"], "Run: python scripts/wrds_extract.py comp_secm_hist compustat_annual")
     secm, funda = pd.read_parquet(RAW / "comp_secm_hist.parquet"), pd.read_parquet(RAW / "compustat_annual.parquet")
+    log("== COVERAGE DIAGNOSTIC (printed first) ==")
+    for ln in ml.raw_coverage_lines(secm):
+        log(ln)
     b = ml.build_from_raw(secm, funda)
     F, last_mi = b["features"], b["last_mi"]
+    log("")
+    for ln in ml.panel_coverage_lines(F, b["pseudo"]):
+        log(ln)
+    log("")
     if b["partial_mi"] is not None:
         log(f"NOTE: {ml.ym(b['partial_mi'])} is a partial month in comp.secm and is ignored; last complete month {ml.ym(last_mi)}")
     log("== CHECKS (printed before any score is written) ==")
@@ -61,11 +68,22 @@ def _run(log, first) -> None:
     if not months:
         log("nothing new to freeze")
         return
+    try:
+        ts = ml.choose_windows(F, last_mi)["train_start"]               # same data-driven start as the walk-forward
+        counts = ml.usable_counts(F)
+        for year in sorted({ml.model_year(mi) for mi in months}):
+            rows, nmon = ml.train_stats(counts, ts, year)
+            if rows < ml.MIN_TRAIN_ROWS or nmon < ml.MIN_TRAIN_MONTHS:
+                raise ml.InfeasibleWindow(f"the {year} model would train on {rows} usable rows over {nmon} months (needs >= {ml.MIN_TRAIN_ROWS} and "
+                                          f">= {ml.MIN_TRAIN_MONTHS}) from train_start {ml.ym(ts)}")
+    except ml.InfeasibleWindow as e:
+        raise SystemExit(f"INFEASIBLE WINDOW, nothing written: {e}")
+    log(f"train_start {ml.ym(ts)} (data-driven)")
     R = ml.rank_features(F)
     for year in sorted({ml.model_year(mi) for mi in months}):
         need = [mi for mi in months if ml.model_year(mi) == year]
-        sc = ml.fit_predict_year(R, year, last_mi, pred_months=need)
-        mid = ml.model_id(ml.train_window(year)[1])
+        sc = ml.fit_predict_year(R, year, last_mi, train_start_mi=ts, pred_months=need)
+        mid = ml.model_id(ml.train_window(year, ts)[1], ts)
         for mi in need:
             form = ml.make_form(sc, mi)
             if form.empty:
@@ -76,7 +94,7 @@ def _run(log, first) -> None:
             except FileExistsError as e:
                 log(f"  {ml.ym(mi)}: {e}; kept")
                 continue
-            log(f"  {ml.ym(mi)}: written, {len(form):,} names, {ml.form_group(mi, today)}, model train<={ml.ym(ml.train_window(year)[1])}, sha {sha[:10]}")
+            log(f"  {ml.ym(mi)}: written, {len(form):,} names, {ml.form_group(mi, today)}, model train {ml.ym(ts)}..{ml.ym(ml.train_window(year, ts)[1])}, sha {sha[:10]}")
     log("\nNext: git add paper_ledger/ml_manifest.jsonl && git commit && git push; settle with `python scripts/ml_settle.py` after the next month's refresh.")
 
 

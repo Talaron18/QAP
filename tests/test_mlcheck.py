@@ -1,4 +1,5 @@
 import json
+import re
 
 import numpy as np
 import pandas as pd
@@ -534,3 +535,93 @@ def test_walkforward_never_touches_forward_only_months():
         ml._TEST_MODEL_OVERRIDES.clear()
     m = ml.evaluate_scores(wf, w["ret"])
     assert wf["mi"].max() == w["cap"] and m.index.max() == w["cap"] and m.index.max() < ml.parse_ym("2025-12")
+
+
+# ------------------------------------------------------------------------------------------------- data-driven windows, coverage
+def _late_history_world(n=150, start="1995-01", end="2008-12", blind_before=1998, seed=41):
+    """World whose returns are missing (trt1m NaN) before `blind_before`, emulating a comp.secm pull whose usable history starts late."""
+    secm, funda = make_secm_world(n=n, start=start, end=end, seed=seed, k=0.01)
+    secm.loc[secm["datadate"] < pd.Timestamp(f"{blind_before}-01-01"), "trt1m"] = pd.NA
+    return secm, funda
+
+
+def test_coverage_text_has_expected_years_and_shares():
+    secm, funda = _late_history_world()
+    b = ml.build_from_raw(secm, funda)
+    txt = ml.coverage_text(secm, b["features"], b["pseudo"])
+    raw = {int(ln.split()[0]): ln.split() for ln in ml.raw_coverage_lines(secm)[2:]}
+    assert set(raw) == set(range(1995, 2009))
+    assert raw[1996][2] == "0%" and raw[1999][2] == "100%" and raw[1999][5] == "50%"          # trt1m share, exchg == 11 share
+    built = {int(ln.split()[0]): ln.split() for ln in ml.panel_coverage_lines(b["features"], b["pseudo"])[2:]}
+    assert min(built) == 1995 and "RAW comp.secm" in txt and "BUILT panel" in txt
+    assert built[1996][3] == "0"                                                               # no forward return before 1998
+    assert int(built[2000][3].replace(",", "")) > 0 and built[2000][5] != "0%"                 # beta share present once history exists
+
+
+def test_windows_are_data_driven_and_explicit_infeasible_values_get_a_clear_message():
+    secm, funda = _late_history_world()
+    b = ml.build_from_raw(secm, funda)
+    F = b["features"]
+    w = ml.choose_windows(F, b["last_mi"])
+    assert 1997 * 12 + 11 <= w["train_start"] <= 1998 * 12 + 6               # 1997-12 is the first month with a forward return (Jan 1998)
+    rows, months = ml.train_stats(ml.usable_counts(F), w["train_start"], w["first_year"])
+    assert rows >= ml.MIN_TRAIN_ROWS and months >= ml.MIN_TRAIN_MONTHS
+    assert ml.train_stats(ml.usable_counts(F), w["train_start"], w["first_year"] - 1)[1] < ml.MIN_TRAIN_MONTHS     # the previous year is infeasible
+    with pytest.raises(ml.InfeasibleWindow, match=r"first_year 1995.*first feasible values: train_start (1997|1998)-\d\d, first_year %d" % w["first_year"]):
+        ml.choose_windows(F, b["last_mi"], first_year=1995)
+    with pytest.raises(ml.InfeasibleWindow, match="first feasible"):
+        ml.choose_windows(F, b["last_mi"], train_start_mi=1990 * 12, first_year=w["first_year"] - 1)
+    with pytest.raises(ml.InfeasibleWindow, match="no 12-month span"):
+        ml.choose_windows(F[F["mi"] < 1999 * 12 - 6], 1999 * 12 - 7)
+    # explicit feasible values are kept
+    w2 = ml.choose_windows(F, b["last_mi"], train_start_mi=w["train_start"], first_year=w["first_year"] + 1)
+    assert w2["first_year"] == w["first_year"] + 1 and w2["train_start"] == w["train_start"]
+    # the walk-forward inputs use them and fit without error
+    wi = ml.walkforward_inputs(b, None)
+    assert wi["years"][0] == w["first_year"] and wi["train_start"] == w["train_start"]
+    ml._TEST_MODEL_OVERRIDES.update(max_iter=10)
+    try:
+        wf = ml.walk_forward(wi["features"], wi["first_year"], wi["cap"], train_start_mi=wi["train_start"])
+    finally:
+        ml._TEST_MODEL_OVERRIDES.clear()
+    assert wf["mi"].min() == w["first_year"] * 12
+
+
+def _run_script(tmp_path, name, *args):
+    import pathlib
+    import subprocess
+    import sys
+    script = pathlib.Path(__file__).resolve().parents[1] / "scripts" / name
+    return subprocess.run([sys.executable, str(script), *args], cwd=tmp_path, capture_output=True, text=True, timeout=600)
+
+
+def _write_raw(tmp_path, secm, funda):
+    (tmp_path / "data" / "raw").mkdir(parents=True)
+    secm.to_parquet(tmp_path / "data" / "raw" / "comp_secm_hist.parquet", index=False)
+    funda.to_parquet(tmp_path / "data" / "raw" / "compustat_annual.parquet", index=False)
+
+
+def test_scripts_pick_feasible_windows_or_fail_clearly(tmp_path):
+    secm, funda = _late_history_world(n=120, start="1995-01", end="2008-12")
+    _write_raw(tmp_path, secm, funda)
+    bad = _run_script(tmp_path, "ml_walkforward.py", "--first-year", "1996")
+    assert bad.returncode != 0 and "INFEASIBLE WINDOW" in (bad.stderr + bad.stdout) and "first feasible values" in (bad.stderr + bad.stdout)
+    assert "Traceback" not in bad.stderr.split("INFEASIBLE")[0][-400:] or "AssertionError" not in bad.stderr
+    ok = _run_script(tmp_path, "ml_walkforward.py")
+    assert ok.returncode == 0, ok.stderr[-2000:]
+    assert "COVERAGE DIAGNOSTIC" in ok.stdout and re.search(r"chosen: train_start (1997|1998)-", ok.stdout) and "(data-driven)" in ok.stdout
+    assert (tmp_path / "data" / "ml_walkforward_report.txt").exists()
+    # ml_form: data-driven start recorded in the manifest; frozen months survive a second run
+    f = _run_script(tmp_path, "ml_form.py", "--from", "2008-10")
+    assert f.returncode == 0, f.stderr[-2000:]
+    assert "COVERAGE DIAGNOSTIC" in f.stdout and re.search(r"train_start (1997|1998)-", f.stdout)
+    man = [json.loads(ln) for ln in (tmp_path / "paper_ledger" / "ml_manifest.jsonl").read_text().splitlines()]
+    assert [m["ym"] for m in man] == ["2008-10", "2008-11", "2008-12"] and all(re.search(r"train (1997|1998)-", m["model"]) for m in man)
+
+
+def test_ml_form_refuses_when_history_is_too_short(tmp_path):
+    secm, funda = make_secm_world(n=120, start="2006-01", end="2008-12", seed=3, k=0.0)       # 3 years: no January model reaches 36 months
+    _write_raw(tmp_path, secm, funda)
+    r = _run_script(tmp_path, "ml_form.py", "--from", "2008-06")
+    assert r.returncode != 0 and "INFEASIBLE WINDOW" in (r.stderr + r.stdout)
+    assert not (tmp_path / "paper_ledger" / "ml_manifest.jsonl").exists() or (tmp_path / "paper_ledger" / "ml_manifest.jsonl").read_text() == ""

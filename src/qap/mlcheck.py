@@ -275,16 +275,108 @@ def build_from_raw(secm: pd.DataFrame, funda: pd.DataFrame, max_mi: int = None) 
             "partial_mi": partial}
 
 
-def walkforward_inputs(b: dict, first_year: int) -> dict:
+def walkforward_inputs(b: dict, first_year: int = None, train_start_mi: int = None) -> dict:
     """Inputs of the information-only walk-forward from a `build_from_raw(..., max_mi=WALKFORWARD_LAST_MI + 1)` result.
 
     Formation months stop at WALKFORWARD_LAST_MI (2025-11), the returns table at the month after it, and only the January models up to that
     year are fitted, so the forward-only months (formation 2025-12 on, incl. the pseudo-forward ones) are never scored, evaluated or trained on.
+    train_start / first_year default to the data-driven values of `choose_windows`; explicit infeasible ones raise `InfeasibleWindow`.
     """
     cap = min(int(b["last_mi"]), WALKFORWARD_LAST_MI)
     F = b["features"]
     F = F[F["mi"] <= cap]
-    return {"features": F, "cap": cap, "years": list(range(first_year, cap // 12 + 1)), "ret": return_table(b["pseudo"], cap + 1)}
+    w = choose_windows(F, cap, train_start_mi, first_year)
+    return {"features": F, "cap": cap, "years": list(range(w["first_year"], cap // 12 + 1)), "ret": return_table(b["pseudo"], cap + 1),
+            "train_start": w["train_start"], "first_year": w["first_year"], "windows": w}
+
+
+MIN_TRAIN_MONTHS = 36
+
+
+class InfeasibleWindow(ValueError):
+    """The requested (or any) training window has too little usable history; the message lists the feasible values."""
+
+
+def usable_counts(F: pd.DataFrame) -> pd.Series:
+    """Rows per formation month usable for training: forward return present and >= MIN_FEATURES_COVERAGE of the 20 features present."""
+    ok = F["fwd"].notna() & (F[FEATURES].notna().sum(axis=1) >= MIN_FEATURES_COVERAGE)
+    return F[ok].groupby("mi").size()
+
+
+def train_stats(counts: pd.Series, train_start_mi: int, year: int, lag: int = TRAIN_LAG) -> tuple:
+    """(usable rows, formation months with usable rows) in the training window of the January-`year` model."""
+    lo, hi = train_window(year, train_start_mi, lag)
+    c = counts[(counts.index >= lo) & (counts.index <= hi)]
+    return int(c.sum()), int((c > 0).sum())
+
+
+def choose_windows(F: pd.DataFrame, last_mi: int, train_start_mi: int = None, first_year: int = None) -> dict:
+    """Data-driven training start and first scored year (explicit values are kept but must be feasible, else `InfeasibleWindow`).
+
+    train_start (default): the first formation month >= 1990-01 from which the following 12 months hold >= MIN_TRAIN_ROWS usable rows
+    (usable: forward return present and >= 15 of 20 features), so sparse early months are not trained on.
+    first_year (default): the first year whose January model has >= MIN_TRAIN_ROWS usable training rows over >= MIN_TRAIN_MONTHS
+    formation months (window train_start .. previous November). Returns train_start, first_year and the feasible values.
+    """
+    c = usable_counts(F)
+    if c.empty:
+        raise InfeasibleWindow("no formation month has a forward return and >= 15 of 20 features: nothing to train on")
+    full = c.reindex(range(int(c.index.min()), int(c.index.max()) + 1), fill_value=0)
+    span = full.rolling(12).sum().shift(-11)                              # rows in months m .. m+11
+    cand = span[(span >= MIN_TRAIN_ROWS) & (span.index >= TRAIN_START_MI)]
+    if cand.empty:
+        raise InfeasibleWindow(f"no 12-month span from {ym(TRAIN_START_MI)} holds {MIN_TRAIN_ROWS} usable rows (rows per year: {dict(full.groupby(full.index // 12).sum())})")
+    auto_ts = int(cand.index[0])
+    ts = auto_ts if train_start_mi is None else int(train_start_mi)
+    feas = next((y for y in range(ts // 12, last_mi // 12 + 1)
+                 if (lambda r: r[0] >= MIN_TRAIN_ROWS and r[1] >= MIN_TRAIN_MONTHS)(train_stats(c, ts, y))), None)
+    hint = f"first feasible values: train_start {ym(auto_ts)}, first_year {feas} (usable data begins {ym(int(c.index.min()))})"
+    if feas is None:
+        raise InfeasibleWindow(f"train_start {ym(ts)} leaves no January model with >= {MIN_TRAIN_ROWS} rows and >= {MIN_TRAIN_MONTHS} months before "
+                               f"{ym(last_mi)}; {hint}")
+    fy = feas if first_year is None else int(first_year)
+    if fy < feas:
+        rows, months = train_stats(c, ts, fy)
+        raise InfeasibleWindow(f"first_year {fy} with train_start {ym(ts)} has only {rows} usable training rows over {months} months "
+                               f"(needs >= {MIN_TRAIN_ROWS} and >= {MIN_TRAIN_MONTHS}); {hint}")
+    return {"train_start": ts, "first_year": fy, "auto_train_start": auto_ts, "feasible_first_year": feas}
+
+
+def raw_coverage_lines(secm: pd.DataFrame) -> list:
+    """Per calendar year of datadate of the raw comp.secm rows: rows and shares with trt1m, prccm, cshom present and exchg == 11."""
+    y = pd.to_datetime(secm["datadate"]).dt.year.to_numpy()
+    d = pd.DataFrame({"year": y, "trt1m": f64(secm["trt1m"]) == f64(secm["trt1m"]), "prccm": f64(secm["prccm"]) == f64(secm["prccm"]),
+                      "cshom": f64(secm["cshom"]) == f64(secm["cshom"]), "nyse": f64(secm["exchg"]) == 11})
+    g = d.groupby("year")
+    t = pd.concat([g.size().rename("rows"), g.mean()], axis=1)
+    lines = ["RAW comp.secm by calendar year of datadate (share of rows with ...)", f"{'year':<6}{'rows':>9}{'trt1m':>8}{'prccm':>8}{'cshom':>8}{'exchg=11':>10}"]
+    lines += [f"{int(yr):<6}{int(r['rows']):>9,}{r['trt1m']:>8.0%}{r['prccm']:>8.0%}{r['cshom']:>8.0%}{r['nyse']:>10.0%}" for yr, r in t.iterrows()]
+    return lines
+
+
+def panel_coverage_lines(F: pd.DataFrame, pseudo: pd.DataFrame = None) -> list:
+    """Per formation year of the built panel: formation rows (ME > 0, if `pseudo` given), eligible rows, with a forward return, with >= 15 of 20
+    features, and the shares with beta / mom / vol among eligible rows."""
+    yr = F["mi"] // 12
+    d = pd.DataFrame({"year": yr, "fwd": F["fwd"].notna(), "f15": F[FEATURES].notna().sum(axis=1) >= MIN_FEATURES_COVERAGE,
+                      "beta": F["beta"].notna(), "mom": F["mom"].notna(), "vol": F["vol"].notna()})
+    g = d.groupby("year")
+    t = pd.concat([g.size().rename("elig"), g.sum()], axis=1)
+    form = None
+    if pseudo is not None:
+        pf = pseudo[pseudo["eq"].astype(bool) & (f64(pseudo["me_co"]) > 0) & (f64(pseudo["me"]) > 0)]
+        form = pf.groupby(pf["mi"] // 12).size()
+    lines = ["BUILT panel by formation year (eligible = common stock, ME >= NYSE 20th percentile)",
+             f"{'year':<6}{'formation':>10}{'eligible':>10}{'w/ fwd ret':>11}{'>=15 feat':>10}{'beta':>7}{'mom':>7}{'vol':>7}"]
+    for yv, r in t.iterrows():
+        n = r["elig"]
+        lines.append(f"{int(yv):<6}{(f'{int(form.get(yv, 0)):,}' if form is not None else '-'):>10}{int(n):>10,}{int(r['fwd']):>11,}{int(r['f15']):>10,}"
+                     f"{r['beta'] / n:>7.0%}{r['mom'] / n:>7.0%}{r['vol'] / n:>7.0%}")
+    return lines
+
+
+def coverage_text(secm: pd.DataFrame, F: pd.DataFrame, pseudo: pd.DataFrame = None) -> str:
+    return "\n".join(raw_coverage_lines(secm) + [""] + panel_coverage_lines(F, pseudo))
 
 
 def return_table(pseudo: pd.DataFrame, max_mi: int = None) -> pd.DataFrame:
@@ -511,9 +603,10 @@ def decision_label(m: pd.DataFrame) -> str:
 FORM_COLS = ["gvkey", "iid", "mi", "me", "score_ml", "score_comp", "gpa"]
 
 
-def model_id(train_end_mi: int) -> str:
+def model_id(train_end_mi: int, train_start_mi: int = None) -> str:
     import sklearn
-    return f"hgb(d3,lr0.05,it200,leaf500,l2=1,rs0;sklearn {sklearn.__version__});train<={ym(train_end_mi)}"
+    lo = f"{ym(train_start_mi)}<=" if train_start_mi is not None else ""
+    return f"hgb(d3,lr0.05,it200,leaf500,l2=1,rs0;sklearn {sklearn.__version__});train {lo}formation<={ym(train_end_mi)}"
 
 
 def make_form(scores: pd.DataFrame, mi: int) -> pd.DataFrame:

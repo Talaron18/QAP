@@ -545,3 +545,8 @@ User chose to run this alongside cheap alternative-data probes. All historical w
   months (2026-01..2026-09 and any formed late) are reported at the checkpoints but do not enter the decision - stricter than the pre-registration text and chosen before any real formation exists; since 2026-10 is the
   first month that can be prospective, the decision cannot arrive before about late 2029; (4) walk-forward information run stops at formation 2025-11 so the pseudo-forward months stay unspent; (5) turnover for the
   first formation month is 1.0; one value-weighted benchmark of all eligible names is used for all three signals; (6) `spec_commit` in the manifest is `git rev-parse HEAD`, so the code is committed before the first real formation.
+
+- **v8 deviation recorded before any real formation (first real walk-forward run failed on coverage):** `comp_secm_hist` yields usable feature months only from 1998-04 (cause to be read from the printed coverage block;
+  suspects: `trt1m` missing before 1998, or no `exchg`=11 rows so the NYSE 20th-percentile cut is undefined). The pre-registered training start of 1990-01 is therefore replaced by a DATA-DRIVEN start: the first month
+  from 1990-01 whose 12-month span holds >= 1,000 usable rows (forward return and >= 15 of 20 features); the first walk-forward year is the first with >= 1,000 usable rows over >= 36 formation months. Explicit
+  infeasible windows exit with a clear message. The chosen train_start is recorded in each manifest line. Everything else in v8 is unchanged.
