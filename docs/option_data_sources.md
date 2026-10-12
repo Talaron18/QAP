@@ -22,3 +22,6 @@ Local access was re-checked with `scripts/wrds_access_map.py` (excerpt in docs/w
 Licence caveat: OptionMetrics and Cboe academic feeds are research-only; trading a signal built from academically licensed data in a personal account may breach the terms. Prefer a vendor with a retail licence and get it in writing.
 
 Reading for this project: (a) the INDEX-level variance risk premium test (our market-return GARCH/GJR/HAR forecast of 30-day variance versus VIX^2, 1990-2025) needs only free data and can be pre-registered as Stage B-index; (b) a STOCK-level panel needs paid data (ORATS or Alpha Vantage are the candidates) and a licence check, and is only worth buying if (a) and Study F (v13) show that forecasts carry information.
+
+
+Update 2026-10-12 (v14 result): the index-level test failed (the model forecast adds nothing stable beyond VIX), so by the pre-registered rule there is no case for buying stock-level option data on this evidence; the table above stays as a reference only.

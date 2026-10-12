@@ -5,7 +5,7 @@ spec live in [ROADMAP.md](../ROADMAP.md); the original brief is [research_report
 
 ## Bottom line
 
-After 79 logged trials on 1963-2025 US equity data (CRSP + Compustat + JKP characteristics, WRDS), **no strategy has been validated
+After 80 logged trials on 1963-2025 US equity data (CRSP + Compustat + JKP characteristics, WRDS), **no strategy has been validated
 out of sample net of costs.** The one signal that survives costs, gross profitability (gpa), has a small, decaying edge
 (+0.18 %/mo, t 1.9 on 1990-2014; +0.10, t 0.6 on 2015-19; the long-only tilt version was +0.06 %/mo, t 0.4 on the 2020+ holdout).
 What *is* valuable and reusable: a leakage-safe research pipeline, a cost model, a trial registry, pre-registered studies with sealed
@@ -39,6 +39,7 @@ with a small quality/profitability tilt, with the ledger running as an implement
 | Direct margin short, break-even borrow cost | `jkp_slow10` break-even 4.6-6.5 %/yr; assumed fees for the real basket ~0.4-0.7 %/yr (82% of weight in >= $10B names) - borrow is not the binding constraint |
 | Alternative-data probes (v9): arc complexity, 10-K risk text, blockholders, classified boards, culture, litigation | Nothing promoted: all dev t < 1.3 vs gpa; blocks significantly wrong-signed in validation (t -2.7); cbi_neg consistent but weak (t 1.1-1.5); 6 trials |
 | Volatility forecasting (v13, Stage A; no alpha, no trial): GJR-GARCH-t vs GARCH / HAR / EWMA / historical, 1995-2019, rolling top-100 stocks | gjr_t beats garch and har on all four registered comparisons in dev AND validation (QLIKE -0.008 to -0.06) => licensed in dev/validation AND confirmed in the one-time 2020-25 holdout (gjr_t is the sizing model; the holdout gain is concentrated in 2020); gains small and shrinking; no edge at the 21-day horizon on the market series; winsorising hurts; best calibrated for 1-day VaR |
+| Index-level model vs VIX (v14, Stage B; one trial, 80 total): does the GJR-t forecast add to VIX, is there a variance-risk-premium signal? | No: forecast adds information in development (c 0.41, t 5.6) but its weight turns negative in validation (c -0.56); the variance-swap payoff signal flips sign (slope +0.27 t 3.1 -> -0.48 t -1.2); constant-scaled VIX forecasts 21-day variance better than the model; VRP is a large positive crash-insurance premium (VIX 20.7 vs realised 16.8 vol points) and not tradable here => no case for buying stock-level option data |
 | Short interest (v12): sir_neg, dtc_neg, gpa-with-most-shorted-decile-vetoed | Nothing promoted; rank IC real and not decayed (0.018 dev / 0.026 val) but payoff is in the high-SI short leg (-0.3 %/mo, t ~-1); low-SI long book ~ the universe; the veto adds ~0.03 %/mo (~USD 10/mo on 35k), fails the 0.05 floor; 3 trials |
 | Earnings-announcement expectation change (v11): EAR, SUE, RSUE, EAR+SUE | Nothing promoted; gross IC t 5-6 pre-2015 but ~0 after; effect lives in months 0-1; net ~0; 4 trials |
 | International replication of the JKP findings (v10, descriptive) | IC persists ex-US (not Japan) while tradable spreads roughly halve after 2014; slow10 edge short-leg heavy in 3 of 4 markets; 2021-22 episode mostly US; net ~0 everywhere; no follow-up licensed |
@@ -54,7 +55,7 @@ long-only investor cannot use (short leg, small and illiquid names, high turnove
 - 2020+ for gpa-based models (signals run, tilt, candidates): spent.
 - 2020+ for JKP composites (`jkp_slow10` long-short): spent by v6. There is no second look.
 - 2015-2019 validation: seen many times; anything designed from it needs forward data.
-- 79 unique trials logged (plus the two forward-only ML models); any new search should be judged against that count (deflated Sharpe) and, ideally, forward in time only.
+- 80 unique trials logged (plus the two forward-only ML models); any new search should be judged against that count (deflated Sharpe) and, ideally, forward in time only.
 
 ## Live: the paper-trading ledger (keep running)
 
@@ -91,7 +92,7 @@ python scripts/paper_settle.py                    # verifies hashes, settles rea
 - The ETF inventory is return-matched (names table has no fund names): ETFs with < 12 months of history and ADR underlyings are missed; the ETF carry estimate
   was contaminated and is not used - the coverage result alone decides the question.
 - All backtests are value-weighted quintiles of ex-microcap names; equal-weighted, microcap and international results are not covered.
-- Several reported numbers are pooled across selected signals; treat any t near 2 as weak given 79 trials.
+- Several reported numbers are pooled across selected signals; treat any t near 2 as weak given 80 trials.
 
 ## How to resume
 

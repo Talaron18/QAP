@@ -28,7 +28,7 @@ New work must add a row BEFORE running and must state the data check, the power 
 | Insider purchases, 13F changes | Thomson insiders/13F | NO (confirmed absent) | `blocksv` (13D/G) tested in Study C |
 | Short interest | Compustat `comp.sec_shortint` | PROBED OK: 5.37M rows, 2006-07-14 .. 2026-09-30 | DONE as v12 / Study E: nothing promoted, veto not licensed (see ROADMAP) |
 | Order flow / retail-institutional imbalance | TAQ, OptionMetrics, Cboe | NO (permission denied) | |
-| Option-market information: index level | `cboe.cboe` / `cboe_all.cboe` | YES: daily VIX (OHLC, 1990+), VXO (1986+), VXN (2001+), VXD (1997+), to 2026-09-30 | verified by `scripts/wrds_access_map.py` 2026-10-12; enables the index-level variance-risk-premium test |
+| Option-market information: index level | `cboe.cboe` / `cboe_all.cboe` | YES: daily VIX (OHLC, 1990+), VXO (1986+), VXN (2001+), VXD (1997+), to 2026-09-30 | verified by `scripts/wrds_access_map.py` 2026-10-12; index-level test DONE as v14: T1 and T3 failed, no case for stock-level data (see ROADMAP) |
 | Option-market information: stock level | `optionm_all`, `optionm_europe`, `cboe_eod` | NO (permission denied; only samples) | needs a paid external feed, see docs/option_data_sources.md |
 | Short volume / FINRA short interest | `wrds_short_volume`, `wrds_finra_short_interest` | NO (permission denied) | Compustat `sec_shortint` was the usable source (v12) |
 | Volatility forecasting (Study F) | CRSP daily returns, FF daily | YES | DONE: v13 gjr_t licensed in dev/validation and confirmed in the holdout, which is now SPENT (see ROADMAP) |
