@@ -44,6 +44,8 @@ CRSP_DELISTINGS_COLS = [
     "delret", "delretmisstype", "deldtprc", "deldlydt",
 ]
 
+SHORT_INTEREST_COLS = ["gvkey", "iid", "datadate", "shortint", "shortintadj"]   # shortintadj: ONLY for the v12 check line
+
 TOTAL_Q_COLS = ["gvkey", "datadate", "fyear", "k_int_know", "k_int_org", "k_int_offbs", "k_int", "q_tot"]
 
 CCM_LINK_COLS = ["gvkey", "liid", "linktype", "linkprim", "lpermno", "lpermco", "linkdt", "linkenddt"]

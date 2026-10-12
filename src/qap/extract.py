@@ -220,6 +220,11 @@ def fed_litigation_sql() -> str:
     return _select(["gvkey", "year", "case_p", "case_f"], config.LITIGATION_TABLE, order="gvkey, year")
 
 
+def short_interest_sql(start: str = "2006-01-01") -> str:
+    """Compustat Capital IQ security-level short interest (v12): shortintadj is extracted ONLY for one check line, never as a signal input."""
+    return _select(config.SHORT_INTEREST_COLS, config.SHORT_INTEREST, f"datadate >= '{start}'", "gvkey, iid, datadate")
+
+
 QUERIES = {
     "crsp_names": crsp_names_sql,
     "crsp_monthly": crsp_monthly_sql,
@@ -238,4 +243,5 @@ QUERIES = {
     "class_boards": class_boards_sql,
     "corp_culture": corp_culture_sql,
     "fed_litigation": fed_litigation_sql,
+    "short_interest": short_interest_sql,
 }
