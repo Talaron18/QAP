@@ -609,3 +609,22 @@ cross-market sample available without waiting. It does not create an investable 
   pre-registration of a long-only ex-US factor-tilt via broad ETFs, judged forward. Nothing here touches the US sealed windows.
 - **Limits:** Compustat-sourced returns outside the US are lower quality than CRSP; USD returns include currency noise; short selling and costs abroad differ (the spread proxy is crude); thin countries; common global shocks.
 - **Cost of doing it:** one extraction (about 4-5M screened rows x ~160 columns, per-year files) and one script run of minutes on 36 cores; no new data sources.
+
+## Pre-registration v11: expectation-change family from earnings announcements (EAR, SUE), without analyst data (written before any code, extraction or run)
+Economic hypothesis: prices under-react to earnings news (post-earnings-announcement drift), so the market's reaction to, and the size of, the latest earnings surprise predict the next months' returns. Analyst-revision data (I/B/E/S, Zacks)
+is NOT accessible (confirmed absent), so expectation change is measured with the announcement-window return and a seasonal-random-walk surprise from Compustat. Decision it could change: whether an earnings-news tilt is worth adding to the passive
+core (prior: no - PEAD is concentrated in small, costly names and the SUE-type JKP members inside the Profit Growth theme already failed net of costs in Study A).
+**Data (access verified by the earlier probes; checks printed first):** `compustat_quarterly` (gvkey, datadate, fyearq, fqtr, rdq, ibq, saleq; already extracted), daily CRSP returns `crsp.dsf_v2` (permno, dlycaldt, dlyret; new per-year extraction, resumable),
+daily FF market factor `ff.factors_daily` (mktrf, rf; new small extraction), CCM links, the usual eligible universe (common equity, ex-microcaps).
+**Events:** each quarter with a non-missing `rdq` (Compustat report date; rows without rdq are dropped). Day 0 = the first CRSP trading day on or after rdq. Linked gvkey -> permno through the date-bounded CCM links at rdq.
+**Signals (4 trials; high = good, long the top quintile):**
+1. `ear` = sum over trading days -1, 0, +1 of (stock return - (mktrf + rf)); all three returns required. Known from the close of day +1.
+2. `sue` = (ibq_q - ibq_{q-4}) / sd of the last 8 seasonal changes (ibq_k - ibq_{k-4}, k = q-7..q; at least 6 required); q-4 means same fqtr, fyearq-1. Known from the close of day +1 of the announcement.
+3. `rsue` = the same with saleq.
+4. `ear_sue` = mean of the cross-sectional percentile ranks (within month, among eligible names) of `ear` and `sue`; needs both.
+**Carry rule:** at each month-end use the latest event whose day +1 is on or before that month-end; if it is more than 130 days after rdq the signal is missing. Exact ties are broken with the fixed per-permno hash used in v9.
+**Judging (exactly Studies B and C):** net long-minus-universe vs the incumbent gpa (the usual cost model, $10M in 2019 market-size dollars, 1.5x), promotion = dev (1990-2014) alpha t >= 2.0 and validation (2015-2019) alpha > 0, minimum 60 dev months; 2020+ is
+sealed and opened once, only for promoted signals, by `--open-holdout`. Cumulative trials become 76.
+**Information only (not decision inputs):** equal-weighted Q5-Q1 gross, rank IC by size tercile (does the drift live in small caps?), IC by months since the announcement (0-1, 2, 3), turnover of the top quintile.
+**Checks printed first:** rdq coverage by decade (share of quarters with rdq), events per decade, share of events with a complete 3-day window, SUE availability, daily-file row counts, merge hit rate to permno.
+**Power / honesty:** the VW ex-microcap long-only book is where PEAD is weakest; the most likely outcome is that nothing promotes. The information-only block is there so that, if nothing promotes, we can see whether the effect exists in small names we cannot trade.

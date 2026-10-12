@@ -63,3 +63,45 @@ def test_alt_data_sql_runs_and_returns_the_named_columns():
         out = con.execute(QUERIES[name]()).df()
         assert list(out.columns) == cols, name
         assert len(out) == 1
+
+
+def test_jkp_intl_sql_text_and_guards():
+    from qap.extract import jkp_intl_sql
+    sql = jkp_intl_sql(["gp_at", "bidaskhl_21d"], 2001, ["JPN", "GBR"])
+    assert "cast(id as bigint) as id" in sql and "excntry in ('JPN', 'GBR')" in sql and "'USA'" not in sql
+    for s in ("common = 1", "primary_sec = 1", "exch_main = 1", "obs_main = 1", "size_grp in ('mega', 'large', 'small')",
+              "DATE '2001-01-01'", "DATE '2001-12-31'", "ret_exc_lead1m", "gp_at", "bidaskhl_21d"):
+        assert s in sql, s
+    with pytest.raises(ValueError):
+        jkp_intl_sql(["gp_at"], 2001, ["JPN", "USA"])
+    with pytest.raises(ValueError):
+        jkp_intl_sql(["gp_at"], 2001, [])
+    assert len(config.DEV_EX_US) == 22 and "USA" not in config.DEV_EX_US and len(set(config.DEV_EX_US)) == 22
+    assert set(config.REGIONS) == {"Developed Europe", "Japan", "Other developed"}
+
+
+def test_jkp_intl_sql_screens_run_in_duckdb():
+    duckdb = pytest.importorskip("duckdb")
+    from qap.extract import jkp_intl_sql
+    con = duckdb.connect()
+    con.execute("create schema contrib_global_factor")
+    con.execute("create table contrib_global_factor.global_factor(id double, excntry varchar, eom date, size_grp varchar, "
+                "ret_exc_lead1m double, me double, gp_at double, common integer, primary_sec integer, exch_main integer, obs_main integer)")
+    rows = [  # id, excntry, eom, size_grp, common, primary_sec, exch_main, obs_main
+        (300000001, "JPN", "2001-03-31", "small", 1, 1, 1, 1),        # kept
+        (300000002, "GBR", "2001-12-31", "mega", 1, 1, 1, 1),         # kept (last day of the year)
+        (300000003, "USA", "2001-03-31", "small", 1, 1, 1, 1),        # US excluded
+        (300000004, "IND", "2001-03-31", "small", 1, 1, 1, 1),        # not in the list
+        (300000005, "JPN", "2002-01-31", "small", 1, 1, 1, 1),        # other year
+        (300000006, "JPN", "2001-03-31", "micro", 1, 1, 1, 1),        # micro dropped
+        (300000007, "JPN", "2001-03-31", "nano", 1, 1, 1, 1),         # nano dropped
+        (300000008, "JPN", "2001-03-31", "large", 0, 1, 1, 1),        # not common
+        (300000009, "JPN", "2001-03-31", "large", 1, 0, 1, 1),        # not primary
+        (300000010, "JPN", "2001-03-31", "large", 1, 1, 0, 1),        # not main exchange
+        (300000011, "JPN", "2001-03-31", "large", 1, 1, 1, 0),        # obs_main = 0
+        (None, "JPN", "2001-03-31", "large", 1, 1, 1, 1)]             # no id
+    for r in rows:
+        con.execute("insert into contrib_global_factor.global_factor values (?, ?, ?, ?, 0.01, 100.0, 0.3, ?, ?, ?, ?)", list(r))
+    out = con.execute(jkp_intl_sql(["gp_at"], 2001, ["JPN", "GBR"])).df()
+    assert sorted(out["id"].tolist()) == [300000001, 300000002]
+    assert list(out.columns) == ["id", "excntry", "eom", "size_grp", "ret_exc_lead1m", "me", "gp_at"]

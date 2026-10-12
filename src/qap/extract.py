@@ -143,6 +143,25 @@ def jkp_us_sql(columns: Sequence[str], year: int) -> str:
             f"and eom >= DATE '{year}-01-01' and eom <= DATE '{year}-12-31' order by permno, eom")
 
 
+def jkp_intl_sql(columns: Sequence[str], year: int, countries: Sequence[str]) -> str:
+    """Developed ex-US stock-months of one calendar year from the JKP Global Factor Data (pre-registration v10), JKP screens applied.
+
+    columns: characteristic columns that exist in the table (validated by the caller). `id` is cast to bigint (it is numeric and
+    exceeds float32 precision); the US is never selected here (it comes from jkp_us / CRSP).
+    """
+    countries = list(countries)
+    if not countries or "USA" in countries:
+        raise ValueError("jkp_intl_sql needs a non-empty country list without 'USA'")
+    if not all(isinstance(c, str) and c.isalpha() and c.isupper() for c in countries):
+        raise ValueError(f"unexpected country codes: {countries}")
+    groups = ", ".join(f"'{g}'" for g in config.JKP_SIZE_GROUPS)
+    ctry = ", ".join(f"'{c}'" for c in countries)
+    cols = ", ".join(["cast(id as bigint) as id", "excntry", "eom", "size_grp", "ret_exc_lead1m", "me", *columns])
+    return (f"select {cols} from {config.JKP_TABLE} where excntry in ({ctry}) and id is not null and common = 1 "
+            f"and primary_sec = 1 and exch_main = 1 and obs_main = 1 and size_grp in ({groups}) "
+            f"and eom >= DATE '{year}-01-01' and eom <= DATE '{year}-12-31' order by excntry, id, eom")
+
+
 def rq_sql() -> str:
     return _select(["gvkey", "fyear", "loc", "sic", "xrd", "rawrq", "se_rawrq", "rdintensity"], config.RQ_TABLE, order="gvkey, fyear")
 

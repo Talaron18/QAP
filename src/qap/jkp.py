@@ -12,10 +12,11 @@ from qap.panel import to_mi
 SLOW_EXCLUDE = ("Size", "Short-Term Reversal", "Seasonality")
 
 
-def theme_scores(df: pd.DataFrame, themes: dict = THEMES, min_frac: float = 0.5, min_members: int = 3) -> pd.DataFrame:
+def theme_scores(df: pd.DataFrame, themes: dict = THEMES, min_frac: float = 0.5, min_members: int = 3,
+                 group: str = "mi") -> pd.DataFrame:
     """Per stock-month theme score: mean over available members of sign * (within-month percentile rank - 0.5).
 
-    df needs `mi` and the member columns (missing member columns are skipped but the availability threshold still uses the
+    df needs the `group` column (default `mi`; international runs pass a country-month key) and the member columns (missing member columns are skipped but the availability threshold still uses the
     theme's full member count, so a missing column can only make the score rarer, never silently easier).
     A score is missing unless at least max(min_members, ceil(min_frac * n_members)) members are available.
     """
@@ -26,7 +27,7 @@ def theme_scores(df: pd.DataFrame, themes: dict = THEMES, min_frac: float = 0.5,
         if len(present) < need:
             out[theme] = pd.Series(np.nan, index=df.index)
             continue
-        ranks = pd.concat([(df.groupby("mi")[c].rank(pct=True) - 0.5) * s for c, s in present], axis=1)
+        ranks = pd.concat([(df.groupby(group)[c].rank(pct=True) - 0.5) * s for c, s in present], axis=1)
         out[theme] = ranks.mean(axis=1).where(ranks.notna().sum(axis=1) >= need)
     return pd.DataFrame(out, index=df.index)
 

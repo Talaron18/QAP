@@ -77,3 +77,12 @@ BLOCKS_TABLE = "contrib_general.blocksv"
 CLASS_BOARDS_TABLE = "contrib_general.classified_boards"
 CULTURE_TABLE = "contrib_corporate_culture.corp_culture"
 LITIGATION_TABLE = "contrib_corp_fed_litigation.firmyear_level"
+
+# International replication of the JKP findings (pre-registration v10): the 22 developed ex-US countries, regions fixed from the
+# Global Factor Data documentation's MSCI table. Emerging and frontier markets are excluded.
+REGIONS = {
+    "Developed Europe": ["AUT", "BEL", "CHE", "DEU", "DNK", "ESP", "FIN", "FRA", "GBR", "IRL", "ITA", "NLD", "NOR", "PRT", "SWE"],
+    "Japan": ["JPN"],
+    "Other developed": ["AUS", "CAN", "HKG", "ISR", "NZL", "SGP"],
+}
+DEV_EX_US = [c for cs in REGIONS.values() for c in cs]
