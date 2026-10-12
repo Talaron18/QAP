@@ -1,5 +1,6 @@
 """SQL builders for WRDS extraction. Pure functions; run them with scripts/wrds_extract.py."""
 import datetime as dt
+import re
 from typing import Sequence
 
 from qap import config
@@ -192,6 +193,67 @@ def comp_secm_sql(columns: Sequence[str], start: str = "2022-01-01") -> str:
     if "curcdm" in columns:
         where += " and curcdm = 'USD'"
     return _select(list(columns), config.COMP_SECM, where, "gvkey, iid, datadate")
+
+
+_TIC_RE = re.compile(r"^[A-Za-z0-9.\-^]{1,12}$")
+_ID_RE = re.compile(r"^[A-Za-z0-9]{1,10}$")
+
+
+def _check_tickers(tickers: Sequence[str]) -> list[str]:
+    out = [str(t).strip().upper() for t in tickers]
+    bad = [t for t in out if not _TIC_RE.match(t)]
+    if bad:
+        raise ValueError(f"unexpected ticker symbols: {bad}")
+    return out
+
+
+def _check_pairs(gvkey_iids: Sequence[tuple[str, str]]) -> list[tuple[str, str]]:
+    out = [(str(g).strip(), str(i).strip()) for g, i in gvkey_iids]
+    bad = [p for p in out if not (_ID_RE.match(p[0]) and _ID_RE.match(p[1]))]
+    if bad:
+        raise ValueError(f"unexpected gvkey/iid values: {bad}")
+    return out
+
+
+def secd_columns(have: Sequence[str]) -> tuple[list[str], list[str]]:
+    """(columns to select, absent required columns) given the real column names of the secd table."""
+    have = set(have)
+    absent = [c for c in config.SECD_REQUIRED if c not in have]
+    return config.SECD_REQUIRED + [c for c in config.SECD_OPTIONAL if c in have], absent
+
+
+def _secd_where(columns: Sequence[str], gvkey_iids, tickers, start: str) -> str:
+    dt.date.fromisoformat(start)  # validates the literal (it is interpolated into the SQL)
+    sel = []
+    if tickers:
+        sel.append("tic in (" + ", ".join(f"'{t}'" for t in _check_tickers(tickers)) + ")")
+    for g, i in _check_pairs(gvkey_iids or []):
+        sel.append(f"(gvkey = '{g}' and iid = '{i}')")
+    if not sel:
+        raise ValueError("secd query needs at least one ticker or gvkey/iid pair")
+    where = f"datadate >= DATE '{start}' and (" + " or ".join(sel) + ")"
+    if "curcdd" in columns:
+        where += " and curcdd = 'USD'"          # USD only unless the column is absent
+    return where
+
+
+def secd_sql(columns: Sequence[str], gvkey_iids: Sequence[tuple[str, str]] | None = None,
+             tickers: Sequence[str] | None = None, start: str = "2023-01-01") -> str:
+    """Compustat NA daily security rows (comp_na_daily_all.secd) for the given tickers and/or (gvkey, iid) pairs from `start`.
+
+    columns: validated by the caller against describe_table. USD rows only when `curcdd` is among the columns.
+    Tickers and ids are validated against a strict pattern (they are interpolated into the SQL).
+    """
+    return _select(list(columns), config.COMP_SECD, _secd_where(columns, gvkey_iids, tickers, start), "gvkey, iid, datadate")
+
+
+def secd_candidates_sql(columns: Sequence[str], gvkey_iids=None, tickers=None, start: str = "2023-01-01") -> str:
+    """One row per (tic, gvkey, iid): the ambiguity check run before the extraction (same filters as secd_sql)."""
+    extra = [c for c in ("conm", "tpci", "exchg") if c in columns]
+    keys = ["tic", "gvkey", "iid"] + extra
+    where = _secd_where(columns, gvkey_iids, tickers, start)
+    return (f"select {', '.join(keys)}, count(*) as n, min(datadate) as first_date, max(datadate) as last_date "
+            f"from {config.COMP_SECD} where {where} group by {', '.join(keys)} order by tic, last_date")
 
 
 def arc_sql() -> str:

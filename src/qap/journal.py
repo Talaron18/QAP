@@ -22,6 +22,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from qap import prices as px_
+
 NY = ZoneInfo("America/New_York")
 EPS = 1e-9
 TOL_COST, TOL_PL, TOL_RATIO, TOL_CASH, TOL_MV = 0.015, 1.0, 0.05, 25.0, 1.0
@@ -594,11 +596,12 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
             vols: dict[str, float] | None = None, default_vol: float = 0.60, corr: float = 0.5,
             tax_st: float = 0.408, tax_lt: float = 0.238, start_capital: float = 35000.0,
             prices: dict[str, float] | None = None, meta_path: str | None = None, assume_year: int | None = None,
-            today: date | None = None) -> tuple[str, pd.DataFrame]:
+            today: date | None = None, prices_file: str | None = None) -> tuple[str, pd.DataFrame]:
     vols = {k.upper(): float(v) for k, v in (vols or {}).items()}
     prices_in = {k.upper(): float(v) for k, v in (prices or {}).items()}
     L: list[str] = []
     warn: list[str] = []
+    pf, pf_diag = px_.load_prices(prices_file) if prices_file else (None, {})   # optional Compustat daily price file
 
     fills, snaps, n_ign = [], [], 0
     for p in paths:
@@ -685,6 +688,20 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
         for r in sn["rows"]:
             prices_cur[r["ticker"]] = r["price"]
     prices_cur.update(prices_in)
+    price_src: dict[str, str] = {}
+    if pf is not None:
+        snap_px = {r["ticker"] for sn in snaps for r in sn["rows"]}
+        file_last = pf["datadate"].max()
+        for t in sorted(info):
+            if t in prices_in:
+                price_src[t] = "--prices"
+            elif t in snap_px:
+                price_src[t] = "snapshot"
+            else:
+                fpx, fd = px_.last_price(pf, t)
+                if fd is not None:
+                    prices_cur[t] = fpx
+                    price_src[t] = f"price file {fd:%Y-%m-%d}"
 
     # ---- reconciliation
     L += ["", "1b. RECONCILIATION vs SNAPSHOTS (tolerances: cost 0.015, P/L 1.0, ratio 0.05 pct pts, cash 25 USD)"]
@@ -705,6 +722,42 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
         L += ["    " + o for o in out]
     if n_mm:
         warn.append(f"{n_mm} snapshot/fill MISMATCH lines: the log and the broker snapshot disagree (see 1b)")
+
+    if pf is not None:
+        L += ["", f"1c. PRICE FILE CHECKS ({prices_file}; Compustat daily security prices, unadjusted close prccd)"]
+        L.append("  tickers in file: " + ", ".join(f"{t} ({d['first']:%Y-%m-%d}..{d['last']:%Y-%m-%d}, {d['rows']} rows, gaps>"
+                                                  f"{px_.GAP_DAYS}d {d['gaps']}, dropped dup {d['dups']}/non-positive {d['nonpositive']})"
+                                                  for t, d in sorted(pf_diag.items())))
+        need = sorted(info)
+        L.append("  price source per ticker: " + ", ".join(f"{t}={price_src.get(t, 'none')}" for t in need))
+        n_pm = 0
+        undated = 0
+        for i, sn in enumerate(snaps):
+            if not sn["rows"]:
+                continue
+            if sn["date"] is None:
+                undated += 1
+                continue
+            for r in sn["rows"]:
+                fpx, fd = px_.close_on_or_before(pf, r["ticker"], sn["date"])
+                if fd is None or not fpx > 0 or not r["price"] > 0:
+                    continue
+                if abs(r["price"] / fpx - 1.0) > 0.01:
+                    n_pm += 1
+                    L.append(f"  MISMATCH {r['ticker']} price: snapshot {r['price']:.4f} ({sn['date']}) vs file close {fpx:.4f} "
+                             f"({fd:%Y-%m-%d}), {100 * (r['price'] / fpx - 1):+.2f}%")
+        if undated:
+            L.append(f"  NOTE {undated} undated snapshot(s) not compared with the price file")
+        if n_pm:
+            warn.append(f"{n_pm} snapshot-vs-price-file price MISMATCH lines (>1%, see 1c)")
+        latest = max([max(df["sdate"])] + [sn["date"] for sn in snaps if sn["date"]])
+        fl = pf["datadate"].max().date()
+        if (latest - fl).days > px_.GAP_DAYS:
+            L.append(f"  STALE price file: last date {fl} is {(latest - fl).days} calendar days before the latest fill/snapshot date {latest}")
+            warn.append(f"price file is stale (last date {fl}, latest fill/snapshot {latest}): re-run scripts/extract_secd.py")
+        for t in need:
+            if price_src.get(t, "").startswith("price file") and (pf["datadate"].max() - pf_diag[t]["last"]).days > px_.GAP_DAYS:
+                L.append(f"  STALE {t}: last close {pf_diag[t]['last']:%Y-%m-%d} is more than {px_.GAP_DAYS} days before the file's last date")
 
     # ---- 2. positions & round trips
     L += ["", "2. POSITIONS & ROUND TRIPS (average-cost; round trip = flat -> position -> flat; session dates, calendar days)"]
@@ -729,7 +782,7 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
         open_rows.append([t, f"{p['qty']:g}", f"{p['avg']:.4f}", f"{px:.2f}", f"{p['qty'] * px:,.2f}",
                           f"{p['qty'] * (px - p['avg']):+,.2f}",
                           f"{100 * (px / p['avg'] - 1) * (1 if p['qty'] > 0 else -1):+.2f}%"])
-    L.append("  open positions (current prices from latest snapshot / --prices):")
+    L.append("  open positions (current prices from latest snapshot / --prices" + (" / price file" if pf is not None else "") + "):")
     L += _tab(open_rows, ["ticker", "qty", "avg_cost", "price", "mkt_value", "unreal_pnl", "ret"]) if open_rows else ["    none priced"]
     if unpriced:
         L.append(f"  EXCLUDED (no current price): {', '.join(unpriced)}  (give --prices TICKER=PRICE)")
@@ -767,7 +820,7 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
     rowsnaps = [x for x in snaps if x["rows"]]
     if rowsnaps:
         ta = snapshot_total_assets(rowsnaps[-1])
-        if math.isnan(ta) or prices_in:
+        if math.isnan(ta) or prices_in or any(price_src.get(t, "").startswith("price file") for t in openp):
             ta = None
     if ta is None:
         ta = sum(p["mv"] for p in priced) + cash
@@ -803,10 +856,23 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
           "  Holding-period T = calendar days / 365; the generic table uses trading days / 252. Vol from --vol per underlying,"
           f" else --default-vol {default_vol:.2f} (ASSUMPTION)."]
 
+    vol_src: dict[str, str] = {}   # underlying -> how its vol was set (price-file runs only)
+
     def vol_for(und: str, tk: str = "") -> tuple[float, bool]:
         for k in (und, tk):
             if k and k.upper() in vols:
+                vol_src[und] = "--vol (explicit)"
                 return vols[k.upper()], False
+        if pf is not None:
+            rs = px_.return_series(pf, und)
+            v, n, lab = px_.best_vol(rs.to_numpy())
+            if lab != "insufficient":
+                vol_src[und] = f"price file: {lab}, {n} returns, as of {rs.index[-1]:%Y-%m-%d}"
+                return v, False
+            vol_src[und] = (f"--default-vol (ASSUMPTION; {und} has only {n} returns in the price file)" if n
+                            else "--default-vol (ASSUMPTION; not in the price file)")
+        else:
+            vol_src[und] = "--default-vol (ASSUMPTION)"
         return default_vol, True
 
     levered = []
@@ -826,6 +892,10 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
             rows.append([t, st, f"{lev:+g}", u, days, f"{sg:.2f}" + ("*" if assumed else ""),
                          f"{100 * drag_log(lev, sg, T):.2f}%", f"{100 * breakeven_move(lev, sg, T):+.2f}%"])
         L += _tab(rows, ["ticker", "state", "L", "underlying", "days", "sigma", "drag(log)", "underlying b/e move"])
+        if pf is not None:
+            L.append("  sigma without * = explicit --vol or realised vol from the price file (EWMA 0.94 when >= 60 returns, else sample "
+                     "vol when >= 20):")
+            L += [f"  vol source: {u}: {vol_src.get(u, '?')}" for u in sorted({x[1] for x in levered})]
         L.append("  * = ASSUMPTION (default vol). Open positions: days from first fill to the last date seen "
                  f"({last_date}). Drag is a log-return deduction on top of L x the underlying's move.")
         bad = [f"{x[0]} ({x[4]})" for x in levered if x[4].endswith("?")]
@@ -844,8 +914,40 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
                                                for s in (0.5, 0.7, 0.9)])
         L += _tab(rows, ["L", "T_days", "sigma=0.5", "sigma=0.7", "sigma=0.9"], indent="    ")
 
+    # ---- 4b. realised drag from the price file
+    if pf is not None:
+        L += ["", "4b. REALISED DRAG OF YOUR LEVERAGED PRODUCTS (price file; daily total-return chains, common dates only)",
+              "  slope = OLS of the product's daily return on its underlying's (nominal = L); te = annualised sd of product - L x underlying;",
+              "  realised drag = L log(S_T/S_0) - log(P_T/P_0) from the later of the two first dates; expected = (L^2 - L) sigma^2 T / 2 with the",
+              "  underlying's sample sigma over the same dates (T = obs / 252). Differences include fees, financing and swap costs."]
+        rows4b = []
+        for t, i in sorted(info.items()):
+            if abs(i["leverage"] - 1) <= EPS:
+                continue
+            u = i["underlying"]
+            miss = [x for x in (t, u) if px_.return_series(pf, x).empty]
+            if miss:
+                L.append(f"  {t} (L={i['leverage']:+g}, underlying {u}): not checked, {', '.join(miss)} not in the price file")
+                continue
+            c = px_.leveraged_check(px_.return_series(pf, t), px_.return_series(pf, u), i["leverage"])
+            if c["n"] < 3:
+                L.append(f"  {t} (L={i['leverage']:+g}, underlying {u}): not checked, only {c['n']} common return dates")
+                continue
+            rows4b.append([t, u, f"{i['leverage']:+g}", c["n"], f"{c['start']:%Y-%m-%d}..{c['end']:%Y-%m-%d}", f"{c['slope']:+.2f}",
+                           f"{c['r2']:.3f}", f"{c['te_ann']:.1%}", f"{c['sigma_ann']:.2f}", f"{100 * c['drag_realised']:+.2f}%",
+                           f"{100 * c['drag_expected']:+.2f}%"])
+            if not abs(c["slope"] - i["leverage"]) <= 0.25 * abs(i["leverage"]):
+                warn.append(f"{t}: realised slope {c['slope']:+.2f} on {u} differs from the nominal L={i['leverage']:+g}: "
+                            "check the leverage/underlying mapping (--meta)")
+        if rows4b:
+            L += _tab(rows4b, ["ticker", "underlying", "L", "obs", "period", "slope", "R2", "te", "sigma", "drag_real(log)", "drag_exp(log)"])
+        elif not any(abs(i["leverage"] - 1) > EPS for i in info.values()):
+            L.append("  no leveraged/inverse products in the book")
+
     # ---- 5. risk
-    L += ["", "5. RISK SNAPSHOT (normal approximation, zero mean, constant pairwise correlation; all inputs below are ASSUMPTIONS)"]
+    L += ["", "5. RISK SNAPSHOT (normal approximation, zero mean, constant pairwise correlation; "
+          + ("vols marked 'price file' are measured, everything else is an ASSUMPTION)" if pf is not None
+             else "all inputs below are ASSUMPTIONS)")]
     if ex and ex["by_underlying"]:
         uv = {}
         tick_of = {p["underlying"]: p["ticker"] for p in priced}
@@ -854,6 +956,8 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
         rk = book_risk(ex["by_underlying"], {u: v[0] for u, v in uv.items()}, corr, ta)
         L.append("  assumed annual vols: " + ", ".join(f"{u}={v:.2f}{'*' if a else ''}" for u, (v, a) in sorted(uv.items()))
                  + f"   (* = --default-vol {default_vol:.2f})")
+        if pf is not None:
+            L += [f"    {u}: {v:.2f}  <- {vol_src.get(u, '?')}" for u, (v, a) in sorted(uv.items())]
         L.append(f"  assumed correlation between distinct underlyings: {corr:.2f}; 252-day convention; cash has zero risk")
         L.append(f"  book annual sd {rk['annual_sd']:.1%}  daily sd {rk['daily_sd']:.2%} ({rk['usd_per_day']:,.0f} USD per day at 1 sd)  "
                  f"weekly sd {rk['weekly_sd']:.2%}")
@@ -946,6 +1050,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--start-capital", type=float, default=35000.0)
     ap.add_argument("--prices", nargs="*", metavar="TICKER=PRICE")
     ap.add_argument("--meta", default="data/journal/meta.csv")
+    ap.add_argument("--prices-file", metavar="PARQUET",
+                    help="Compustat daily prices from scripts/extract_secd.py (data/raw/secd_tickers.parquet): current prices, "
+                         "realised vols, section 4b")
     ap.add_argument("--today", help="YYYY-MM-DD used as 'today' for the year-typo proposal (default: real today)")
     ap.add_argument("--report", default="data/journal_report.txt")
     ap.add_argument("--roundtrips", default="data/journal/roundtrips.csv")
@@ -959,7 +1066,7 @@ def main(argv: list[str] | None = None) -> int:
     vols = _kv([x for grp in (a.vol or []) for x in grp], "--vol")
     report, rts = analyze(files, a.fills_csv, a.log_tz, a.fix_years, vols, a.default_vol, a.corr, a.tax_st, a.tax_lt,
                           a.start_capital, _kv(a.prices, "--prices"), a.meta, a.assume_year,
-                          date.fromisoformat(a.today) if a.today else None)
+                          date.fromisoformat(a.today) if a.today else None, a.prices_file)
     print(report)
     Path(a.report).parent.mkdir(parents=True, exist_ok=True)
     Path(a.report).write_text(report, encoding="utf-8")

@@ -5,6 +5,9 @@ Run where your WRDS credentials live:
 Datasets: crsp_monthly crsp_delistings ccm_links compustat_annual compustat_quarterly ff_monthly (default: all)
 plus crsp_daily_agg (per-year server-side liquidity aggregation; resumable; run it explicitly),
 rq_data kpss_patents patent_grants (Study B), arc_data risk_text blockholders class_boards corp_culture fed_litigation (Study C, v9 alt-data), short_interest (Study E, v12; comp.sec_shortint), comp_secm (paper trading), comp_secm_hist (1985- history for the ML check), crsp_names (ETF check), cboe_vix (Study G, v14; cboe.cboe daily VIX), sp500_daily (OPTIONAL v14 robustness; crsp.dsp500, skipped with a message if the table is missing), jkp_us (Study A: one parquet per year, resumable) and jkp_intl (v10: developed ex-US, one parquet per year, resumable).
+NOT a dataset here because it takes arguments: Compustat daily security prices for a few tickers (personal journal) are extracted by
+`WRDS_USERNAME=you python scripts/extract_secd.py [TICKER ...] [--start 2023-01-01] [--gvkey-iid G:I ...]` -> data/raw/secd_tickers.parquet
+(comp_na_daily_all.secd; probe it first with scripts/probe_secd.py).
 """
 import pathlib
 import sys

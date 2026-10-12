@@ -90,3 +90,12 @@ REGIONS = {
     "Other developed": ["AUS", "CAN", "HKG", "ISR", "NZL", "SGP"],
 }
 DEV_EX_US = [c for cs in REGIONS.values() for c in cs]
+
+# Compustat North America daily security file (runs past CRSP's end); used for personal-journal prices (scripts/extract_secd.py)
+COMP_SECD = "comp_na_daily_all.secd"
+COMP_SECD_ALIAS = "comp.secd"
+SECD_REQUIRED = ["gvkey", "iid", "datadate", "tic", "prccd"]
+SECD_OPTIONAL = ["conm", "tpci", "exchg", "curcdd", "prcod", "prchd", "prcld", "cshtrd", "ajexdi", "trfd", "cshoc", "fic"]
+# the user's names plus the leveraged ETFs (SNDQ AXTQ DAMD SKDD); overridable on the command line
+SECD_DEFAULT_TICKERS = ["ORCL", "INTU", "LITE", "BE", "STX", "AMD", "CELH", "ALAB", "SNDK", "SKHY", "AXTI",
+                        "SNDQ", "AXTQ", "DAMD", "SKDD"]
