@@ -25,7 +25,8 @@ New work must add a row BEFORE running and must state the data check, the power 
 |---|---|---|---|
 | Analyst revisions / forecast changes | I/B/E/S, Zacks | NO (confirmed absent) | cannot be tested as written |
 | Earnings surprise / PEAD | Compustat quarterly (`rdq`) | YES | SUE-type JKP members already sit inside the Profit Growth theme (Study A: dev IC t 2.6 but net negative); an announcement-window return (EAR) from daily CRSP is the untested variant |
-| Insider purchases, 13F changes, short interest | Thomson insiders/13F, short-interest feed | NO (confirmed absent) | `blocksv` (13D/G) tested in Study C |
+| Insider purchases, 13F changes | Thomson insiders/13F | NO (confirmed absent) | `blocksv` (13D/G) tested in Study C |
+| Short interest | Compustat `comp.sec_shortint` | LISTED AS USABLE in the first schema dump; NOT yet probed (an earlier message wrongly called it absent) | untested; see RESEARCH_MAP |
 | Order flow / retail-institutional imbalance | TAQ, OptionMetrics, Cboe | NO (permission denied) | |
 | Liquidity / spread / turnover / volatility | CRSP daily, JKP | YES | already inside JKP themes (Size, Low Risk); `wrdssec_midas` (2012-2025) is the only microstructure source; cost-dominated per the research report |
 | International replication | JKP non-US rows | YES | done as v10 |
