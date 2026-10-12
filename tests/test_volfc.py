@@ -692,10 +692,8 @@ def test_smoke_v13_marker_is_not_written_when_the_dev_validation_rule_fails(tmp_
 
 
 def _load_head_script(tmp_path):
-    """The run_volfc.py of the last commit (before the marker edit), loaded as a separate module."""
-    import subprocess
-    src = subprocess.run(["git", "show", "HEAD:scripts/run_volfc.py"], capture_output=True, text=True, check=True,
-                         cwd=pathlib.Path(__file__).parent.parent).stdout
+    """The run_volfc.py from before the marker edit (frozen copy of commit ada5b76, tests/fixtures/run_volfc_premarker.py), loaded as a separate module."""
+    src = (pathlib.Path(__file__).parent / "fixtures" / "run_volfc_premarker.py").read_text()
     f = tmp_path / "run_volfc_head.py"
     f.write_text(src)
     spec = importlib.util.spec_from_file_location("run_volfc_head", f)
