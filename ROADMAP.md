@@ -667,7 +667,7 @@ cross-market not independent-in-time evidence.
 ## Pre-registration v12: short interest (information diffusion; written before any code, extraction or run)
 Economic hypothesis: informed short sellers act on negative information that prices incorporate slowly, so high short interest predicts low returns (Asquith-Pathak-Ritter; Boehme-Danielsen-Sorescu; Rapach-Ringgenberg-Zhou). The long-only decision it can change: **should heavily shorted names be excluded from
 the gpa tilt?** (a veto needs no borrow). Standalone long-only signals are weak by construction (the information is in the high-SI leg) and are included only as the cheap, standard cross-check.
-**Data (access verified by the probe, docs/wrds_probe_cboe_etc.txt not committed; columns as probed):** `comp.sec_shortint` (gvkey, iid, shortint, shortintadj, datadate, splitadjdate; 5,372,584 rows, 2006-07-14 .. 2026-09-30), `crsp.msf_v2` columns already in the panel (`shrout`, plus `mthvol` which the
+**Data (access verified by the user's `scripts/wrds_probe.py` run; columns as probed):** `comp.sec_shortint` (gvkey, iid, shortint, shortintadj, datadate, splitadjdate; 5,372,584 rows, 2006-07-14 .. 2026-09-30), `crsp.msf_v2` columns already in the panel (`shrout`, plus `mthvol` which the
 panel does not select today and the build adds), CCM links with `liid`. Extraction: gvkey, iid, datadate, shortint, shortintadj (the latter ONLY for a check line) for datadate >= 2006-01-01.
 **Traps fixed now (so none can be tuned later):**
 1. SIR = raw `shortint` / (CRSP `shrout` x 1000) using the formation month's own `shrout`. `shortintadj` (adjusted as of a later `splitadjdate`) is never a signal input; it appears in one check line comparing shortint and shortintadj.

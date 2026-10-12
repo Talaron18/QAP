@@ -26,7 +26,10 @@ New work must add a row BEFORE running and must state the data check, the power 
 | Analyst revisions / forecast changes | I/B/E/S, Zacks | NO (confirmed absent) | cannot be tested as written |
 | Earnings surprise / PEAD | Compustat quarterly (`rdq`) | YES | SUE-type JKP members already sit inside the Profit Growth theme (Study A: dev IC t 2.6 but net negative); an announcement-window return (EAR) from daily CRSP is the untested variant |
 | Insider purchases, 13F changes | Thomson insiders/13F | NO (confirmed absent) | `blocksv` (13D/G) tested in Study C |
-| Short interest | Compustat `comp.sec_shortint` | LISTED AS USABLE in the first schema dump; NOT yet probed (an earlier message wrongly called it absent) | untested; see RESEARCH_MAP |
+| Short interest | Compustat `comp.sec_shortint` | PROBED OK: 5.37M rows, 2006-07-14 .. 2026-09-30 (gvkey, iid, shortint, shortintadj, datadate, splitadjdate) | pre-registered as v12 (sir_neg, dtc_neg, gpa_veto) |
 | Order flow / retail-institutional imbalance | TAQ, OptionMetrics, Cboe | NO (permission denied) | |
 | Liquidity / spread / turnover / volatility | CRSP daily, JKP | YES | already inside JKP themes (Size, Low Risk); `wrdssec_midas` (2012-2025) is the only microstructure source; cost-dominated per the research report |
 | International replication | JKP non-US rows | YES | done as v10 |
+| Filing dates (PIT upgrade) | `comp.filings` | NO (permission denied for schema comp_filings) | `rdq` from `fundq` is the only timeliness source |
+| Customer-supplier links | `comp.seg_customer` | PARTLY: accessible but only 2020-06..2026-07 and customer names only (no customer gvkey) | effectively infeasible; a pre-2020 test is impossible |
+| Dividend / distribution events | `crsp.dsedist` | YES (declaration dates to 2024-12-31) | untested; low prior |
