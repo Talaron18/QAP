@@ -628,3 +628,7 @@ sealed and opened once, only for promoted signals, by `--open-holdout`. Cumulati
 **Information only (not decision inputs):** equal-weighted Q5-Q1 gross, rank IC by size tercile (does the drift live in small caps?), IC by months since the announcement (0-1, 2, 3), turnover of the top quintile.
 **Checks printed first:** rdq coverage by decade (share of quarters with rdq), events per decade, share of events with a complete 3-day window, SUE availability, daily-file row counts, merge hit rate to permno.
 **Power / honesty:** the VW ex-microcap long-only book is where PEAD is weakest; the most likely outcome is that nothing promotes. The information-only block is there so that, if nothing promotes, we can see whether the effect exists in small names we cannot trade.
+
+- **v11 implementation notes (recorded before any real run):** SUE/RSUE history uses all de-duplicated quarters (a quarter without rdq still serves as the q-4 comparison and as one of the 8 changes; rdq is required only to form the event);
+  an event is attached to every permno whose CCM link is in force on rdq (share classes all receive it); the latest event is used even if its own value is missing (no fall-back to an older quarter); availability = the first month-end on or after the calendar date of
+  day +1; the months-since-announcement buckets are 0-1, 2 and 3+; events outside the daily calendar get no EAR. Daily file estimated at 55-75M rows (a few hundred MB of parquet), peak memory 3-5 GB.
