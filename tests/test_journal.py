@@ -709,3 +709,30 @@ def test_record_cli_year_typo_and_tz_apply_to_table_dates(tmp_path):
     t1 = _rec_run(tmp_path, ["--log-tz", "Asia/Shanghai", "--fix-years"], text=text)
     assert t1 == t  # idempotent
     assert "2b. REALISED P/L" in t and "2c. WEEKLY ATTRIBUTION" in t
+
+
+def test_wash_sale_same_lot_remainder_is_not_a_replacement():
+    info = {"AXT": dict(underlying="AXTI", leverage=-2.0)}
+    # whole lot sold at a loss, no other buy -> nothing; partial sale of one lot -> retained shares are not replacements
+    df = mk([("2025-03-03 10:00", "buy", "AXT", 200, 10.0), ("2025-03-10 10:00", "sell", "AXT", 150, 8.0),
+             ("2025-03-11 10:00", "sell", "AXT", 50, 8.0)])
+    assert j.wash_sale_warnings(df, j.fifo_pieces(df)[0], info) == []
+    df = mk([("2025-03-03 10:00", "buy", "AXT", 500, 10.0), ("2025-03-10 10:00", "sell", "AXT", 200, 8.0)])
+    assert j.wash_sale_warnings(df, j.fifo_pieces(df)[0], info) == []
+    # a gain never warns even with a nearby separate lot
+    df = mk([("2025-03-03 10:00", "buy", "AXT", 100, 10.0), ("2025-03-04 10:00", "buy", "AXT", 100, 10.0),
+             ("2025-03-10 10:00", "sell", "AXT", 100, 12.0)])
+    assert j.wash_sale_warnings(df, j.fifo_pieces(df)[0], info) == []
+
+
+def test_wash_sale_separate_lot_warns_with_share_count():
+    info = {"DMD": dict(underlying="AMD", leverage=-2.0)}
+    # DAMD-style: 500 sold at a loss from lot 1 (750); separate lot 2 (750) bought a minute later, 12 days before the sale
+    df = mk([("2025-09-23 21:50", "buy", "DMD", 750, 8.82), ("2025-09-23 21:51", "buy", "DMD", 750, 8.80),
+             ("2025-10-05 21:43", "sell", "DMD", 500, 8.37)])
+    w = j.wash_sale_warnings(df, j.fifo_pieces(df)[0], info)
+    assert len(w) == 1 and "up to 500 share(s) possibly disallowed" in w[0] and "not tax advice" in w[0]
+    # fewer replacement shares than sold shares: min(sold, replacement)
+    df = mk([("2025-09-23 21:50", "buy", "DMD", 750, 8.82), ("2025-09-24 21:51", "buy", "DMD", 100, 8.80),
+             ("2025-10-05 21:43", "sell", "DMD", 500, 8.37)])
+    assert "up to 100 share(s)" in j.wash_sale_warnings(df, j.fifo_pieces(df)[0], info)[0]

@@ -407,14 +407,15 @@ def wash_sale_warnings(df: pd.DataFrame, pieces: list[dict], info: dict) -> list
         if sum(p["pnl"] for p in ps) >= 0:
             continue
         t, sd = ps[0]["ticker"], ps[0]["sell_date"]
-        used: dict[int, float] = {}
-        for p in ps:
-            used[p["buy_idx"]] = used.get(p["buy_idx"], 0.0) + p["qty"]
-        hit = [(b.ticker, b.sdate) for b in buys.itertuples()
-               if und(b.ticker) == und(t) and abs((b.sdate - sd).days) <= 30 and b.qty - used.get(b.Index, 0.0) > EPS]
-        if hit:
-            out.append(f"possible WASH SALE: loss-closing sale of {t} on {sd} has a buy within 30 days "
-                       f"({', '.join(f'{a} {b}' for a, b in hit)}); loss may be disallowed (not modelled)")
+        src_lots = {p["buy_idx"] for p in ps}  # FIFO lots the sold shares came from; their retained shares are not replacements
+        sold = sum(p["qty"] for p in ps)
+        hit = [(b.ticker, b.sdate, b.qty) for b in buys.itertuples()
+               if b.Index not in src_lots and und(b.ticker) == und(t) and abs((b.sdate - sd).days) <= 30 and b.qty > EPS]
+        repl = sum(h[2] for h in hit)
+        if repl > EPS:
+            out.append(f"possible WASH SALE: loss-closing sale of {t} on {sd} has replacement purchase(s) within 30 days outside "
+                       f"the sold lot(s) ({', '.join(f'{a} {b} x{q:g}' for a, b, q in hit)}); up to {min(sold, repl):g} share(s) "
+                       f"possibly disallowed (informational, FIFO lot identification, not tax advice)")
     return out
 
 
