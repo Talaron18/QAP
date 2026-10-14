@@ -28,7 +28,7 @@ Net active return        a_t+1 = R^P_t+1 - R^B_t+1 - m * sum_i C_i,t
 ```
 - s = bid-ask spread (quoted, then Corwin-Schultz, then size-decile median); sigma = daily volatility; ADV = average daily dollar volume; Y = 1.
 - A_t = book size, a constant share of the equity market (USD 10M in 2019 market-size dollars). m = 1.5 is the cost stress multiplier. The benchmark is costless (generous to the tilt).
-- For USD 35k, A_t is about 0.3% of the research book, so impact is negligible and only the half-spread matters.
+- For a USD 45k account (the user's stated starting capital; earlier work assumed 35k), A_t is about 0.4% of the research book, so impact is negligible and only the half-spread matters.
 
 ## 4. How a signal is judged (pre-registered)
 Work on the series a_t of net long-minus-universe returns of the top quintile.
@@ -64,10 +64,10 @@ alpha = 0.09 %/mo -> 1,028 months (86 years)
 ```
 The paper ledgers (gpa, ML) are implementation checks, not evidence.
 
-## 7. In dollars on USD 35,000
+## 7. In dollars on USD 45,000 (starting capital stated by the user on 2026-10-15; earlier versions of this note used 35,000)
 ```
-Expected gain     alpha * 12 * W ~ 0.04-0.09 %/mo * 12 * 35,000 ~ USD 170-380 per year
-1-sigma noise     TE * W = 5% * 35,000 ~ USD 1,750 per year
+Expected gain     alpha * 12 * W ~ 0.04-0.09 %/mo * 12 * 45,000 ~ USD 215-485 per year
+1-sigma noise     TE * W = 5% * 45,000 ~ USD 2,250 per year
 Information ratio ~ 1.07% / 5% ~ 0.2  ->  P(beat benchmark in a given year) ~ Phi(0.2) ~ 58%
 ```
 

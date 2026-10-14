@@ -75,6 +75,8 @@ python scripts/paper_settle.py                    # verifies hashes, settles rea
 
 ## The USD 35k decision (my read, not advice)
 
+Context update 2026-10-15: the user states the account began with USD 45,000 (not 35,000) and trades 2x ETFs and long stocks with a -15%-of-deposit account stop and a -20% per-trade stop; the research dollar figures below were written for 35k and scale by about 1.29x. Rule-based trading is covered by the journal analyzer and the level calculator, not by any pre-registered result.
+
 - The investable edge found is at most a small profitability/quality tilt, with an uncertain sign out of sample and tracking noise of ~USD 1,600/yr
   on this account size (5% tracking error) against an expected benefit of roughly USD 20-35 a month.
 - Long-short `jkp_slow10` is not a basis to deploy: 30% drawdown, factor-explained returns, regime concentration, a data feed that ends 2025-12, and margin/short
