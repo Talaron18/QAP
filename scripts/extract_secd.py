@@ -1,9 +1,10 @@
 """Extract Compustat North America daily security prices (comp_na_daily_all.secd) for a few tickers (personal journal).
 
-    WRDS_USERNAME=you python scripts/extract_secd.py [TICKER ...] [--start 2023-01-01] [--gvkey-iid GVKEY:IID ...] [--out PATH]
+    WRDS_USERNAME=you python scripts/extract_secd.py [TICKER ...] [--start 2023-01-01] [--end YYYY-MM-DD] [--gvkey-iid GVKEY:IID ...] [--out PATH]
 
 No tickers given -> the project default list (config.SECD_DEFAULT_TICKERS). Writes data/raw/secd_tickers.parquet (git-ignored): one
 table, all requested securities, USD rows only (when the curcdd column exists), datadate as datetime64.
+--end defaults to today (UTC): the table contains future-dated rows that are never extracted.
 Required columns (gvkey iid datadate tic prccd) are validated against the real table; the optional ones that exist are taken.
 A ticker that maps to several (gvkey, iid) securities since --start (ticker reuse, share classes) is REFUSED with the candidates
 printed; pick one with --gvkey-iid (e.g. --gvkey-iid 012345:01). Run scripts/probe_secd.py first to see the candidates.
@@ -65,7 +66,7 @@ def summarize(df: pd.DataFrame) -> list[str]:
     return out
 
 
-def run(db, tickers: list[str], chosen: list[tuple[str, str]], start: str, out_path: pathlib.Path) -> pd.DataFrame:
+def run(db, tickers: list[str], chosen: list[tuple[str, str]], start: str, out_path: pathlib.Path, end: str | None = None) -> pd.DataFrame:
     lib, table = config.COMP_SECD.split(".")
     have = list(db.describe_table(library=lib, table=table)["name"])
     cols, absent = secd_columns(have)
@@ -73,7 +74,7 @@ def run(db, tickers: list[str], chosen: list[tuple[str, str]], start: str, out_p
         raise SystemExit(f"[secd] required columns absent from {config.COMP_SECD}: {absent}. Available: {sorted(have)}")
     if "curcdd" not in cols:
         print("[secd] WARNING: no curcdd column, rows are not filtered to USD", flush=True)
-    sql = secd_candidates_sql(cols, chosen, tickers, start)
+    sql = secd_candidates_sql(cols, chosen, tickers, start, end)
     print(f"[secd] {sql}", flush=True)
     cand = db.raw_sql(sql, date_cols=None)
     pairs, missing, refuse = resolve(cand, tickers, chosen)
@@ -83,7 +84,7 @@ def run(db, tickers: list[str], chosen: list[tuple[str, str]], start: str, out_p
         raise SystemExit("[secd] REFUSED, ambiguous tickers:\n" + "\n".join(refuse))
     if not pairs:
         raise SystemExit("[secd] nothing matched; run scripts/probe_secd.py")
-    sql = secd_sql(cols, gvkey_iids=pairs, start=start)
+    sql = secd_sql(cols, gvkey_iids=pairs, start=start, end=end)
     print(f"[secd] {sql}", flush=True)
     df = db.raw_sql(sql, date_cols=None)
     df["datadate"] = pd.to_datetime(df["datadate"])
@@ -99,6 +100,7 @@ def main(argv=None, db=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("tickers", nargs="*")
     ap.add_argument("--start", default="2023-01-01")
+    ap.add_argument("--end", default=None, help="upper datadate bound, default today (UTC)")
     ap.add_argument("--gvkey-iid", action="append", default=[], metavar="G:I")
     ap.add_argument("--out", default=DEFAULT_OUT)
     a = ap.parse_args(argv)
@@ -106,7 +108,7 @@ def main(argv=None, db=None) -> int:
     if db is None:
         from qap.wrds_client import connect
         db = connect()
-    run(db, tickers, [parse_pair(x) for x in a.gvkey_iid], a.start, pathlib.Path(a.out))
+    run(db, tickers, [parse_pair(x) for x in a.gvkey_iid], a.start, pathlib.Path(a.out), a.end)
     return 0
 
 

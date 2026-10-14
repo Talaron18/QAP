@@ -41,18 +41,23 @@ def check_safe(items: list[str], what: str) -> list[str]:
     return items
 
 
+def future_sql(table: str, n: int = 50) -> str:
+    return (f"select gvkey, iid, tic, conm, datadate from {table} where datadate > current_date "
+            f"order by datadate desc limit {n}")
+
+
 def lookup_sql(table: str, tickers: list[str], cols: list[str], start: str = LOOKUP_START) -> str:
     keys = [c for c in ID_COLS if c in cols]
     tl = ", ".join(f"'{t.upper()}'" for t in check_safe(tickers, "tickers"))
     return (f"select {', '.join(keys)}, count(*) as n, min(datadate) as first_date, max(datadate) as last_date from {table} "
-            f"where datadate >= '{start}' and tic in ({tl}) group by {', '.join(keys)} order by tic, max(datadate)")
+            f"where datadate >= '{start}' and datadate <= current_date and tic in ({tl}) group by {', '.join(keys)} order by tic, max(datadate)")
 
 
 def words_sql(table: str, words: list[str], cols: list[str], start: str = RECENT_START) -> str:
     keys = [c for c in ID_COLS if c in cols]
     cond = " or ".join(f"conm ilike '%%{w}%%'" for w in check_safe(words, "words"))
     return (f"select {', '.join(keys)}, count(*) as n, min(datadate) as first_date, max(datadate) as last_date from {table} "
-            f"where datadate >= '{start}' and ({cond}) group by {', '.join(keys)} order by conm, max(datadate)")
+            f"where datadate >= '{start}' and datadate <= current_date and ({cond}) group by {', '.join(keys)} order by conm, max(datadate)")
 
 
 def last_rows_sql(table: str, gvkey: str, iid: str, cols: list[str], start: str = RECENT_START, n: int = 5) -> str:
@@ -60,7 +65,7 @@ def last_rows_sql(table: str, gvkey: str, iid: str, cols: list[str], start: str 
     check_safe([str(gvkey), str(iid)], "gvkey/iid")
     sel = [c for c in ROW_COLS if c in cols] or ["datadate", "prccd"]
     return (f"select {', '.join(sel)} from {table} where gvkey = '{gvkey}' and iid = '{iid}' and datadate >= '{start}' "
-            f"order by datadate desc limit {n}")
+            f"and datadate <= current_date order by datadate desc limit {n}")
 
 
 def fmt_frame(df: pd.DataFrame, indent: str = "  ") -> list[str]:
@@ -102,13 +107,13 @@ def probe_table(db, table: str, log) -> tuple[list[str] | None, str | None]:
         elif len(r):
             cols = [str(x) for x in r["column_name"]]
             log(f"  {len(cols)} columns (information_schema): " + ", ".join(f"{a}:{b}" for a, b in zip(r["column_name"], r["data_type"])))
-    mx = try_sql(db, f"select max(datadate) as hi from {table} where datadate >= '{RECENT_START}'")
+    mx = try_sql(db, f"select max(datadate) as hi from {table} where datadate >= '{RECENT_START}' and datadate <= current_date")
     hi = None
     if isinstance(mx, str):
         log("  max(datadate) since 2025-06-01: " + mx)
     else:
         hi = mx["hi"].iloc[0]
-        log(f"  max(datadate) (restricted to datadate >= {RECENT_START}): {hi}")
+        log(f"  max(datadate) (restricted to {RECENT_START} <= datadate <= current_date): {hi}")
     mn = try_sql(db, f"select min(datadate) as lo from {table}")
     log("  min(datadate): " + (mn if isinstance(mn, str) else str(mn["lo"].iloc[0])))
     try:
@@ -116,8 +121,16 @@ def probe_table(db, table: str, log) -> tuple[list[str] | None, str | None]:
     except (ValueError, TypeError):
         base = dt.date.today()
     since = (base - dt.timedelta(days=30)).isoformat()
-    cn = try_sql(db, f"select count(*) as n from {table} where datadate >= '{since}'")
+    cn = try_sql(db, f"select count(*) as n from {table} where datadate >= '{since}' and datadate <= current_date")
     log(f"  rows with datadate >= {since} (last 30 days before the max): " + (cn if isinstance(cn, str) else f"{int(cn['n'].iloc[0]):,}"))
+    fu = try_sql(db, future_sql(table))
+    if isinstance(fu, str):
+        log("  future-dated rows (datadate > current_date): " + fu)
+    elif len(fu):
+        log(f"  FUTURE-DATED rows (datadate > current_date; first {len(fu)} shown) - never extracted, dropped by prices.py:")
+        log("\n".join(fmt_frame(fu, "    ")))
+    else:
+        log("  future-dated rows (datadate > current_date): none")
     return cols, (None if hi is None else str(hi))
 
 

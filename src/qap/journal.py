@@ -946,7 +946,7 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
     if pf is not None:
         L += ["", f"1c. PRICE FILE CHECKS ({prices_file}; Compustat daily security prices, unadjusted close prccd)"]
         L.append("  tickers in file: " + ", ".join(f"{t} ({d['first']:%Y-%m-%d}..{d['last']:%Y-%m-%d}, {d['rows']} rows, gaps>"
-                                                  f"{px_.GAP_DAYS}d {d['gaps']}, dropped dup {d['dups']}/non-positive {d['nonpositive']})"
+                                                  f"{px_.GAP_DAYS}d {d['gaps']}, dropped dup {d['dups']}/non-positive {d['nonpositive']}/future-dated {d['future']})"
                                                   for t, d in sorted(pf_diag.items())))
         need = sorted(info)
         L.append("  price source per ticker: " + ", ".join(f"{t}={price_src.get(t, 'none')}" for t in need))

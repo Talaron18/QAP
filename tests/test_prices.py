@@ -170,3 +170,27 @@ def test_a_missing_trfd_is_filled_from_neighbours_not_set_to_one_which_would_fak
     d2 = d.assign(trfd=np.nan)
     out2, _ = prepare_prices(d2)
     assert (out2["trfd"] == 1.0).all()                         # missing for the whole security -> 1
+
+
+# ------------------------------------------------------------------------------------------------ future-dated rows / real-data shapes
+def test_future_dated_rows_dropped_first_and_counted():
+    raw = mkraw([("2025-01-02", 10.0), ("2025-01-03", 11.0), ("2027-11-12", 99.0), ("2027-11-12", 98.0)])
+    d, diag = px.prepare_prices(raw, as_of="2025-06-30")
+    assert d["datadate"].max() == pd.Timestamp("2025-01-03") and diag["AAA"]["future"] == 2 and diag["AAA"]["dups"] == 0
+    assert diag["AAA"]["gaps"] == 0 and px.last_price(d, "AAA")[0] == 11.0       # the future row cannot become the last price or break the chain
+    d, diag = px.prepare_prices(raw)                                             # default as_of = today
+    assert d["datadate"].max() == pd.Timestamp("2025-01-03") and diag["AAA"]["future"] == 2
+
+
+def test_real_data_shapes_null_trfd_constant_factor_adr_and_etf():
+    # null trfd (most names), constant cumulative factor (dividend payer), ajexdi 1; ADR / ETF tpci values are carried but unused
+    a = mkraw([("2025-01-02", 100.0, 1.0, np.nan), ("2025-01-03", 101.0, 1.0, np.nan)], tic="LITE", gvkey="5")
+    b = mkraw([("2025-01-02", 100.0, 1.0, 1.25929), ("2025-01-03", 101.0, 1.0, 1.25929), ("2025-01-06", 101.0, 1.0, 1.26374)], tic="ORCL", gvkey="6")
+    b["tpci"] = "0"
+    c = mkraw([("2025-01-02", 10.0, 1.0, np.nan), ("2025-01-03", 9.0, 1.0, np.nan)], tic="SNDQ", gvkey="7")
+    c["tpci"] = "%"
+    d, diag = px.prepare_prices(pd.concat([a, b, c]), as_of="2025-12-31")
+    assert px.return_series(d, "LITE").iloc[0] == pytest.approx(0.01)
+    r = px.return_series(d, "ORCL")
+    assert r.iloc[0] == pytest.approx(0.01) and r.iloc[1] == pytest.approx(1.26374 / 1.25929 - 1)
+    assert px.return_series(d, "SNDQ").iloc[0] == pytest.approx(-0.1)

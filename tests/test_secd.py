@@ -70,6 +70,7 @@ def world(**kw):
     db.add("010", "01", "SNDK", "SANDISK OLD", ["2024-02-01", "2024-03-01"], 50.0)
     db.add("020", "01", "SNDK", "SANDISK CORP", days, 60.0)
     db.add("030", "01", "HXSK", "SK HYNIX INC", days, 70.0)
+    db.add("002", "01", "ORCL", "ORACLE CORP", ["2027-11-12"], 999.0)         # future-dated row
     return db
 
 
@@ -103,6 +104,28 @@ def test_secd_sql_runs_in_duckdb_usd_only():
     assert set(zip(out["gvkey"], out["tic"])) == {("001", "AMD"), ("020", "SNDK")} and set(out["curcdd"]) == {"USD"} and len(out) == 6
     c = db.con.execute(secd_candidates_sql(cols, tickers=["SNDK"], start="2024-01-01")).df()
     assert sorted(c["gvkey"]) == ["010", "020"] and list(c["n"]) == [2, 3]
+
+
+def test_secd_sql_upper_bound_default_today_and_end_option():
+    import datetime as dt
+    today = dt.datetime.now(dt.timezone.utc).date().isoformat()
+    assert f"datadate <= DATE '{today}'" in secd_sql(["gvkey"], tickers=["AMD"])
+    assert f"datadate <= DATE '{today}'" in secd_candidates_sql(["gvkey"], tickers=["AMD"])
+    assert "datadate <= DATE '2025-09-25'" in secd_sql(["gvkey"], tickers=["AMD"], end="2025-09-25")
+    with pytest.raises(ValueError):
+        secd_sql(["gvkey"], tickers=["AMD"], end="2025-9-25")
+    db = world()
+    cols, _ = secd_columns(db.cols)
+    out = db.con.execute(secd_sql(cols, tickers=["ORCL"], start="2025-01-01", end="2025-09-25")).df()
+    assert len(out) == 2 and out["datadate"].max() == pd.Timestamp("2025-09-25")
+
+
+def test_extract_never_pulls_future_rows_and_end_option(tmp_path):
+    out = tmp_path / "f.parquet"
+    ext.main(["ORCL", "--start", "2025-01-01", "--out", str(out)], db=world())
+    assert pd.read_parquet(out)["datadate"].max() == pd.Timestamp("2025-09-26")
+    ext.main(["ORCL", "--start", "2025-01-01", "--end", "2025-09-24", "--out", str(out)], db=world())
+    assert len(pd.read_parquet(out)) == 1
 
 
 # ------------------------------------------------------------------------------------------------ extraction script
@@ -193,7 +216,8 @@ def test_probe_main_report(tmp_path, capsys, fail_describe):
     assert probe.main(["AMD", "SNDK", "SKHY", "ORCL", "--words", "HYNIX"], db=db, out=str(out)) == 0
     text = out.read_text()
     assert text.strip() == capsys.readouterr().out.strip()
-    for must in ("## comp_na_daily_all.secd", "## comp.secd", "max(datadate) (restricted to datadate >= 2025-06-01): 2025-09-26",
+    for must in ("## comp_na_daily_all.secd", "## comp.secd", "max(datadate) (restricted to 2025-06-01 <= datadate <= current_date): 2025-09-26",
+                 "FUTURE-DATED rows", "2027-11-12", "ORCL",
                  "min(datadate): 2024-02-01", "rows with datadate >= 2025-08-27", "AMBIGUOUS SNDK: 2 securities (010:01, 020:01)",
                  "NO MATCH for ticker SKHY", "company-name search", "SK HYNIX INC", "LAST 5 ROWS", "2024-03-01", "prccd", "ajexdi", "trfd"):
         assert must in text, must

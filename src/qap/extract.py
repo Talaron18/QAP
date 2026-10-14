@@ -222,8 +222,14 @@ def secd_columns(have: Sequence[str]) -> tuple[list[str], list[str]]:
     return config.SECD_REQUIRED + [c for c in config.SECD_OPTIONAL if c in have], absent
 
 
-def _secd_where(columns: Sequence[str], gvkey_iids, tickers, start: str) -> str:
-    dt.date.fromisoformat(start)  # validates the literal (it is interpolated into the SQL)
+def _today_utc() -> str:
+    return dt.datetime.now(dt.timezone.utc).date().isoformat()
+
+
+def _secd_where(columns: Sequence[str], gvkey_iids, tickers, start: str, end: str | None = None) -> str:
+    dt.date.fromisoformat(start)  # validates the literals (they are interpolated into the SQL)
+    end = end or _today_utc()   # the table carries future-dated rows: always bound the upper end
+    dt.date.fromisoformat(end)
     sel = []
     if tickers:
         sel.append("tic in (" + ", ".join(f"'{t}'" for t in _check_tickers(tickers)) + ")")
@@ -231,27 +237,27 @@ def _secd_where(columns: Sequence[str], gvkey_iids, tickers, start: str) -> str:
         sel.append(f"(gvkey = '{g}' and iid = '{i}')")
     if not sel:
         raise ValueError("secd query needs at least one ticker or gvkey/iid pair")
-    where = f"datadate >= DATE '{start}' and (" + " or ".join(sel) + ")"
+    where = f"datadate >= DATE '{start}' and datadate <= DATE '{end}' and (" + " or ".join(sel) + ")"
     if "curcdd" in columns:
         where += " and curcdd = 'USD'"          # USD only unless the column is absent
     return where
 
 
 def secd_sql(columns: Sequence[str], gvkey_iids: Sequence[tuple[str, str]] | None = None,
-             tickers: Sequence[str] | None = None, start: str = "2023-01-01") -> str:
+             tickers: Sequence[str] | None = None, start: str = "2023-01-01", end: str | None = None) -> str:
     """Compustat NA daily security rows (comp_na_daily_all.secd) for the given tickers and/or (gvkey, iid) pairs from `start`.
 
     columns: validated by the caller against describe_table. USD rows only when `curcdd` is among the columns.
-    Tickers and ids are validated against a strict pattern (they are interpolated into the SQL).
+    `end` (default: today, UTC) bounds datadate from above. Tickers and ids are validated against a strict pattern (they are interpolated into the SQL).
     """
-    return _select(list(columns), config.COMP_SECD, _secd_where(columns, gvkey_iids, tickers, start), "gvkey, iid, datadate")
+    return _select(list(columns), config.COMP_SECD, _secd_where(columns, gvkey_iids, tickers, start, end), "gvkey, iid, datadate")
 
 
-def secd_candidates_sql(columns: Sequence[str], gvkey_iids=None, tickers=None, start: str = "2023-01-01") -> str:
+def secd_candidates_sql(columns: Sequence[str], gvkey_iids=None, tickers=None, start: str = "2023-01-01", end: str | None = None) -> str:
     """One row per (tic, gvkey, iid): the ambiguity check run before the extraction (same filters as secd_sql)."""
     extra = [c for c in ("conm", "tpci", "exchg") if c in columns]
     keys = ["tic", "gvkey", "iid"] + extra
-    where = _secd_where(columns, gvkey_iids, tickers, start)
+    where = _secd_where(columns, gvkey_iids, tickers, start, end)
     return (f"select {', '.join(keys)}, count(*) as n, min(datadate) as first_date, max(datadate) as last_date "
             f"from {config.COMP_SECD} where {where} group by {', '.join(keys)} order by tic, last_date")
 

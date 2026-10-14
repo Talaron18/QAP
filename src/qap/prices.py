@@ -25,15 +25,21 @@ MIN_EWMA = 60
 MIN_SAMPLE = 20
 
 
-def prepare_prices(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, dict]]:
+def prepare_prices(raw: pd.DataFrame, as_of=None) -> tuple[pd.DataFrame, dict[str, dict]]:
     """Clean a secd extract. Returns (frame, diag): frame columns tic, gvkey, iid, datadate, prccd, ajexdi, trfd, adj_close, tri,
-    gap, ret (NaN on a security's first row and after a gap); diag[tic] = rows, dups, nonpositive, gaps, first, last."""
+    gap, ret (NaN on a security's first row and after a gap); diag[tic] = rows, future (rows after as_of, dropped first), dups, nonpositive, gaps, first, last."""
     need = ["gvkey", "iid", "datadate", "tic", "prccd"]
     absent = [c for c in need if c not in raw.columns]
     if absent:
         raise ValueError(f"price file lacks required columns {absent}")
     d = raw.copy()
     d["datadate"] = pd.to_datetime(d["datadate"]).dt.normalize()
+    cut = pd.Timestamp(as_of).normalize() if as_of is not None else pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
+    fut = d["datadate"] > cut          # future-dated rows exist in secd: dropped before anything else
+    d["tic"] = d["tic"].astype(str).str.strip().str.upper()
+    future = d[fut].groupby(["gvkey", "iid"]).size() if fut.any() else pd.Series(dtype=int)
+    future.index = future.index.map(lambda k: (str(k[0]), str(k[1]))) if len(future) else future.index
+    d = d[~fut].copy()
     d["tic"] = d["tic"].astype(str).str.strip().str.upper()
     d["gvkey"], d["iid"] = d["gvkey"].astype(str), d["iid"].astype(str)
     for c in ("prccd", "ajexdi", "trfd"):
@@ -69,14 +75,14 @@ def prepare_prices(raw: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, dict]]:
     diag = {}
     for t, s in d.groupby("tic"):
         key = (s["gvkey"].iloc[0], s["iid"].iloc[0])
-        diag[t] = dict(rows=len(s), dups=int(dups.get(key, 0)), nonpositive=int(nonpos.get(key, 0)),
+        diag[t] = dict(rows=len(s), future=int(future.get(key, 0)), dups=int(dups.get(key, 0)), nonpositive=int(nonpos.get(key, 0)),
                        gaps=int(s["gap"].sum()), first=s["datadate"].min(), last=s["datadate"].max())
     return d, diag
 
 
-def load_prices(path: str | Path) -> tuple[pd.DataFrame, dict[str, dict]]:
+def load_prices(path: str | Path, as_of=None) -> tuple[pd.DataFrame, dict[str, dict]]:
     """Read the extract parquet and clean it (see prepare_prices)."""
-    return prepare_prices(pd.read_parquet(path))
+    return prepare_prices(pd.read_parquet(path), as_of)
 
 
 def last_price(df: pd.DataFrame, ticker: str) -> tuple[float, pd.Timestamp | None]:

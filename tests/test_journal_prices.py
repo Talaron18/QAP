@@ -213,3 +213,12 @@ def test_section_4_closed_trip_underlying_gets_a_vol_source_line(tmp_path):
     t = run(tmp_path, pfile=pf)
     s4 = section(t, "4. VOLATILITY", "4b.")
     assert "closed" in s4 and "vol source: ZZQX: price file: ewma94" in s4
+
+
+def test_future_dated_price_row_is_ignored_and_stale_uses_latest_real_date(tmp_path):
+    pf, _ = world(tmp_path, end="2025-09-12")
+    f = pd.read_parquet(pf)
+    fut = f[f["tic"] == "ACME"].tail(1).assign(datadate=pd.Timestamp("2099-01-01"), prccd=999.0)
+    pd.concat([f, fut]).to_parquet(pf)
+    t = run(tmp_path, pfile=pf)
+    assert "STALE price file: last date 2025-09-12" in t and "future-dated 1" in t and "999.00" not in t
