@@ -11,6 +11,7 @@ Real journals live under data/journal/ (git-ignored); nothing real belongs in th
 from __future__ import annotations
 
 import argparse
+import csv
 import glob
 import math
 import re
@@ -658,6 +659,93 @@ def parse_record_md(text: str, src: str = "") -> dict | None:
     return dict(fills=fills, snaps=list(snaps.values()), capital=parse_initial_capital(text))
 
 
+# ----------------------------------------------------------------------------------------------- portfolio csv (side-by-side weeks)
+PORTFOLIO_CSV_START_CAPITAL = 45000.0  # the user began with 45,000; used for a portfolio csv without an Initial Capital row
+PCSV_EXPECTED = ("expected layout: row 0 has 'Week N Trading History' cells (one per block, 6 columns wide); below it trade lines "
+                 "'YYYY-MM-DD HH:MM:SS Bought|Sold N shares <name> (TICKER) @ P USD' in the block's first column until the first "
+                 "blank row; then a header row 'Security Name (WN) | Shares | Cost Basis | Current Price | Unrealized P/L | "
+                 "Return Rate', holdings rows, and 'Total Market Value | v | | Remaining Cash | v' / 'Total Assets | v | | Total "
+                 "Return Rate | v' rows")
+PCSV_TRADE = re.compile(
+    r"^\s*(?P<date>\d{4}-\d{2}-\d{2})[T ]+(?P<time>\d{1,2}:\d{2}(?::\d{2})?)\s+(?P<action>Bought|Sold|Buy|Sell)\s+"
+    r"(?P<qty>[\d,]*\.?\d+)\s+shares?\s+(?P<name>.*?)\s*\((?P<ticker>[A-Za-z0-9.\-^]+)\)\s*@\s*\$?\s*"
+    r"(?P<price>[\d,]*\.?\d+)\s*(?:USD)?\s*$", re.I)
+PCSV_CAP = re.compile(r"^\s*(initial|starting)\s+capital", re.I)
+
+
+def is_portfolio_csv(text: str) -> bool:
+    first = text.lstrip("\ufeff").splitlines()[0] if text.strip() else ""
+    return "trading history" in first.lower()
+
+
+def parse_portfolio_csv(text: str, src: str = "") -> dict:
+    """Side-by-side week blocks in one csv. Returns dict(fills, snaps, capital, n_blocks, n_holdings, n_ignored).
+
+    Raises ValueError (listing the expected layout) when a block header is found but its trade/holdings rows do not parse.
+    """
+    rows = list(csv.reader(text.lstrip("\ufeff").splitlines()))
+    if not rows:
+        raise ValueError("empty csv; " + PCSV_EXPECTED)
+    blocks = [(c, int(m.group(1))) for c, cell in enumerate(rows[0])
+              if (m := re.search(r"Week\s+(\d+)\s+Trading\s+History", cell, re.I))]
+    if not blocks:
+        raise ValueError("no 'Week N Trading History' cell in row 0; " + PCSV_EXPECTED)
+    cell = lambda r, c: rows[r][c].strip() if 0 <= r < len(rows) and 0 <= c < len(rows[r]) else ""
+    sep = next((i for i in range(1, len(rows)) if not any(x.strip() for x in rows[i])), len(rows))
+    fills: list[dict] = []
+    snaps: list[dict] = []
+    n_hold = n_ign = 0
+    for c, wk in blocks:
+        n_tr, n_nonempty = 0, 0
+        for i in range(1, sep):
+            t = cell(i, c)
+            if not t:
+                continue
+            n_nonempty += 1
+            m = PCSV_TRADE.match(t)
+            if not m:
+                n_ign += 1
+                continue
+            fills.append(dict(ts=pd.Timestamp(f"{m['date']} {m['time']}"),
+                              action="buy" if m["action"].lower() in ("bought", "buy") else "sell", ticker=m["ticker"].upper(),
+                              qty=parse_number(m["qty"]), price=parse_number(m["price"]), fee=0.0, name=m["name"].strip(),
+                              src=src, line_no=i + 1, week=wk))
+            n_tr += 1
+        hdr = next((i for i in range(sep, len(rows)) if cell(i, c).lower().startswith("security name")), None)
+        srows, summ = [], {}
+        if hdr is not None:
+            for i in range(hdr + 1, len(rows)):
+                a = cell(i, c)
+                if not a or a == "-":
+                    continue
+                low = a.lower()
+                if low.startswith("total market value") or low.startswith("total assets"):
+                    for lc, vc in ((c, c + 1), (c + 3, c + 4)):
+                        lab = cell(i, lc).lower()
+                        for key, pat in (("market_value", "total market value"), ("cash", "remaining cash"),
+                                         ("total_assets", "total assets"), ("return_rate", "total return rate")):
+                            if lab.startswith(pat):
+                                summ[key] = parse_number(cell(i, vc))
+                    continue
+                tm = _TICK.match(a)
+                vals = [parse_number(cell(i, c + k)) for k in range(1, 6)]
+                if tm and not math.isnan(vals[0]) and not math.isnan(vals[2]):
+                    srows.append(dict(ticker=tm.group(1).upper(), name=tm.group(1), qty=vals[0], cost=vals[1], price=vals[2],
+                                      mv=vals[0] * vals[2], pl=vals[3], ratio=vals[4]))
+        n_hold += len(srows)
+        if (not n_tr and not srows) or (n_nonempty and not n_tr) or hdr is None or (not srows and not summ):
+            raise ValueError(f"Week {wk} block (column {c}): parsed {n_tr} trade line(s) and {len(srows)} holdings row(s); "
+                             + PCSV_EXPECTED)
+        if srows or summ:
+            snaps.append(dict(week=wk, date=None, rows=srows, summary=summ, src=src, has_table=True, record=True))
+    cap = None
+    for r in rows:
+        if r and PCSV_CAP.match(r[0]):
+            cap = next((parse_number(x) for x in r[1:] if x.strip() and not math.isnan(parse_number(x))), None)
+            break
+    return dict(fills=fills, snaps=snaps, capital=cap, n_blocks=len(blocks), n_holdings=n_hold, n_ignored=n_ign)
+
+
 def realised_report(sales: list[dict]) -> list[str]:
     """Section 2b: realised P/L per sale and per ticker (average cost, pre-sale average cost, net of fees)."""
     L = ["", "2b. REALISED P/L (average-cost method; pre-sale average cost from the fills; net of fees)"]
@@ -798,8 +886,23 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
 
     fills, snaps, n_ign = [], [], 0
     record_mode, record_cap = False, None
+    pcsv_notes: list[str] = []
     for p in paths:
         text = Path(p).read_text(encoding="utf-8", errors="replace")
+        if str(p).lower().endswith(".csv") and is_portfolio_csv(text):
+            try:
+                pc = parse_portfolio_csv(text, src=Path(p).name)
+            except ValueError as e:
+                raise SystemExit(f"{p}: cannot parse portfolio csv: {e}")
+            record_mode = True
+            fills += pc["fills"]
+            snaps += pc["snaps"]
+            n_ign += pc["n_ignored"]
+            if pc["capital"] is not None:
+                record_cap = pc["capital"]
+            pcsv_notes.append(f"  file format detected: portfolio csv ({Path(p).name}): {pc['n_blocks']} week block(s), "
+                              f"{len(pc['fills'])} fills, {pc['n_holdings']} holdings rows")
+            continue
         f, ig = parse_log_text(text, src=Path(p).name)
         fills += f
         n_ign += ig
@@ -813,12 +916,16 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
             snaps += parse_snapshots(text, src=Path(p).name)
     cap_note, cap_conflict = "", None
     if record_mode:
-        if record_cap is not None and not start_capital_given:
-            start_capital, cap_note = record_cap, " (from the record)"
+        src_word = "the Initial Capital row" if pcsv_notes else "the record"
+        if record_cap is None and pcsv_notes and not start_capital_given:
+            start_capital = PORTFOLIO_CSV_START_CAPITAL
+            cap_note = " (default for the portfolio csv; add an Initial Capital row to change)"
+        elif record_cap is not None and not start_capital_given:
+            start_capital, cap_note = record_cap, f" (from {src_word})"
         elif record_cap is not None:
             cap_note = " (--start-capital)"
             if abs(record_cap - start_capital) > 0.005:
-                cap_conflict = (f"  start capital CONFLICT: the record says {record_cap:,.2f} but --start-capital "
+                cap_conflict = (f"  start capital CONFLICT: {src_word} says {record_cap:,.2f} but --start-capital "
                                 f"{start_capital:,.2f} is used (explicit option wins)")
         else:
             cap_note = f" (default {start_capital:,.0f})" if not start_capital_given else " (--start-capital)"
@@ -877,6 +984,7 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
     if dup.any():
         warn.append(f"{int(dup.sum())} possibly duplicated fill rows (kept in the analysis)")
     L.append(f"  snapshots parsed: {len(snaps)}   start capital: {start_capital:,.2f}{cap_note}")
+    L += pcsv_notes
     if cap_conflict:
         L.append(cap_conflict)
         warn.append("start capital in the record differs from --start-capital")

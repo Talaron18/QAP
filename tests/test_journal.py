@@ -736,3 +736,161 @@ def test_wash_sale_separate_lot_warns_with_share_count():
     df = mk([("2025-09-23 21:50", "buy", "DMD", 750, 8.82), ("2025-09-24 21:51", "buy", "DMD", 100, 8.80),
              ("2025-10-05 21:43", "sell", "DMD", 500, 8.37)])
     assert "up to 100 share(s)" in j.wash_sale_warnings(df, j.fifo_pieces(df)[0], info)[0]
+
+
+# ------------------------------------------------------------------------------------------------ portfolio csv (side-by-side weeks)
+import csv as _csv
+import io as _io
+
+HDR = ["Security Name (W{})", "Shares", "Cost Basis", "Current Price", "Unrealized P/L", "Return Rate"]
+
+
+def _csv_text(rows):
+    b = _io.StringIO()
+    _csv.writer(b).writerows(rows)
+    return b.getvalue()
+
+
+def _synthetic_rows(extra=()):
+    e = [""] * 6
+    r0 = ["Week 1 Trading History"] + [""] * 5 + ["Week 2 Trading History"] + [""] * 5 + ["Week 3 Trading History"] + [""] * 5
+    rows = [r0,
+            ["2025-09-23 00:30:05 Bought 10 shares Alpha Corp (AAA) @ $100.00 USD"] + [""] * 5
+            + ["2025-10-02  01:33:05   Sold 100 shares (ZQS) @ 11 USD"] + [""] * 5
+            + ["2025-10-09 00:30:00 Bought 1,000 shares Zed Co (ZED) @ $1.50"],
+            ["2025-09-23 00:32:50 Bought 200 shares 2× Short ZZQX ETF - Foo (ZQS) @ 10 USD"] + [""] * 5
+            + ["2025-10-02 21:32:01 Sold 50 shares 3x Long FOOB ETF (FBL) @ 18.00 USD"],
+            ["2025-09-24 21:50:00 Bought 50 shares 3x Long FOOB ETF - Bar, Inc (FBL) @ 20.00 USD"],
+            [],
+            [h.format(1) for h in HDR] + [h.format(2) for h in HDR] + [h.format(3) for h in HDR],
+            ["AAA", "10", "100.000", "110.000", "100.00", "10.000%", "AAA", "10", "100.000", "105.000", "50.00", "5.000%",
+             "AAA", "10", "100.000", "106.000", "60.00", "6.000%"],
+            ["ZQS", "200", "10.000", "9.000", "-200.00", "-10.000%", "ZQS", "100", "10.000", "10.500", "50.00", "5.000%",
+             "ZQS", "100", "10.000", "10.200", "+20.00", "+2.000%"],
+            ["FBL", "50", "19.000", "22.000", "150.00", "15.789%", "-", "-", "-", "-", "-", "-",
+             "ZED", "1,000", "1.500", "1.400", "-100.00", "-6.667%"],
+            ["Total Market Value", "4000.00", "", "Remaining Cash", "6150.00", "",
+             "Total Market Value", "2100.00", "", "Remaining Cash", "8150.00", "",
+             "Total Market Value", "3480.00", "", "Remaining Cash", "6650.00", ""],
+            ["Total Assets", "10150.00", "", "Total Return Rate", "1.50%", "",
+             "Total Assets", "10250.00", "", "Total Return Rate", "+2.50%", "",
+             "Total Assets", "10130.00", "", "Total Return Rate", "1.30%", ""]]
+    return rows + [list(x) for x in extra]
+
+
+def _pcsv_run(tmp_path, rows=None, extra=(), name="Portfolio.csv"):
+    (tmp_path / name).write_text(_csv_text(rows or _synthetic_rows()), encoding="utf-8")
+    rep = tmp_path / "rep.txt"
+    j.main([str(tmp_path / name), "--report", str(rep), "--roundtrips", str(tmp_path / "rt.csv"), "--meta", "none",
+            "--today", "2025-12-31", *extra])
+    return rep.read_text()
+
+
+def test_portfolio_csv_parser_blocks_trades_holdings_totals():
+    text = _csv_text(_synthetic_rows())
+    assert j.is_portfolio_csv(text) and j.is_portfolio_csv("﻿" + text) and not j.is_portfolio_csv("datetime,action\n")
+    r = j.parse_portfolio_csv(text, "p.csv")
+    assert (r["n_blocks"], len(r["fills"]), r["n_holdings"], r["capital"]) == (3, 6, 8, None)
+    f = r["fills"]
+    assert [x["week"] for x in f] == [1, 1, 1, 2, 2, 3]
+    z = {(x["ticker"], x["action"]): x for x in f}
+    assert z["ZQS", "buy"]["name"] == "2× Short ZZQX ETF - Foo" and z["ZQS", "sell"]["name"] == ""
+    assert z["FBL", "buy"]["name"] == "3x Long FOOB ETF - Bar, Inc" and z["FBL", "buy"]["qty"] == 50
+    assert z["ZED", "buy"]["qty"] == 1000 and z["ZED", "buy"]["price"] == 1.5 and z["AAA", "buy"]["price"] == 100.0
+    assert z["ZQS", "sell"]["ts"] == pd.Timestamp("2025-10-02 01:33:05")
+    s1, s2, s3 = r["snaps"]
+    assert [s["week"] for s in r["snaps"]] == [1, 2, 3] and [len(s["rows"]) for s in r["snaps"]] == [3, 2, 3]
+    assert s1["summary"] == dict(market_value=4000.0, cash=6150.0, total_assets=10150.0, return_rate=1.5)
+    assert s2["summary"]["return_rate"] == 2.5 and s3["summary"]["cash"] == 6650.0
+    assert s1["rows"][1]["pl"] == -200 and s1["rows"][1]["ratio"] == -10.0
+    assert s3["rows"][1]["pl"] == 20 and s3["rows"][2]["pl"] == -100 and s3["rows"][2]["qty"] == 1000
+    assert [x["mv"] for x in s1["rows"]] == pytest.approx([1100.0, 1800.0, 1100.0])  # shares x current price
+    assert s3["rows"][2]["mv"] == pytest.approx(1400.0)
+    assert j.parse_leverage(z["ZQS", "buy"]["name"]) == (-2.0, "ZZQX")
+
+
+def test_portfolio_csv_initial_capital_row_variants():
+    for label in ("Initial Capital", "starting capital", "Initial capital assumed"):
+        r = j.parse_portfolio_csv(_csv_text(_synthetic_rows([[label, "", "$12,500.50"]])))
+        assert r["capital"] == 12500.5, label
+
+
+def test_portfolio_csv_start_capital_precedence(tmp_path):
+    t = _pcsv_run(tmp_path)
+    assert "start capital: 45,000.00 (default for the portfolio csv; add an Initial Capital row to change)" in t
+    assert j.PORTFOLIO_CSV_START_CAPITAL == 45000.0
+    assert "file format detected: portfolio csv (Portfolio.csv): 3 week block(s), 6 fills, 8 holdings rows" in t
+    t = _pcsv_run(tmp_path, _synthetic_rows([["Initial Capital", "10000"]]))
+    assert "start capital: 10,000.00 (from the Initial Capital row)" in t and "CONFLICT" not in t
+    t = _pcsv_run(tmp_path, _synthetic_rows([["Initial Capital", "10000"]]), ["--start-capital", "12000"])
+    assert "12,000.00 (--start-capital)" in t and "start capital CONFLICT: the Initial Capital row says 10,000.00" in t
+    # other input types keep the old 35,000 default
+    (tmp_path / "log.txt").write_text(CLI_LOG)
+    j.main([str(tmp_path / "log.txt"), "--report", str(tmp_path / "o.txt"), "--roundtrips", str(tmp_path / "o.csv"), "--meta", "none"])
+    assert "start capital: 35,000.00\n" in (tmp_path / "o.txt").read_text() + "\n"
+
+
+def test_portfolio_csv_corrupted_block_raises_clear_error(tmp_path):
+    rows = _synthetic_rows()
+    rows[1] = ["not a trade line"] + rows[1][1:6] + [""] * 12  # block 1 trade lines unparsable, others fine
+    rows[2] = [""] * 18
+    rows[3] = [""] * 18
+    (tmp_path / "bad.csv").write_text(_csv_text(rows))
+    with pytest.raises(SystemExit) as e:
+        j.main([str(tmp_path / "bad.csv"), "--report", str(tmp_path / "r.txt"), "--roundtrips", str(tmp_path / "r.csv"), "--meta", "none"])
+    assert "Week 1 block" in str(e.value) and "expected layout" in str(e.value)
+    with pytest.raises(ValueError, match="no 'Week N Trading History'"):
+        j.parse_portfolio_csv("Trading History\n1,2\n")
+    rows = _synthetic_rows()
+    rows[5] = [""] * 18  # holdings header gone but totals/rows remain: block has trades, nothing in holdings
+    rows[5][12:] = [h.format(3) for h in HDR]
+    rows[5][0:6] = ["Garbled"] * 6
+    with pytest.raises(ValueError, match="Week 1 block"):
+        j.parse_portfolio_csv(_csv_text(rows))
+
+
+def test_portfolio_csv_cli_end_to_end_hand_values(tmp_path):
+    rows = _synthetic_rows([["Initial Capital", "10000"]])
+    t = _pcsv_run(tmp_path, rows, ["--log-tz", "Asia/Shanghai"])
+    assert "Week 1 (Portfolio.csv) [cutoff by log week tags (week <= 1)]" in t
+    assert "MISMATCH FBL cost price: snapshot 19.0000 vs recomputed 20.0000" in t
+    assert "unexplained cash difference: +150.00 USD" in t and "COST CHECK FBL" in t
+    assert "2b. REALISED P/L" in t and "2c. WEEKLY ATTRIBUTION" in t
+    assert "total realised +0.00 USD on cost 2,000.00 = +0.00%" in t.replace("-0.00", "+0.00")
+    assert "total value 10,150.00 -> 10,250.00  change +100.00" in t
+    assert "total value 10,250.00 -> 10,130.00  change -120.00" in t  # shorter week-2 block did not break week 3
+    assert "TOTAL" in t and pd.read_csv(tmp_path / "rt.csv")["ticker"].tolist() == ["FBL"]
+    assert _pcsv_run(tmp_path, rows, ["--log-tz", "Asia/Shanghai"]) == t  # idempotent
+
+
+def test_portfolio_csv_equals_markdown_record(tmp_path):
+    md = j.parse_record_md(RECORD)
+    cols = ["ts", "action", "ticker", "qty", "price", "fee", "name", "week"]
+    z = lambda fl: j.fills_frame(fl)[cols].reset_index(drop=True)
+    rows = [["Week 1 Trading History"] + [""] * 5 + ["Week 2 Trading History"] + [""] * 5,
+            ["2025-09-23 00:30:05 Bought 10 shares Alpha Corp (AAA) @ $100.00 USD"] + [""] * 5
+            + ["2025-10-02 01:33:05 Sold 100 shares (ZQS) @ $11.00 USD"],
+            ["2025-09-23 00:32:50 Bought 200 shares 2× Short ZZQX ETF - Foo (ZQS) @ 10.00 USD"] + [""] * 5
+            + ["2025-10-02 21:32:01 Sold 50 shares (FBL) @ 18.00 USD"],
+            ["2025-09-24 21:50:00 Bought 50 shares 3× Long FOOB ETF - Bar (FBL) @ 20.00 USD"],
+            [],
+            [h.format(1) for h in HDR] + [h.format(2) for h in HDR],
+            ["AAA", "10", "100.000", "110.000", "100.00", "10.00%", "AAA", "10", "100.000", "105.000", "50.00", "5.00%"],
+            ["ZQS", "200", "10.000", "9.000", "-200.00", "-10.00%", "ZQS", "100", "10.000", "10.500", "50.00", "5.00%"],
+            ["FBL", "50", "19.000", "22.000", "150.00", "15.79%", "-", "-", "-", "-", "-", "-"],
+            ["Total Market Value", "4000.00", "", "Remaining Cash", "6150.00", "", "Total Market Value", "2100.00", "",
+             "Remaining Cash", "8150.00", ""],
+            ["Total Assets", "10150.00", "", "Total Return Rate", "1.50%", "", "Total Assets", "10250.00", "",
+             "Total Return Rate", "2.50%", ""],
+            ["Initial Capital", "10000"]]
+    pc = j.parse_portfolio_csv(_csv_text(rows), "x")
+    pd.testing.assert_frame_equal(z(pc["fills"]), z(md["fills"]))
+    assert pc["capital"] == md["capital"] == 10000.0
+    for a, b in zip(pc["snaps"], md["snaps"]):
+        assert (a["week"], a["summary"], a["date"]) == (b["week"], b["summary"], b["date"])
+        assert a["rows"] == b["rows"]
+    sect = lambda t: t[t.index("2b. REALISED"):t.index("3. EXPOSURE")]
+    t_md = _rec_run(tmp_path / "md" if (tmp_path / "md").mkdir() is None else tmp_path)
+    (tmp_path / "pc").mkdir()
+    t_pc = _pcsv_run(tmp_path / "pc", rows)
+    assert sect(t_md) == sect(t_pc)
