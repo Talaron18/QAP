@@ -167,7 +167,7 @@ SUMMARY_KEYS = [("market_value", r"Total\s+Market\s+Value"), ("cash", r"Remainin
                 ("total_assets", r"Total\s+Assets"), ("return_rate", r"Total\s+Return\s+Rate")]
 
 # ----------------------------------------------------------------------------------------------- instrument metadata
-LEV_RE = re.compile(r"(\d)x\s+(Short|Long|Inverse|Bull|Bear)\b(?:\s+([A-Za-z0-9.\-]+))?", re.I)
+LEV_RE = re.compile(r"(\d)\s?[x\u00d7]\s+(Short|Long|Inverse|Bull|Bear)\b(?:\s+([A-Za-z0-9.\-]+))?", re.I)
 
 
 def parse_leverage(name: str) -> tuple[float, str | None]:
@@ -286,6 +286,7 @@ def process_fills(df: pd.DataFrame, info: dict) -> dict:
     pos: dict[str, dict] = {}
     rts: list[dict] = []
     totals = dict(buys=0.0, sells=0.0, fees=0.0)
+    sales: list[dict] = []  # every reducing fill piece with its pre-sale average cost
     open_rt: dict[str, dict] = {}
     for r in df.itertuples():
         t, sgn = r.ticker, (1.0 if r.action == "buy" else -1.0)
@@ -315,6 +316,8 @@ def process_fills(df: pd.DataFrame, info: dict) -> dict:
                 rt = open_rt[t]
                 close = min(rem, abs(q))
                 fee_c = r.fee * close / r.qty if r.qty else 0.0
+                sales.append(dict(ticker=t, date=r.sdate, qty=close, price=r.price, avg=p["avg"], fee=fee_c,
+                                  side=1.0 if q > 0 else -1.0, pnl=(r.price - p["avg"]) * close * (1.0 if q > 0 else -1.0) - fee_c))
                 rt["exit_qty"] += close
                 rt["exit_value"] += close * r.price
                 rt["gross"] += (r.price - p["avg"]) * close * (1.0 if q > 0 else -1.0)
@@ -330,7 +333,7 @@ def process_fills(df: pd.DataFrame, info: dict) -> dict:
     for t, rt in open_rt.items():
         positions[t]["unreliable"] = rt["unreliable"]
         positions[t]["fees"] = rt["fees"]
-    return dict(positions=positions, roundtrips=rts, **totals)
+    return dict(positions=positions, roundtrips=rts, sales=sales, **totals)
 
 
 def _finish_rt(rt: dict, info: dict) -> dict:
@@ -509,6 +512,8 @@ def reconcile(snap: dict, positions: dict, totals: dict, start_capital: float) -
         pl = q * (px - avg)
         if abs(r["pl"] - pl) > TOL_PL:
             mm(t, "floating P/L", f"{r['pl']:.2f}", f"{pl:.2f}")
+        if "mv" in r and abs(r["mv"] - q * px) > TOL_MV:
+            mm(t, "market value", f"{r['mv']:.2f}", f"{q * px:.2f}")
         ratio = 100.0 * pl / (abs(q) * avg) if avg else float("nan")
         if abs(r["ratio"] - ratio) > TOL_RATIO:
             mm(t, "P/L ratio", f"{r['ratio']:+.2f}%", f"{ratio:+.2f}%")
@@ -572,6 +577,192 @@ def snapshot_total_assets(snap: dict) -> float:
     return mv + s.get("cash", float("nan"))
 
 
+# ----------------------------------------------------------------------------------------------- weekly record (.md) format
+CAP_RE = re.compile(r"initial\s+capital[^$\d]*", re.I)
+_TICK = re.compile(r"\s*\$?([A-Za-z0-9.\-^]+)")
+_ACCT = [("market_value", "holdings market value"), ("cash", "remaining cash"),
+         ("total_assets", "total portfolio value"), ("return_rate", "cumulative return")]
+
+
+def parse_initial_capital(text: str) -> float | None:
+    """'Initial capital assumed:' followed by '$45,000' or a LaTeX block '\\[ \\$45,000 \\]' (possibly several lines)."""
+    m = re.search(r"initial\s+capital[^\n]*", text, re.I)
+    if not m:
+        return None
+    window = text[m.start(): m.start() + 300]
+    v = re.search(r"\$\s*([\d,]+(?:\.\d+)?)", window)
+    return parse_number(v.group(1)) if v else None
+
+
+def parse_record_md(text: str, src: str = "") -> dict | None:
+    """Weekly record layout: transaction tables, holdings tables, account-value tables under 'Week N' headers.
+
+    Returns dict(fills, snaps, capital) or None when the text has none of these tables. The most recent preceding
+    header containing 'Week N' assigns the week to each table; one snapshot per week.
+    """
+    week, mode, found = None, None, False
+    fills: list[dict] = []
+    snaps: dict = {}
+
+    def snap(w):
+        return snaps.setdefault(w, dict(week=w, date=None, rows=[], summary={}, src=src, has_table=True, record=True))
+
+    for i, line in enumerate(text.splitlines(), 1):
+        st = line.strip()
+        hm = re.match(r"^#+\s.*?\bWeek\s+(\d+)\b", st, re.I)
+        if hm:
+            week, mode = int(hm.group(1)), None
+            continue
+        if not st.startswith("|"):
+            mode = None
+            continue
+        cells = [c.strip().replace("**", "").strip() for c in st.strip("|").split("|")]
+        low = [c.lower() for c in cells]
+        if len(low) >= 6 and low[0] == "date" and low[1] == "action":
+            mode, found = "tx", True
+            continue
+        if len(low) >= 7 and low[0] == "security" and low[1].startswith("shares held"):
+            mode, found = "hold", True
+            continue
+        if len(low) >= 2 and low[0] == "item" and low[1] == "amount":
+            mode, found = "acct", True
+            continue
+        if all(re.fullmatch(r":?-{2,}:?", c) or c == "" for c in cells):
+            continue
+        if mode == "tx" and len(cells) >= 5:
+            tm = _TICK.match(cells[2])
+            try:
+                ts = pd.Timestamp(cells[0])
+            except (ValueError, TypeError):
+                continue
+            if not tm or cells[1].lower() not in ("buy", "sell", "bought", "sold"):
+                continue
+            nm = re.search(r"\((.*)\)\s*$", cells[2])
+            fills.append(dict(ts=ts, action="buy" if cells[1].lower().startswith("b") else "sell", ticker=tm.group(1).upper(),
+                              qty=parse_number(cells[3]), price=parse_number(cells[4]), fee=0.0,
+                              name=nm.group(1).strip() if nm else "", src=src, line_no=i, week=week))
+        elif mode == "hold" and len(cells) >= 7:
+            tm = _TICK.match(cells[0])
+            if tm:
+                snap(week)["rows"].append(dict(ticker=tm.group(1).upper(), name=cells[0], qty=parse_number(cells[1]),
+                                               cost=parse_number(cells[2]), price=parse_number(cells[3]),
+                                               mv=parse_number(cells[4]), pl=parse_number(cells[5]),
+                                               ratio=parse_number(cells[6])))
+        elif mode == "acct" and len(cells) >= 2:
+            for key, lab in _ACCT:
+                if low[0].startswith(lab):
+                    snap(week)["summary"][key] = parse_number(cells[1])
+    if not found:
+        return None
+    return dict(fills=fills, snaps=list(snaps.values()), capital=parse_initial_capital(text))
+
+
+def realised_report(sales: list[dict]) -> list[str]:
+    """Section 2b: realised P/L per sale and per ticker (average cost, pre-sale average cost, net of fees)."""
+    L = ["", "2b. REALISED P/L (average-cost method; pre-sale average cost from the fills; net of fees)"]
+    if not sales:
+        return L + ["  no sales"]
+    L += _tab([[x["date"], x["ticker"], f"{x['qty']:g}", f"{x['price']:.3f}", f"{x['avg']:.4f}",
+                f"{x['qty'] * x['price']:,.2f}", f"{x['pnl']:+,.2f}", f"{100 * x['pnl'] / (x['qty'] * x['avg']):+.2f}%"]
+               for x in sales], ["date", "ticker", "qty", "price", "avg_cost", "proceeds", "realised", "% on cost"])
+    by: dict[str, list] = {}
+    for x in sales:
+        b = by.setdefault(x["ticker"], [0.0, 0.0, 0.0, 0.0])
+        b[0] += x["qty"]
+        b[1] += x["qty"] * x["avg"]
+        b[2] += x["qty"] * x["price"]
+        b[3] += x["pnl"]
+    L.append("  per ticker:")
+    L += _tab([[t, f"{b[0]:g}", f"{b[1]:,.2f}", f"{b[2]:,.2f}", f"{b[3]:+,.2f}", f"{100 * b[3] / b[1]:+.2f}%"]
+               for t, b in sorted(by.items())], ["ticker", "sold_qty", "cost", "proceeds", "realised", "% on cost"], indent="    ")
+    tc, tp = sum(b[1] for b in by.values()), sum(b[3] for b in by.values())
+    L.append(f"  total realised {tp:+,.2f} USD on cost {tc:,.2f} = {100 * tp / tc:+.2f}%")
+    return L
+
+
+def _z(x: float) -> float:
+    return 0.0 if abs(x) < 0.005 else x
+
+
+def weekly_attribution(snaps: list[dict], df: pd.DataFrame, info: dict, start_capital: float) -> tuple[list[str], list[str]]:
+    """Section 2c. Change in total value between consecutive snapshots = sum over tickers of
+    (end market value + sell proceeds in the week - buy cost in the week - start market value) + 'unexplained'
+    (the remainder: reported-vs-recomputed cash, fees, rounding), so components sum exactly to the change."""
+    L = ["", "2c. WEEKLY ATTRIBUTION (start of record = start capital; market values = snapshot quantity x snapshot price)"]
+    warns: list[str] = []
+    prev_idx: set = set()
+    prev_mv: dict[str, float] = {}
+    prev_ta, n = start_capital, len(snaps)
+    for i, s in enumerate(snaps):
+        label = f"Week {s['week']}" if s["week"] is not None else f"snapshot {i + 1}"
+        ta = snapshot_total_assets(s)
+        if not s["rows"] or math.isnan(ta):
+            L.append(f"  {label}: skipped (needs a holdings table and total value)")
+            continue
+        sub, how = snapshot_cutoff(s, df, i == n - 1)
+        if sub is None:
+            L.append(f"  {label}: skipped ({how})")
+            continue
+        new = sub.loc[~sub.index.isin(prev_idx)]
+        mv_end = {r["ticker"]: r["qty"] * r["price"] for r in s["rows"]}
+        buys: dict[str, float] = {}
+        sells: dict[str, float] = {}
+        for r in new.itertuples():
+            if r.action == "buy":
+                buys[r.ticker] = buys.get(r.ticker, 0.0) + r.qty * r.price + r.fee
+            else:
+                sells[r.ticker] = sells.get(r.ticker, 0.0) + r.qty * r.price - r.fee
+        comp = {t: mv_end.get(t, 0.0) + sells.get(t, 0.0) - buys.get(t, 0.0) - prev_mv.get(t, 0.0)
+                for t in set(mv_end) | set(prev_mv) | set(buys) | set(sells)}
+        delta = ta - prev_ta
+        unexpl = delta - sum(comp.values())
+        L.append(f"  {label} [{how}]: total value {prev_ta:,.2f} -> {ta:,.2f}  change {delta:+,.2f}  "
+                 f"week return {100 * delta / prev_ta:+.2f}%  cumulative {100 * (ta / start_capital - 1):+.2f}%")
+        rows = [[t, f"{prev_mv.get(t, 0.0):,.2f}", f"{buys.get(t, 0.0):,.2f}", f"{sells.get(t, 0.0):,.2f}",
+                 f"{mv_end.get(t, 0.0):,.2f}", f"{_z(c):+,.2f}"] for t, c in sorted(comp.items(), key=lambda kv: kv[1])]
+        rows.append(["unexplained", "", "", "", "", f"{_z(unexpl):+,.2f}"])
+        rows.append(["TOTAL", "", "", "", "", f"{sum(comp.values()) + unexpl:+,.2f}"])
+        L += _tab(rows, ["ticker", "mv_start", "buys", "sells", "mv_end", "contribution"], indent="    ")
+        if delta < 0:
+            for t, c in comp.items():
+                if c < 0 and c / delta > 0.40:
+                    msg = f"{label}: {t} explains {c / delta:.0%} of the week's loss ({c:+,.2f} of {delta:+,.2f})"
+                    L.append("    FLAG " + msg)
+                    warns.append("loss concentrated in one security: " + msg)
+        pos = [dict(mv=v, leverage=info.get(t, {}).get("leverage", 1.0), underlying=info.get(t, {}).get("underlying", t))
+               for t, v in mv_end.items()]
+        ex = exposure_summary(pos, ta)
+        cash = s["summary"].get("cash", ta - sum(mv_end.values()))
+        L.append(f"    effective underlying exposure: "
+                 + ", ".join(f"{u} {e:+.1%}" for u, e in sorted(ex["by_underlying"].items(), key=lambda kv: -abs(kv[1])))
+                 + f"   gross {ex['gross']:.1%} net {ex['net']:+.1%}   cash share {cash / ta:.1%}   invested {ex['invested']:.1%}")
+        prev_idx, prev_mv, prev_ta = set(sub.index), mv_end, ta
+    return L, warns
+
+
+def cost_check(snap: dict, sub: pd.DataFrame, rec_cash: float) -> list[str]:
+    """For each ticker whose snapshot cost differs from the fills: which cost reproduces the reported cash better."""
+    out = []
+    if "cash" not in snap["summary"]:
+        return out
+    rep = snap["summary"]["cash"]
+    pos = process_fills(sub, {})["positions"]
+    for r in snap["rows"]:
+        p = pos.get(r["ticker"])
+        if p is None or abs(r["cost"] - p["avg"]) <= TOL_COST:
+            continue
+        b = sub[(sub["ticker"] == r["ticker"]) & (sub["action"] == "buy")]
+        if b.empty:
+            continue
+        alt = rec_cash + float((b["qty"] * b["price"]).sum()) - float(b["qty"].sum()) * r["cost"]
+        d_log, d_alt = rep - rec_cash, rep - alt
+        better = "snapshot cost" if abs(d_alt) < abs(d_log) else "logged fill price"
+        out.append(f"COST CHECK {r['ticker']}: logged avg cost {p['avg']:.4f} implies cash {rec_cash:,.2f} "
+                   f"(reported minus implied {d_log:+,.2f}); snapshot cost {r['cost']:.4f} implies cash {alt:,.2f} "
+                   f"(reported minus implied {d_alt:+,.2f}); the {better} reproduces the reported cash better")
+    return out
+
+
 # ----------------------------------------------------------------------------------------------- report helpers
 def _tab(rows: list[list], headers: list[str], indent: str = "  ") -> list[str]:
     cells = [headers] + [[str(c) for c in r] for r in rows]
@@ -596,7 +787,8 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
             vols: dict[str, float] | None = None, default_vol: float = 0.60, corr: float = 0.5,
             tax_st: float = 0.408, tax_lt: float = 0.238, start_capital: float = 35000.0,
             prices: dict[str, float] | None = None, meta_path: str | None = None, assume_year: int | None = None,
-            today: date | None = None, prices_file: str | None = None) -> tuple[str, pd.DataFrame]:
+            today: date | None = None, prices_file: str | None = None,
+            start_capital_given: bool = True) -> tuple[str, pd.DataFrame]:
     vols = {k.upper(): float(v) for k, v in (vols or {}).items()}
     prices_in = {k.upper(): float(v) for k, v in (prices or {}).items()}
     L: list[str] = []
@@ -604,12 +796,31 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
     pf, pf_diag = px_.load_prices(prices_file) if prices_file else (None, {})   # optional Compustat daily price file
 
     fills, snaps, n_ign = [], [], 0
+    record_mode, record_cap = False, None
     for p in paths:
         text = Path(p).read_text(encoding="utf-8", errors="replace")
         f, ig = parse_log_text(text, src=Path(p).name)
         fills += f
         n_ign += ig
-        snaps += parse_snapshots(text, src=Path(p).name)
+        rec = parse_record_md(text, src=Path(p).name)
+        if rec is not None:  # weekly record layout: its tables replace the old snapshot parser for this file
+            record_mode = True
+            fills += rec["fills"]
+            snaps += rec["snaps"]
+            record_cap = rec["capital"] if rec["capital"] is not None else record_cap
+        else:
+            snaps += parse_snapshots(text, src=Path(p).name)
+    cap_note, cap_conflict = "", None
+    if record_mode:
+        if record_cap is not None and not start_capital_given:
+            start_capital, cap_note = record_cap, " (from the record)"
+        elif record_cap is not None:
+            cap_note = " (--start-capital)"
+            if abs(record_cap - start_capital) > 0.005:
+                cap_conflict = (f"  start capital CONFLICT: the record says {record_cap:,.2f} but --start-capital "
+                                f"{start_capital:,.2f} is used (explicit option wins)")
+        else:
+            cap_note = f" (default {start_capital:,.0f})" if not start_capital_given else " (--start-capital)"
     snaps = order_snapshots(snaps)
     df = fills_frame(fills)
     if fills_csv:
@@ -664,7 +875,10 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
              + ("" if not dup.any() else " -> kept, check for double-pasted lines"))
     if dup.any():
         warn.append(f"{int(dup.sum())} possibly duplicated fill rows (kept in the analysis)")
-    L.append(f"  snapshots parsed: {len(snaps)}   start capital: {start_capital:,.2f}")
+    L.append(f"  snapshots parsed: {len(snaps)}   start capital: {start_capital:,.2f}{cap_note}")
+    if cap_conflict:
+        L.append(cap_conflict)
+        warn.append("start capital in the record differs from --start-capital")
 
     names = {}
     for r in df.itertuples():
@@ -717,6 +931,11 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
             continue
         r2 = process_fills(sub, info)
         out = reconcile(s, r2["positions"], r2, start_capital)
+        if s.get("record") and "cash" in s["summary"] and s["rows"]:
+            rc = recompute_cash(r2, start_capital)
+            out.append(f"unexplained cash difference: {s['summary']['cash'] - rc:+,.2f} USD "
+                       f"(reported cash {s['summary']['cash']:,.2f} minus start capital - purchases + sales - fees = {rc:,.2f})")
+            out += cost_check(s, sub, rc)
         n_mm += sum(o.startswith("MISMATCH") for o in out)
         L.append(f"  {label} [{how}]: {sum(o.startswith('MISMATCH') for o in out)} mismatches")
         L += ["    " + o for o in out]
@@ -813,6 +1032,12 @@ def analyze(paths: list[str], fills_csv: str | None = None, log_tz: str | None =
                     f"({tv['tax'] / tv['st']:.0%} of the ST gain) at {tax_st:.1%}")
 
     # ---- 3. exposure
+    if record_mode:
+        L += realised_report(res["sales"])
+        wl, ww = weekly_attribution(snaps, df, info, start_capital)
+        L += wl
+        warn += ww
+
     L += ["", "3. EXPOSURE"]
     priced = [dict(ticker=t, mv=p["qty"] * prices_cur[t], leverage=info[t]["leverage"], underlying=info[t]["underlying"])
               for t, p in sorted(openp.items()) if t in prices_cur]
@@ -1047,7 +1272,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--corr", type=float, default=0.5)
     ap.add_argument("--tax-st", type=float, default=0.408)
     ap.add_argument("--tax-lt", type=float, default=0.238)
-    ap.add_argument("--start-capital", type=float, default=35000.0)
+    ap.add_argument("--start-capital", type=float, default=None,
+                    help="default: 'Initial capital assumed' from a record file, else 35000")
     ap.add_argument("--prices", nargs="*", metavar="TICKER=PRICE")
     ap.add_argument("--meta", default="data/journal/meta.csv")
     ap.add_argument("--prices-file", metavar="PARQUET",
@@ -1065,8 +1291,9 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("no input files found")
     vols = _kv([x for grp in (a.vol or []) for x in grp], "--vol")
     report, rts = analyze(files, a.fills_csv, a.log_tz, a.fix_years, vols, a.default_vol, a.corr, a.tax_st, a.tax_lt,
-                          a.start_capital, _kv(a.prices, "--prices"), a.meta, a.assume_year,
-                          date.fromisoformat(a.today) if a.today else None, a.prices_file)
+                          35000.0 if a.start_capital is None else a.start_capital, _kv(a.prices, "--prices"), a.meta, a.assume_year,
+                          date.fromisoformat(a.today) if a.today else None, a.prices_file,
+                          a.start_capital is not None)
     print(report)
     Path(a.report).parent.mkdir(parents=True, exist_ok=True)
     Path(a.report).write_text(report, encoding="utf-8")

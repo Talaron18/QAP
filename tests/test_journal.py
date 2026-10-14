@@ -505,3 +505,207 @@ def test_closed_round_trip_with_flagged_fill_gets_warning(tmp_path):
             "--today", "2025-12-31"])
     t = rep.read_text()
     assert "dates suspect (flagged fill) for closed round trips: ACME" in t
+
+
+# ------------------------------------------------------------------------------------------------ weekly record (.md) layout
+RECORD = """## Week 1 Portfolio Summary
+
+### Transactions
+
+| Date | Action | Security | Shares | Price | Transaction Value |
+|---|---|---|---:|---:|---:|
+| 2025-09-23 00:30:05 | Buy | AAA (Alpha Corp) | 10 | $100.00 | $1,000.00 |
+| 2025-09-23 00:32:50 | Buy | ZQS (2× Short ZZQX ETF - Foo) | 200 | $10.00 | $2,000.00 |
+| 2025-09-24 21:50:00 | Buy | FBL (3× Long FOOB ETF - Bar) | 50 | $20.00 | $1,000.00 |
+
+---
+
+## Week 1 Ending Holdings
+
+| Security | Shares Held | Average Cost | Current Price | Market Value | Unrealized P/L | Return |
+|---|---:|---:|---:|---:|---:|---:|
+| AAA | 10 | $100.000 | $110.000 | $1,100.00 | +$100.00 | +10.00% |
+| ZQS | 200 | $10.000 | $9.000 | $1,800.00 | -$200.00 | -10.00% |
+| FBL | 50 | $19.000 | $22.000 | $1,100.00 | +$150.00 | +15.79% |
+
+### Week 1 Account Value
+
+| Item | Amount |
+|---|---:|
+| Holdings Market Value | $4,000.00 |
+| Remaining Cash | $6,150.00 |
+| **Total Portfolio Value** | **$10,150.00** |
+| **Cumulative Return** | **+1.50%** |
+
+Initial capital assumed:
+
+\\[
+\\$10,000
+\\]
+
+---
+
+# Week 2 Portfolio Summary
+
+## Transactions (Closed Positions)
+
+| Date | Action | Security | Shares | Price | Cash Received |
+|---|---|---|---:|---:|---:|
+| 2025-10-02 01:33:05 | Sell | ZQS | 100 | $11.00 | $1,100.00 |
+| 2025-10-02 21:32:01 | Sell | FBL | 50 | $18.00 | $900.00 |
+
+## Week 2 Ending Holdings
+
+| Security | Shares Held | Average Cost | Current Price | Market Value | Unrealized P/L | Return |
+|---|---:|---:|---:|---:|---:|---:|
+| AAA | 10 | $100.000 | $105.000 | $1,050.00 | +$50.00 | +5.00% |
+| ZQS | 100 | $10.000 | $10.500 | $1,050.00 | +$50.00 | +5.00% |
+
+## Week 2 Account Value
+
+| Item | Amount |
+|---|---:|
+| Holdings Market Value | $2,100.00 |
+| Remaining Cash | $8,150.00 |
+| **Total Portfolio Value** | **$10,250.00** |
+| **Cumulative Return** | **+2.50%** |
+"""
+
+
+def _rec_run(tmp_path, extra=(), text=RECORD):
+    (tmp_path / "rec.md").write_text(text, encoding="utf-8")
+    rep = tmp_path / "rep.txt"
+    j.main([str(tmp_path / "rec.md"), "--report", str(rep), "--roundtrips", str(tmp_path / "rt.csv"), "--meta", "none",
+            "--today", "2025-12-31", *extra])
+    return rep.read_text()
+
+
+def test_record_parser_tables_weeks_signs_and_multiplication_sign():
+    rec = j.parse_record_md(RECORD, "rec.md")
+    f = rec["fills"]
+    assert [(x["action"], x["ticker"], x["qty"], x["price"], x["week"]) for x in f] == [
+        ("buy", "AAA", 10, 100.0, 1), ("buy", "ZQS", 200, 10.0, 1), ("buy", "FBL", 50, 20.0, 1),
+        ("sell", "ZQS", 100, 11.0, 2), ("sell", "FBL", 50, 18.0, 2)]
+    assert f[1]["name"] == "2× Short ZZQX ETF - Foo" and f[3]["name"] == ""
+    s1, s2 = rec["snaps"]
+    assert (s1["week"], s2["week"]) == (1, 2) and len(s1["rows"]) == 3 and len(s2["rows"]) == 2
+    assert s1["rows"][1]["pl"] == -200 and s1["rows"][1]["ratio"] == -10.0 and s1["rows"][2]["cost"] == 19.0
+    assert s1["rows"][0]["mv"] == 1100
+    assert s1["summary"] == dict(market_value=4000.0, cash=6150.0, total_assets=10150.0, return_rate=1.5)
+    assert s2["summary"]["total_assets"] == 10250.0
+    assert rec["capital"] == 10000.0
+    assert j.parse_record_md("nothing here\n* 2025-09-23 00:30:05: Bought 1 shares of X (X) at $1 per share.") is None
+
+
+def test_multiplication_sign_leverage():
+    assert j.parse_leverage("2× Short SNDK ETF - Tradr") == (-2.0, "SNDK")
+    assert j.parse_leverage("3× Long FOOB ETF") == (3.0, "FOOB")
+    assert j.parse_leverage("2x Short Hynix ETF") == (-2.0, "HYNIX")
+
+
+def test_initial_capital_parsing():
+    assert j.parse_initial_capital("Initial capital assumed:\n\n\\[\n\\$45,000\n\\]\n") == 45000.0
+    assert j.parse_initial_capital("Initial capital assumed: $45,000") == 45000.0
+    assert j.parse_initial_capital("Initial capital assumed: \\[ \\$12,500.50 \\]") == 12500.5
+    assert j.parse_initial_capital("no such line $5") is None
+
+
+def test_record_start_capital_source_override_and_conflict(tmp_path):
+    t = _rec_run(tmp_path)
+    assert "start capital: 10,000.00 (from the record)" in t and "CONFLICT" not in t
+    t = _rec_run(tmp_path, ["--start-capital", "10000"])
+    assert "(--start-capital)" in t and "CONFLICT" not in t
+    t = _rec_run(tmp_path, ["--start-capital", "12000"])
+    assert "start capital: 12,000.00 (--start-capital)" in t and "start capital CONFLICT" in t
+    t = _rec_run(tmp_path, text=RECORD.replace("Initial capital assumed:", "Notes:"))
+    assert "(default 35,000)" in t
+
+
+def test_record_reconciliation_surfaces_cost_and_cash_inconsistencies(tmp_path):
+    t = _rec_run(tmp_path)
+    assert "Week 1 (rec.md) [cutoff by log week tags (week <= 1)]" in t
+    assert "MISMATCH FBL cost price: snapshot 19.0000 vs recomputed 20.0000" in t
+    assert "MISMATCH FBL floating P/L: snapshot 150.00 vs recomputed 100.00" in t
+    assert "MISMATCH ACCOUNT remaining cash: snapshot 6150.00 vs recomputed 6000.00" in t
+    assert "unexplained cash difference: +150.00 USD" in t
+    # snapshot cost 19 implies 50 more cash (6050): residual +100 vs +150 with the logged price
+    assert "COST CHECK FBL: logged avg cost 20.0000 implies cash 6,000.00 (reported minus implied +150.00)" in t
+    assert "snapshot cost 19.0000 implies cash 6,050.00 (reported minus implied +100.00)" in t
+    assert "the snapshot cost reproduces the reported cash better" in t
+    # market value / return / account block all agree otherwise
+    assert "MISMATCH AAA" not in t and "MISMATCH ZQS" not in t and "total return rate" not in t
+    assert "Week 2 (rec.md) [cutoff by log week tags (week <= 2)]" in t
+
+
+def test_record_snapshot_market_value_field_checked():
+    (snap,) = [s for s in j.parse_record_md(RECORD)["snaps"] if s["week"] == 1]
+    snap["rows"][0]["mv"] = 1200.0
+    df = mk([("2025-09-23 10:00", "buy", "AAA", 10, 100.0), ("2025-09-23 10:01", "buy", "ZQS", 200, 10.0),
+             ("2025-09-23 10:02", "buy", "FBL", 50, 20.0)])
+    r = j.process_fills(df, {})
+    out = j.reconcile(snap, r["positions"], r, 10000.0)
+    assert "MISMATCH AAA market value: snapshot 1200.00 vs recomputed 1100.00" in out
+
+
+def test_realised_pnl_hand_values(tmp_path):
+    rec = j.parse_record_md(RECORD)
+    df = j.assign_sessions(j.fills_frame(rec["fills"]), None)
+    res = j.process_fills(df, {})
+    sales = {x["ticker"]: x for x in res["sales"]}
+    assert sales["ZQS"]["avg"] == 10.0 and sales["ZQS"]["pnl"] == pytest.approx(100.0)
+    assert sales["FBL"]["pnl"] == pytest.approx(-100.0)
+    t = _rec_run(tmp_path)
+    assert "2b. REALISED P/L" in t
+    assert "total realised +0.00 USD on cost 2,000.00 = +0.00%" in t.replace("-0.00", "+0.00")
+    assert "FBL" in t and "-10.00%" in t and "+10.00%" in t
+
+
+def test_weekly_attribution_sums_exactly_to_change(tmp_path):
+    rec = j.parse_record_md(RECORD)
+    df = j.assign_sessions(j.fills_frame(rec["fills"]), None)
+    info = j.instrument_info({"AAA": "Alpha", "ZQS": "2× Short ZZQX ETF", "FBL": "3× Long FOOB ETF"})
+    lines, warns = j.weekly_attribution(rec["snaps"], df, info, 10000.0)
+    txt = "\n".join(lines)
+    assert "total value 10,000.00 -> 10,150.00  change +150.00  week return +1.50%  cumulative +1.50%" in txt
+    assert "total value 10,150.00 -> 10,250.00  change +100.00  week return +0.99%  cumulative +2.50%" in txt
+    # per-week component sums: week 1 = 100 - 200 + 100 + 150 unexplained ; week 2 = -50 + 350 - 200 + 0
+    import re as _re
+    totals = _re.findall(r"TOTAL\s+([+\-][\d,.]+)", txt)
+    assert totals == ["+150.00", "+100.00"]
+    wk2 = txt.split("Week 2")[1]
+    assert _re.search(r"ZQS\s+1,800.00\s+0.00\s+1,100.00\s+1,050.00\s+\+350.00", wk2)
+    assert _re.search(r"FBL\s+1,100.00\s+0.00\s+900.00\s+0.00\s+-200.00", wk2)
+    assert _re.search(r"AAA\s+1,100.00\s+0.00\s+0.00\s+1,050.00\s+-50.00", wk2)
+    # exact decomposition, computed independently
+    for w, delta in ((1, 150.0), (2, 100.0)):
+        assert any(f"change {delta:+,.2f}" in ln for ln in lines)
+
+
+def test_weekly_attribution_flags_loss_concentration():
+    snaps = j.parse_record_md(RECORD)["snaps"]
+    snaps[1]["summary"]["total_assets"] = 9000.0  # -1150 vs week 1; FBL (-200) is not > 40%, ZQS is positive
+    df = j.assign_sessions(j.fills_frame(j.parse_record_md(RECORD)["fills"]), None)
+    lines, warns = j.weekly_attribution(snaps, df, {}, 10000.0)
+    assert warns == []
+    snaps[1]["rows"][0]["price"] = 10.0  # AAA mv 100 instead of 1050: -1000 contribution, a large share of the loss
+    snaps[1]["summary"]["total_assets"] = 9000.0
+    lines, warns = j.weekly_attribution(snaps, df, {}, 10000.0)
+    assert any("AAA explains" in w for w in warns) and any("FLAG" in ln for ln in lines)
+
+
+def test_record_exposure_per_snapshot_and_cash_share(tmp_path):
+    t = _rec_run(tmp_path)
+    # week 1: ZZQX -2*1800/10150 = -35.5%, FOOB +3*1100/10150 = +32.5%, AAA +10.8%; cash 6150/10150 = 60.6%
+    assert "ZZQX -35.5%" in t and "FOOB +32.5%" in t and "AAA +10.8%" in t and "cash share 60.6%" in t
+    # week 2: ZZQX -2*1050/10250 = -20.5%; cash 8150/10250 = 79.5%
+    assert "ZZQX -20.5%" in t and "cash share 79.5%" in t
+
+
+def test_record_cli_year_typo_and_tz_apply_to_table_dates(tmp_path):
+    text = RECORD.replace("2025-10-02 21:32:01", "2026-10-02 21:32:01")
+    t = _rec_run(tmp_path, ["--log-tz", "Asia/Shanghai", "--fix-years"], text=text)
+    assert "suspected year typo: FBL written 2026-10-02 21:32 -> proposed 2025-10-02 21:32" in t and "APPLIED" in t
+    assert "Asia/Shanghai -> America/New_York" in t
+    t1 = _rec_run(tmp_path, ["--log-tz", "Asia/Shanghai", "--fix-years"], text=text)
+    assert t1 == t  # idempotent
+    assert "2b. REALISED P/L" in t and "2c. WEEKLY ATTRIBUTION" in t
