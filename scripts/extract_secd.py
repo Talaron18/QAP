@@ -2,7 +2,7 @@
 
     WRDS_USERNAME=you python scripts/extract_secd.py [TICKER ...] [--start 2023-01-01] [--end YYYY-MM-DD] [--gvkey-iid GVKEY:IID ...] [--out PATH]
 
-No tickers given -> the project default list (config.SECD_DEFAULT_TICKERS). Writes data/raw/secd_tickers.parquet (git-ignored): one
+No tickers given -> the project default list (config.SECD_DEFAULT_TICKERS: the user's stocks, the -2x ETFs SNDQ AXTQ DAMD SKDD and the 2x long ETFs SNXX LABX SKHX LITX). Writes data/raw/secd_tickers.parquet (git-ignored): one
 table, all requested securities, USD rows only (when the curcdd column exists), datadate as datetime64.
 --end defaults to today (UTC): the table contains future-dated rows that are never extracted.
 Required columns (gvkey iid datadate tic prccd) are validated against the real table; the optional ones that exist are taken.

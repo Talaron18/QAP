@@ -1,7 +1,7 @@
 """Probe Compustat North America daily security prices before extracting them (comp_na_daily_all.secd, alias comp.secd).
 
     WRDS_USERNAME=you python scripts/probe_secd.py [TICKER ...] [--words SANDISK ASTERA HYNIX]
-Default tickers: ORCL INTU LITE BE STX AMD CELH ALAB SNDK SKHY AXTI and the leveraged ETFs SNDQ AXTQ DAMD SKDD.
+Default tickers: ORCL INTU LITE BE STX AMD CELH ALAB SNDK SKHY AXTI the -2x ETFs SNDQ AXTQ DAMD SKDD and the 2x long ETFs SNXX LABX SKHX LITX.
 Prints and writes data/secd_probe.txt (git-ignored; paste it back): per table the column names and types, max/min datadate (max restricted
 to datadate >= 2025-06-01 to stay fast), the row count of the last 30 days; then a ticker lookup (every match printed, so ticker reuse such
 as SNDK old/new with several gvkeys is visible), a case-insensitive company-name search for tickers with no match, and the last 5 rows of

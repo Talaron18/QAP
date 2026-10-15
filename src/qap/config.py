@@ -96,6 +96,6 @@ COMP_SECD = "comp_na_daily_all.secd"
 COMP_SECD_ALIAS = "comp.secd"
 SECD_REQUIRED = ["gvkey", "iid", "datadate", "tic", "prccd"]
 SECD_OPTIONAL = ["conm", "tpci", "exchg", "curcdd", "prcod", "prchd", "prcld", "cshtrd", "ajexdi", "trfd", "cshoc", "fic"]
-# the user's names plus the leveraged ETFs (SNDQ AXTQ DAMD SKDD); overridable on the command line
+# the user's names plus the -2x ETFs (SNDQ AXTQ DAMD SKDD) and the 2x long ETFs (SNXX LABX SKHX LITX); overridable on the command line
 SECD_DEFAULT_TICKERS = ["ORCL", "INTU", "LITE", "BE", "STX", "AMD", "CELH", "ALAB", "SNDK", "SKHY", "AXTI",
-                        "SNDQ", "AXTQ", "DAMD", "SKDD"]
+                        "SNDQ", "AXTQ", "DAMD", "SKDD", "SNXX", "LABX", "SKHX", "LITX"]

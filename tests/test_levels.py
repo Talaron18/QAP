@@ -185,7 +185,7 @@ def test_cli_end_to_end_writes_only_to_tmp(tmp_path, capsys):
     pd.DataFrame(dict(gvkey="1", iid="01", tic="ZZQX", datadate=days, prccd=p)).to_parquet(tmp_path / "p.parquet")
     rep = tmp_path / "out" / "level_report.txt"
     argv = ["zzqx", "--prices-file", str(tmp_path / "p.parquet"), "--leverage", "-2", "--target", "10%", "--stop", "-15%", "--horizon", "10",
-            "--paths", "3000", "--seed", "3", "--size-frac", "0.25", "--report", str(rep)]
+            "--paths", "3000", "--seed", "3", "--size-frac", "0.25", "--report", str(rep), "--meta", str(tmp_path / "none.csv")]
     mod = load_script()
     assert mod.main(argv) == 0
     out = capsys.readouterr().out
@@ -194,3 +194,119 @@ def test_cli_end_to_end_writes_only_to_tmp(tmp_path, capsys):
     assert mod.main(argv) == 0 and capsys.readouterr().out.strip() == rep.read_text().strip()
     with pytest.raises(SystemExit, match="not in"):
         mod.main(["NOPE", "--prices-file", str(tmp_path / "p.parquet"), "--report", str(rep)])
+
+
+# ------------------------------------------------------------------------------------------------ intraday bridge / martingale
+SNDK_LIKE = lv.Model("fallback", 417, 0.73, "t", dict(nu=5.0, label="ewma94", window=417))
+
+
+def test_driftless_stock_with_level_exits_is_a_martingale_with_the_bridge():
+    """Spot 1482.33, target 1800, stop 1450, vol 73%: price martingale => P(target first) = (S0-stop)/(target-stop) = 9.2%, E[trade return] = 0."""
+    n = 100000
+    kw = dict(last_close=1482.33, entry=1482.33, target=lv.Level("price", 1800.0), stop=lv.Level("price", 1450.0), leverage=1.0, horizon=21,
+              n_paths=n, seed=1)
+    br = lv.simulate_trade(SNDK_LIKE, **kw)
+    co = lv.simulate_trade(SNDK_LIKE, close_only=True, **kw)
+    ideal = (1482.33 - 1450.0) / (1800.0 - 1450.0)
+    assert abs((br["outcome"] == 1).mean() - ideal) < 0.012
+    se = br["ret"].std() / math.sqrt(n)
+    assert abs(br["ret"].mean()) < max(4 * se, 0.003)                                  # about 0, not the +1.9% of the closes-only fills at the level
+    # closes-only: the stop is hit far less often (pierced intraday but closed above is never stopped)
+    assert (co["outcome"] == -1).mean() < (br["outcome"] == -1).mean() - 0.05
+    assert (co["outcome"] == 1).mean() > (br["outcome"] == 1).mean()
+    assert abs(co["ret"].mean()) < 0.003                                               # fills at the trigger close keep the martingale too
+    # return-level barriers are the same barriers for L = 1
+    rl = lv.simulate_trade(SNDK_LIKE, **{**kw, "target": lv.Level("ret", 1800 / 1482.33 - 1), "stop": lv.Level("ret", 1450 / 1482.33 - 1)})
+    assert np.array_equal(rl["outcome"], br["outcome"])
+
+
+def test_bridge_first_passage_long_horizon_martingale():
+    m = flat_model()
+    sim = lv.simulate_trade(m, last_close=100.0, entry=100.0, target=lv.Level("price", 120.0), stop=lv.Level("price", 90.0), leverage=1.0,
+                            horizon=600, n_paths=30000, seed=2)
+    p = float((sim["outcome"] == 1).mean())
+    assert abs(p - 1 / 3) < 4 * math.sqrt(p * (1 - p) / 30000) + 0.01 and (sim["outcome"] == 0).mean() < 0.005
+    assert abs(sim["ret"].mean()) < 0.006
+
+
+@pytest.mark.parametrize("L", [2.0, -2.0])
+def test_leveraged_return_levels_are_martingale_too(L):
+    sim = lv.simulate_trade(SNDK_LIKE, last_close=100.0, entry=100.0, target=lv.Level("ret", 0.25), stop=lv.Level("ret", -0.15), leverage=L,
+                            horizon=42, n_paths=60000, seed=3)
+    assert abs(sim["ret"].mean()) < 0.01                      # E[V_t] = 1 for a zero-mean underlying; limit fills at the levels keep it
+    co = lv.simulate_trade(SNDK_LIKE, last_close=100.0, entry=100.0, target=lv.Level("ret", 0.25), stop=lv.Level("ret", -0.15), leverage=L,
+                           horizon=42, n_paths=60000, seed=3, close_only=True)
+    assert abs(co["ret"].mean()) < 0.01 and ((sim["outcome"] != 0).mean() >= (co["outcome"] != 0).mean() - 0.01)
+
+
+def test_report_shows_close_only_comparison_unless_close_only():
+    kw = dict(ticker="ZZ", last_close=1482.33, target="1800", stop="1450", n_paths=3000)
+    r = lv.run(hist(417, sigma=0.046), **kw)
+    t = lv.format_report(r)
+    assert "close-only (no intraday touches, fill at trigger close):" in t and "limit / stop orders filled AT the level" in t
+    assert "largest one-day moves" in t and "Brownian-bridge approximation" in t
+    t2 = lv.format_report(lv.run(hist(417, sigma=0.046), close_only=True, **kw))
+    assert "close-only (no intraday touches" not in t2 and "mode: CLOSE-ONLY" in t2 and "sim_close" not in lv.run(hist(417), close_only=True, **kw)
+    assert r["sim"]["close_only"] is False and r["sim_close"]["close_only"] is True
+
+
+# ------------------------------------------------------------------------------------------------ ETF awareness
+META = {"SNDQ": ("SNDK", -2.0), "SNXX": ("SNDK", 2.0), "INTU": ("INTU", 1.0)}
+
+
+def test_resolve_instrument_branches():
+    avail = ["SNDK", "SNDQ", "INTU", "AMD"]
+    r = lv.resolve_instrument("sndq", META, avail, None)
+    assert (r["sim_ticker"], r["leverage"], r["etf_ticker"]) == ("SNDK", -2.0, "SNDQ")
+    assert lv.resolve_instrument("SNXX", META, avail, None)["leverage"] == 2.0
+    with pytest.raises(ValueError, match=r"SNDQ is already -2x SNDK; run level_calc.py SNDK --leverage -2, or drop --leverage"):
+        lv.resolve_instrument("SNDQ", META, avail, 2.0)
+    fb = lv.resolve_instrument("SNDQ", META, ["SNDQ"], None)                      # underlying not in the file: own returns at leverage 1
+    assert (fb["sim_ticker"], fb["leverage"], fb["etf_ticker"]) == ("SNDQ", 1.0, None) and "SNDK is not in the price file" in fb["note"]
+    assert lv.resolve_instrument("AMD", META, avail, 2.0)["leverage"] == 2.0       # plain stock with --leverage
+    assert lv.resolve_instrument("AMD", META, avail, None)["leverage"] == 1.0
+    assert lv.resolve_instrument("INTU", META, avail, None)["leverage"] == 1.0      # meta leverage 1: not an ETF
+    assert lv.resolve_instrument("INTU", META, avail, 2.0)["leverage"] == 2.0
+    assert lv.resolve_instrument("AMD", None, avail, None)["etf_ticker"] is None
+
+
+def etf_world(tmp_path, with_underlying=True, n=900):
+    days = pd.bdate_range("2021-01-04", periods=n)
+    u = hist(n, sigma=0.03, seed=8)
+    e = np.maximum(1 - 2 * u, 0) - 1                                              # exact -2x daily-reset ETF
+    rows = [pd.DataFrame(dict(gvkey="2", iid="01", tic="SNDQ", datadate=days, prccd=20 * np.cumprod(1 + e)))]
+    if with_underlying:
+        rows.append(pd.DataFrame(dict(gvkey="1", iid="01", tic="SNDK", datadate=days, prccd=100 * np.cumprod(1 + u))))
+    pd.concat(rows).to_parquet(tmp_path / "p.parquet")
+    (tmp_path / "meta.csv").write_text("ticker,underlying,leverage\nSNDQ,SNDK,-2\n")
+    return u, e
+
+
+def test_cli_listed_etf_simulates_the_underlying(tmp_path, capsys):
+    u, e = etf_world(tmp_path)
+    mod = load_script()
+    base = ["SNDQ", "--prices-file", str(tmp_path / "p.parquet"), "--meta", str(tmp_path / "meta.csv"), "--report", str(tmp_path / "r.txt"),
+            "--paths", "2000", "--horizon", "10", "--target", "10%", "--stop", "-15%"]
+    assert mod.main(base) == 0
+    out = capsys.readouterr().out
+    assert "instrument: SNDQ = -2x daily-reset product on SNDK (from meta)" in out and "LEVEL CALCULATOR for SNDK" in out
+    assert "tracking sanity (SNDQ vs -2 x SNDK, 899 common days" in out and "slope -2.00" in out and "tracking error 0.0%/yr" in out
+    assert f"worst {100 * e[1:].min():+.1f}%" in out                                 # the ETF's own worst day, not -2x of the stock's
+    assert "annual vol: unconditional" in out
+    with pytest.raises(SystemExit, match="SNDQ is already -2x SNDK; run level_calc.py SNDK --leverage -2, or drop --leverage"):
+        mod.main(base + ["--leverage", "-2"])
+    assert mod.main(["SNDK", "--leverage", "-2"] + base[1:]) == 0                    # the stock with --leverage still works
+    assert "daily-reset -2x product on SNDK" in capsys.readouterr().out
+
+
+def test_cli_etf_without_underlying_in_file_falls_back(tmp_path, capsys):
+    etf_world(tmp_path, with_underlying=False)
+    mod = load_script()
+    assert mod.main(["SNDQ", "--prices-file", str(tmp_path / "p.parquet"), "--meta", str(tmp_path / "meta.csv"), "--report", str(tmp_path / "r.txt"),
+                     "--paths", "1000", "--horizon", "5"]) == 0
+    out = capsys.readouterr().out
+    assert "SNDK is not in the price file: simulating SNDQ's own returns at leverage 1" in out and "LEVEL CALCULATOR for SNDQ" in out
+    assert "from meta" not in out
+    # a missing meta file is simply not used
+    assert mod.main(["SNDQ", "--prices-file", str(tmp_path / "p.parquet"), "--meta", str(tmp_path / "nope.csv"), "--report", str(tmp_path / "r.txt"),
+                     "--paths", "1000", "--horizon", "5"]) == 0

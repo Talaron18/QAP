@@ -170,7 +170,7 @@ def test_extract_validates_required_columns_and_optional_curcdd(tmp_path, capsys
 
 def test_extract_default_ticker_list_and_documented():
     assert config.SECD_DEFAULT_TICKERS == ["ORCL", "INTU", "LITE", "BE", "STX", "AMD", "CELH", "ALAB", "SNDK", "SKHY", "AXTI",
-                                          "SNDQ", "AXTQ", "DAMD", "SKDD"]
+                                          "SNDQ", "AXTQ", "DAMD", "SKDD", "SNXX", "LABX", "SKHX", "LITX"]
     assert "extract_secd.py" in (ROOT / "scripts" / "wrds_extract.py").read_text().split('"""')[1]
 
 
